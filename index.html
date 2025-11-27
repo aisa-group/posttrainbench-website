@@ -15,11 +15,11 @@
     <nav class="navbar">
         <div class="container">
             <div class="nav-content">
-                <div class="logo">PostTrain Bench</div>
+                <div class="logo">PostTrainBench</div>
                 <div class="nav-links">
                     <a href="#leaderboard">Leaderboard</a>
-                    <a href="#benchmarks">Benchmarks</a>
                     <a href="#about">About</a>
+                    <a href="#team">Team</a>
                     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
                         <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="5"></circle>
@@ -44,12 +44,11 @@
     <section class="hero">
         <div class="container">
             <h1 class="hero-title">
-                <span class="title-main">PostTrain</span>
-                <span class="title-accent">Bench</span>
+                <span class="title-main">PostTrain</span><span class="title-accent">Bench</span>
             </h1>
             <p class="hero-subtitle">Measuring how well AI agents can post-train language models</p>
             <div class="hero-description">
-                <p>Can AI agents improve model performance? We give each agent 4 small models, an H100 GPU, and 10 hours to post-train them. The results are evaluated across 5 challenging benchmarks</p>
+                <p>Can AI agents improve performance of base LLMs? We give each agent 4 small target LLMs, an H100 GPU, and 10 hours to post-train them.</p>
             </div>
             <div class="hero-buttons">
                 <div class="btn-wrapper">
@@ -62,7 +61,6 @@
                     </svg>
                     GitHub
                 </a>
-                <a href="#leaderboard" class="btn btn-secondary">View Leaderboard</a>
             </div>
         </div>
     </section>
@@ -75,6 +73,7 @@
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="performanceChart"></canvas>
                 </div>
+                <p class="chart-footnote">* "Human Post-Trained" is not directly comparable since it exceeds the 10h + 1 GPU constraint</p>
             </div>
             <div class="leaderboard-table">
                 <table>
@@ -126,6 +125,42 @@
                 
                 
                 
+            </div>
+        </div>
+    </section>
+
+    <section id="team" class="team">
+        <div class="container">
+            <h2 class="section-title">Team</h2>
+            <div class="team-list">
+                <a href="https://www.linkedin.com/in/ben-rank" class="team-member-link">Ben Rank</a>
+                <span class="team-separator">·</span>
+                <a href="https://hrdkbhatnagar.github.io/" class="team-member-link">Hardik Bhatnagar</a>
+                <span class="team-separator">·</span>
+                <a href="https://scholar.google.de/citations?user=0z0fNxUAAAAJ&hl=en" class="team-member-link">Matthias Bethge</a>
+                <span class="team-separator">·</span>
+                <a href="https://www.andriushchenko.me/" class="team-member-link">Maksym Andriushchenko</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="citation" class="citation">
+        <div class="container">
+            <h2 class="section-title">Citation</h2>
+            <p class="section-description">If you found PostTrainBench useful, please cite us as:</p>
+            <div class="citation-box">
+                <pre class="citation-text">@misc{posttrainbench_2025,
+  title={PostTrainBench: Measuring AI Ability to Perform LLM Post-Training},
+  author={Rank, Ben and Bhatnagar, Hardik and Bethge, Matthias and Andriushchenko, Maksym},
+  year={2025}
+}</pre>
+                <button class="copy-btn" id="copy-citation" aria-label="Copy citation">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    Copy
+                </button>
             </div>
         </div>
     </section>

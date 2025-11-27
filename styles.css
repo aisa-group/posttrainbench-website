@@ -330,6 +330,14 @@ section {
     width: 100%;
 }
 
+.chart-footnote {
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+}
+
 .leaderboard-table {
     overflow-x: auto;
     border-radius: 0.5rem;
@@ -528,6 +536,97 @@ tbody tr:last-child td {
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+/* Team Section */
+.team {
+    padding: 2.5rem 0;
+    background-color: var(--bg-primary);
+}
+
+.team-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.team-member-link {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: var(--transition);
+    position: relative;
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+}
+
+.team-member-link:hover {
+    color: var(--accent-secondary);
+    border-bottom: 1px solid var(--accent-secondary);
+}
+
+.team-separator {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Citation Section */
+.citation {
+    padding: 4rem 0;
+    background-color: var(--bg-secondary);
+}
+
+.citation-box {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    position: relative;
+}
+
+.citation-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.6;
+}
+
+.copy-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 0.375rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.copy-btn:hover {
+    background-color: var(--accent-secondary);
+    transform: translateY(-2px);
+}
+
+.copy-btn:active {
+    transform: translateY(0);
 }
 
 /* Footer */

@@ -59,7 +59,6 @@ function populateTasks() {
         card.innerHTML = `
             <div class="task-header">
                 <h3 class="task-title">${task.title}</h3>
-                <span class="difficulty-badge difficulty-${task.difficulty}">${task.difficulty}</span>
             </div>
             <p class="task-description">${task.description}</p>
             <div class="task-meta">
@@ -112,6 +111,10 @@ function createChart() {
     // Reverse order for chart (ascending - lowest to highest)
     const reversedData = [...leaderboardData].reverse();
 
+    // Calculate max value dynamically - round up to nearest 10
+    const maxScore = Math.max(...leaderboardData.map(d => parseFloat(d.averageScore)));
+    const yAxisMax = Math.ceil(maxScore / 10) * 10;
+
     performanceChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -155,7 +158,7 @@ function createChart() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 60,
+                    max: yAxisMax,
                     title: {
                         display: true,
                         text: 'Performance',
@@ -175,6 +178,7 @@ function createChart() {
                             family: 'monospace',
                             size: 11
                         },
+                        stepSize: 10,
                         callback: function(value) {
                             return value + '%';
                         }
@@ -228,17 +232,6 @@ document.getElementById('paper-btn').addEventListener('click', (e) => {
     e.target.blur();
 });
 
-// View Leaderboard button - Smooth scroll
-document.querySelectorAll('.hero-buttons a[href="#leaderboard"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelector('#leaderboard').scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-    });
-});
-
 // Handle window resize for chart responsiveness
 let resizeTimeout;
 window.addEventListener('resize', () => {
@@ -249,6 +242,22 @@ window.addEventListener('resize', () => {
             createChart();
         }
     }, 250);
+});
+
+// Copy citation to clipboard
+document.getElementById('copy-citation').addEventListener('click', function() {
+    const citationText = document.querySelector('.citation-text').textContent;
+    navigator.clipboard.writeText(citationText).then(() => {
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Copied!`;
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 2000);
+    });
 });
 
 // Initialize everything when DOM is loaded
