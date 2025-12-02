@@ -19,14 +19,13 @@ themeToggle.addEventListener('click', () => {
     localStorage.setItem('theme', newTheme);
 
     // Recreate charts with new theme colors
-    const selectedModel = document.getElementById('model-select').value;
     if (performanceChart) {
         performanceChart.destroy();
-        createSimpleChart(selectedModel);
+        createSimpleChart(currentSelectedModel);
     }
     if (detailedChart) {
         detailedChart.destroy();
-        createDetailedChart(selectedModel);
+        createDetailedChart(currentSelectedModel);
     }
 });
 
@@ -439,14 +438,13 @@ let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
-        const selectedModel = document.getElementById('model-select').value;
         if (performanceChart) {
             performanceChart.destroy();
-            createSimpleChart(selectedModel);
+            createSimpleChart(currentSelectedModel);
         }
         if (detailedChart) {
             detailedChart.destroy();
-            createDetailedChart(selectedModel);
+            createDetailedChart(currentSelectedModel);
         }
     }, 250);
 });
@@ -467,19 +465,59 @@ document.getElementById('copy-citation').addEventListener('click', function() {
     });
 });
 
-// Model selector change handler
-document.getElementById('model-select').addEventListener('change', (e) => {
-    const selectedModel = e.target.value;
-    populateLeaderboard(selectedModel);
+// Custom dropdown functionality
+let currentSelectedModel = 'average';
 
-    // Update charts based on selected model
-    if (performanceChart) {
-        performanceChart.destroy();
-        createSimpleChart(selectedModel);
+const dropdownDisplay = document.getElementById('model-select-display');
+const dropdownOptions = document.getElementById('model-select-options');
+const customDropdown = document.querySelector('.custom-dropdown');
+
+// Toggle dropdown
+dropdownDisplay.addEventListener('click', (e) => {
+    e.stopPropagation();
+    customDropdown.classList.toggle('open');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!customDropdown.contains(e.target)) {
+        customDropdown.classList.remove('open');
     }
-    if (detailedChart) {
-        detailedChart.destroy();
-        createDetailedChart(selectedModel);
+});
+
+// Handle option selection
+dropdownOptions.addEventListener('click', (e) => {
+    if (e.target.classList.contains('dropdown-option')) {
+        const selectedValue = e.target.getAttribute('data-value');
+        const selectedText = e.target.textContent;
+
+        // Update display
+        dropdownDisplay.textContent = selectedText;
+
+        // Update active state
+        document.querySelectorAll('.dropdown-option').forEach(opt => {
+            opt.classList.remove('active');
+        });
+        e.target.classList.add('active');
+
+        // Close dropdown
+        customDropdown.classList.remove('open');
+
+        // Update model if changed
+        if (selectedValue !== currentSelectedModel) {
+            currentSelectedModel = selectedValue;
+            populateLeaderboard(selectedValue);
+
+            // Update charts based on selected model
+            if (performanceChart) {
+                performanceChart.destroy();
+                createSimpleChart(selectedValue);
+            }
+            if (detailedChart) {
+                detailedChart.destroy();
+                createDetailedChart(selectedValue);
+            }
+        }
     }
 });
 

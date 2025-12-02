@@ -407,7 +407,12 @@ section {
     font-weight: 500;
 }
 
-.model-select {
+.custom-dropdown {
+    position: relative;
+    min-width: 200px;
+}
+
+.dropdown-selected {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
@@ -417,20 +422,75 @@ section {
     font-size: 0.875rem;
     cursor: pointer;
     transition: var(--transition);
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23aca595' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
+    position: relative;
+    user-select: none;
 }
 
-.model-select:hover {
+.dropdown-selected::after {
+    content: '';
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--text-secondary);
+    transition: var(--transition);
+}
+
+.dropdown-selected:hover {
     border-color: var(--accent-primary);
 }
 
-.model-select:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(193, 125, 90, 0.1);
+.custom-dropdown.open .dropdown-selected::after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.dropdown-options {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-dropdown.open .dropdown-options {
+    max-height: 300px;
+    opacity: 1;
+    overflow-y: auto;
+}
+
+.dropdown-option {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-option:last-child {
+    border-bottom: none;
+}
+
+.dropdown-option:hover {
+    background-color: var(--bg-secondary);
+}
+
+.dropdown-option.active {
+    background-color: var(--bg-tertiary);
+    color: var(--accent-primary);
+    font-weight: 500;
 }
 
 .leaderboard-table {

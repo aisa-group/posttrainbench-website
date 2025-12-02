@@ -76,14 +76,19 @@
                 <p class="chart-footnote">* "Human Post-Trained" is not directly comparable since it exceeds the 10h + 1 GPU constraint</p>
             </div>
             <div class="leaderboard-controls">
-                <label for="model-select" class="model-select-label">Filter by model:</label>
-                <select id="model-select" class="model-select">
-                    <option value="average">Average (all models)</option>
-                    <option value="Qwen3-1.7B">Qwen3-1.7B</option>
-                    <option value="Qwen3-4B">Qwen3-4B</option>
-                    <option value="SmolLM3-3B">SmolLM3-3B</option>
-                    <option value="Gemma-3-4B-IT">Gemma-3-4B-IT</option>
-                </select>
+                <label class="model-select-label">Filter by model:</label>
+                <div class="custom-dropdown">
+                    <div class="dropdown-selected" id="model-select-display">
+                        Average (all models)
+                    </div>
+                    <div class="dropdown-options" id="model-select-options">
+                        <div class="dropdown-option active" data-value="average">Average (all models)</div>
+                        <div class="dropdown-option" data-value="Qwen3-1.7B">Qwen3-1.7B</div>
+                        <div class="dropdown-option" data-value="Qwen3-4B">Qwen3-4B</div>
+                        <div class="dropdown-option" data-value="SmolLM3-3B">SmolLM3-3B</div>
+                        <div class="dropdown-option" data-value="Gemma-3-4B-IT">Gemma-3-4B-IT</div>
+                    </div>
+                </div>
             </div>
             <div class="leaderboard-table">
                 <table>
