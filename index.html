@@ -75,6 +75,16 @@
                 </div>
                 <p class="chart-footnote">* "Human Post-Trained" is not directly comparable since it exceeds the 10h + 1 GPU constraint</p>
             </div>
+            <div class="leaderboard-controls">
+                <label for="model-select" class="model-select-label">Filter by model:</label>
+                <select id="model-select" class="model-select">
+                    <option value="average">Average (all models)</option>
+                    <option value="Qwen3-1.7B">Qwen3-1.7B</option>
+                    <option value="Qwen3-4B">Qwen3-4B</option>
+                    <option value="SmolLM3-3B">SmolLM3-3B</option>
+                    <option value="Gemma-3-4B-IT">Gemma-3-4B-IT</option>
+                </select>
+            </div>
             <div class="leaderboard-table">
                 <table>
                     <thead>
@@ -83,10 +93,10 @@
                             <th>Method</th>
                             <th>Average Score</th>
                             <th>AIME 2025</th>
-                            <th>Arena Hard</th>
                             <th>BFCL</th>
                             <th>GPQA Main</th>
                             <th>GSM8K</th>
+                            <th>HumanEval</th>
                         </tr>
                     </thead>
                     <tbody id="leaderboard-data">
@@ -94,6 +104,7 @@
                     </tbody>
                 </table>
             </div>
+            <p class="leaderboard-footnote">More agents coming soon: Gemini 3.0, Claude Opus 4.5, and more...</p>
         </div>
     </section>
 

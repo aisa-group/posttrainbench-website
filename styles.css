@@ -20,13 +20,13 @@
     --danger: #ef4444;
     --transition: all 0.3s ease;
 
-    /* Rank badge colors - Dark theme */
-    --rank-1-bg: linear-gradient(135deg, #d4a373, #c8956e);
+    /* Rank badge colors - Dark theme (muted gold, silver, bronze) */
+    --rank-1-bg: linear-gradient(135deg, #d4af7a, #c4a068);
     --rank-1-text: #1a1612;
-    --rank-2-bg: linear-gradient(135deg, #b39b87, #a68f7d);
+    --rank-2-bg: linear-gradient(135deg, #b8b5b0, #a8a5a0);
     --rank-2-text: #1a1612;
-    --rank-3-bg: linear-gradient(135deg, #a07860, #8d6b55);
-    --rank-3-text: #faf8f3;
+    --rank-3-bg: linear-gradient(135deg, #c09575, #b38868);
+    --rank-3-text: #1a1612;
 }
 
 [data-theme="light"] {
@@ -40,13 +40,13 @@
     --accent-primary: #a66b4f;
     --accent-secondary: #8d5d45;
 
-    /* Rank badge colors - Light theme */
-    --rank-1-bg: linear-gradient(135deg, #c8956e, #b88a64);
+    /* Rank badge colors - Light theme (muted gold, silver, bronze) */
+    --rank-1-bg: linear-gradient(135deg, #d4af7a, #c4a068);
     --rank-1-text: #2d2a23;
-    --rank-2-bg: linear-gradient(135deg, #a68f7d, #998371);
+    --rank-2-bg: linear-gradient(135deg, #b8b5b0, #a8a5a0);
     --rank-2-text: #2d2a23;
-    --rank-3-bg: linear-gradient(135deg, #8d6b55, #7d604b);
-    --rank-3-text: #faf8f3;
+    --rank-3-bg: linear-gradient(135deg, #c09575, #b38868);
+    --rank-3-text: #2d2a23;
 }
 
 body {
@@ -338,9 +338,57 @@ section {
     text-align: center;
 }
 
+.leaderboard-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    justify-content: flex-end;
+}
+
+.model-select-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.model-select {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem 2rem 0.5rem 1rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23aca595' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+}
+
+.model-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.model-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(193, 125, 90, 0.1);
+}
+
 .leaderboard-table {
     overflow-x: auto;
     border-radius: 0.5rem;
+}
+
+.leaderboard-footnote {
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-style: italic;
 }
 
 table {

@@ -6,8 +6,8 @@ let performanceChart = null;
 const themeToggle = document.getElementById('theme-toggle');
 const html = document.documentElement;
 
-// Load saved theme or default to dark
-const savedTheme = localStorage.getItem('theme') || 'dark';
+// Load saved theme or default to light
+const savedTheme = localStorage.getItem('theme') || 'light';
 html.setAttribute('data-theme', savedTheme);
 
 themeToggle.addEventListener('click', () => {
@@ -24,11 +24,48 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
-// Populate Leaderboard
-function populateLeaderboard() {
-    const tbody = document.getElementById('leaderboard-data');
+// Get leaderboard data for specific model or average
+function getLeaderboardDataForModel(modelName) {
+    const agentKeyMap = {
+        "Human Post-Trained": "human",
+        "Base Model": "base-model",
+        "Codex 5.1": "codex-5.1",
+        "Sonnet 4.5": "sonnet-4.5"
+    };
 
-    leaderboardData.forEach(entry => {
+    if (modelName === "average") {
+        return leaderboardData;
+    }
+
+    // Create data for specific model
+    const modelData = leaderboardDataRaw.map(entry => {
+        const agentKey = agentKeyMap[entry.agent];
+        const modelScores = modelBenchmarkData[agentKey][modelName];
+        return {
+            agent: entry.agent,
+            averageScore: calculateAverageForModel(agentKey, modelName),
+            benchmarkScores: modelScores,
+            description: entry.description
+        };
+    });
+
+    // Sort and rank
+    return modelData
+        .sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore))
+        .map((entry, index) => ({
+            ...entry,
+            rank: index + 1
+        }));
+}
+
+// Populate Leaderboard
+function populateLeaderboard(modelName = "average") {
+    const tbody = document.getElementById('leaderboard-data');
+    tbody.innerHTML = ''; // Clear existing data
+
+    const data = getLeaderboardDataForModel(modelName);
+
+    data.forEach(entry => {
         const row = document.createElement('tr');
 
         const rankClass = entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other';
@@ -38,10 +75,10 @@ function populateLeaderboard() {
             <td><strong>${entry.agent}</strong></td>
             <td><strong>${entry.averageScore}%</strong></td>
             <td>${entry.benchmarkScores.aime2025}%</td>
-            <td>${entry.benchmarkScores.arenahard}%</td>
             <td>${entry.benchmarkScores.bfcl}%</td>
             <td>${entry.benchmarkScores.gpqamain}%</td>
             <td>${entry.benchmarkScores.gsm8k}%</td>
+            <td>${entry.benchmarkScores.humaneval}%</td>
         `;
 
         tbody.appendChild(row);
@@ -85,7 +122,7 @@ function populateStatistics() {
 }
 
 // Create Performance Chart
-function createChart() {
+function createChart(modelName = "average") {
     const ctx = document.getElementById('performanceChart');
 
     // Get theme colors
@@ -108,11 +145,14 @@ function createChart() {
         wrapper.style.height = '';
     }
 
+    // Get data for selected model
+    const data = getLeaderboardDataForModel(modelName);
+
     // Reverse order for chart (ascending - lowest to highest)
-    const reversedData = [...leaderboardData].reverse();
+    const reversedData = [...data].reverse();
 
     // Calculate max value dynamically - round up to nearest 10
-    const maxScore = Math.max(...leaderboardData.map(d => parseFloat(d.averageScore)));
+    const maxScore = Math.max(...data.map(d => parseFloat(d.averageScore)));
     const yAxisMax = Math.ceil(maxScore / 10) * 10;
 
     performanceChart = new Chart(ctx, {
@@ -258,6 +298,18 @@ document.getElementById('copy-citation').addEventListener('click', function() {
             btn.innerHTML = originalText;
         }, 2000);
     });
+});
+
+// Model selector change handler
+document.getElementById('model-select').addEventListener('change', (e) => {
+    const selectedModel = e.target.value;
+    populateLeaderboard(selectedModel);
+
+    // Optionally update chart based on selected model
+    if (performanceChart) {
+        performanceChart.destroy();
+        createChart(selectedModel);
+    }
 });
 
 // Initialize everything when DOM is loaded
