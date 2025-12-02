@@ -1,6 +1,7 @@
 
-// Global chart instance
+// Global chart instances
 let performanceChart = null;
+let detailedChart = null;
 
 // Theme Toggle
 const themeToggle = document.getElementById('theme-toggle');
@@ -17,10 +18,15 @@ themeToggle.addEventListener('click', () => {
     html.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
 
-    // Recreate chart with new theme colors
+    // Recreate charts with new theme colors
+    const selectedModel = document.getElementById('model-select').value;
     if (performanceChart) {
         performanceChart.destroy();
-        createChart();
+        createSimpleChart(selectedModel);
+    }
+    if (detailedChart) {
+        detailedChart.destroy();
+        createDetailedChart(selectedModel);
     }
 });
 
@@ -121,8 +127,8 @@ function populateStatistics() {
     if (timeLimitEl) timeLimitEl.textContent = statistics.timeLimit;
 }
 
-// Create Performance Chart
-function createChart(modelName = "average") {
+// Create Simple Performance Chart (average view)
+function createSimpleChart(modelName = "average") {
     const ctx = document.getElementById('performanceChart');
 
     // Get theme colors
@@ -251,6 +257,162 @@ function createChart(modelName = "average") {
     });
 }
 
+// Create Detailed Chart (grouped by benchmark)
+function createDetailedChart(modelName = "average") {
+    const ctx = document.getElementById('detailedChart');
+
+    // Get theme colors
+    const style = getComputedStyle(document.documentElement);
+    const textPrimary = style.getPropertyValue('--text-primary').trim();
+    const textSecondary = style.getPropertyValue('--text-secondary').trim();
+    const accentPrimary = style.getPropertyValue('--accent-primary').trim();
+    const borderColor = style.getPropertyValue('--border-color').trim();
+
+    // Check if mobile
+    const isMobile = window.innerWidth <= 768;
+
+    // Set wrapper dimensions based on screen size
+    const wrapper = ctx.closest('.leaderboard-chart-wrapper');
+    if (isMobile) {
+        wrapper.style.minWidth = '600px';
+        wrapper.style.height = '300px';
+    } else {
+        wrapper.style.minWidth = '';
+        wrapper.style.height = '';
+    }
+
+    // Agent colors for grouped view - theme-adaptive
+    const currentTheme = html.getAttribute('data-theme');
+    const agentColors = currentTheme === 'dark' ? {
+        'Human Post-Trained': '#deb070',  // Softer golden amber
+        'Base Model': '#b89888',          // Muted dusty rose
+        'Codex 5.1': '#c88968',           // Softer terracotta
+        'Sonnet 4.5': '#a87d60'           // Muted rust
+    } : {
+        'Human Post-Trained': '#c49558',  // Deep gold
+        'Base Model': '#8a7965',          // Rich taupe
+        'Codex 5.1': '#a66b4f',           // Burnt terracotta
+        'Sonnet 4.5': '#6e5743'           // Dark coffee
+    };
+
+    // Grouped bar chart - benchmarks on X-axis, agents as different bars
+        // Grouped bar chart - benchmarks on X-axis, agents as different bars
+        const benchmarks = ['AIME 2025', 'BFCL', 'GPQA Main', 'GSM8K', 'HumanEval'];
+        const benchmarkKeys = ['aime2025', 'bfcl', 'gpqamain', 'gsm8k', 'humaneval'];
+        const data = getLeaderboardDataForModel(modelName);
+
+        const datasets = data.map(entry => ({
+            label: entry.agent,
+            data: benchmarkKeys.map(key => parseFloat(entry.benchmarkScores[key])),
+            backgroundColor: agentColors[entry.agent] || accentPrimary,
+            borderColor: agentColors[entry.agent] || accentPrimary,
+            borderWidth: 1,
+            borderRadius: 4
+        }));
+
+        const maxScore = Math.max(...data.flatMap(entry =>
+            benchmarkKeys.map(key => parseFloat(entry.benchmarkScores[key]))
+        ));
+        const yAxisMax = Math.ceil(maxScore / 10) * 10;
+
+        detailedChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: benchmarks,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: !isMobile,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: textPrimary,
+                            font: {
+                                family: 'monospace',
+                                size: 11
+                            },
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            family: 'monospace',
+                            size: 14
+                        },
+                        bodyFont: {
+                            family: 'monospace',
+                            size: 13
+                        },
+                        borderColor: accentPrimary,
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: yAxisMax,
+                        title: {
+                            display: true,
+                            text: 'Score (%)',
+                            color: textPrimary,
+                            font: {
+                                family: 'monospace',
+                                size: 12,
+                                weight: 500
+                            }
+                        },
+                        grid: {
+                            color: borderColor
+                        },
+                        ticks: {
+                            color: textSecondary,
+                            font: {
+                                family: 'monospace',
+                                size: 11
+                            },
+                            stepSize: 10,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Benchmarks',
+                            color: textPrimary,
+                            font: {
+                                family: 'monospace',
+                                size: 12,
+                                weight: 500
+                            }
+                        },
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: textSecondary,
+                            font: {
+                                family: 'monospace',
+                                size: 11
+                            }
+                        }
+                    }
+                }
+            }
+        });
+}
+
 // Smooth Scroll
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
@@ -277,9 +439,14 @@ let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
+        const selectedModel = document.getElementById('model-select').value;
         if (performanceChart) {
             performanceChart.destroy();
-            createChart();
+            createSimpleChart(selectedModel);
+        }
+        if (detailedChart) {
+            detailedChart.destroy();
+            createDetailedChart(selectedModel);
         }
     }, 250);
 });
@@ -305,10 +472,14 @@ document.getElementById('model-select').addEventListener('change', (e) => {
     const selectedModel = e.target.value;
     populateLeaderboard(selectedModel);
 
-    // Optionally update chart based on selected model
+    // Update charts based on selected model
     if (performanceChart) {
         performanceChart.destroy();
-        createChart(selectedModel);
+        createSimpleChart(selectedModel);
+    }
+    if (detailedChart) {
+        detailedChart.destroy();
+        createDetailedChart(selectedModel);
     }
 });
 
@@ -317,5 +488,6 @@ document.addEventListener('DOMContentLoaded', () => {
     populateLeaderboard();
     populateTasks();
     populateStatistics();
-    createChart();
+    createSimpleChart();
+    createDetailedChart();
 });

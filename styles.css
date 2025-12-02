@@ -21,7 +21,7 @@
     --transition: all 0.3s ease;
 
     /* Rank badge colors - Dark theme (muted gold, silver, bronze) */
-    --rank-1-bg: linear-gradient(135deg, #d4af7a, #c4a068);
+    --rank-1-bg: linear-gradient(135deg, #e6c068, #d4af5a);
     --rank-1-text: #1a1612;
     --rank-2-bg: linear-gradient(135deg, #b8b5b0, #a8a5a0);
     --rank-2-text: #1a1612;
@@ -41,7 +41,7 @@
     --accent-secondary: #8d5d45;
 
     /* Rank badge colors - Light theme (muted gold, silver, bronze) */
-    --rank-1-bg: linear-gradient(135deg, #d4af7a, #c4a068);
+    --rank-1-bg: linear-gradient(135deg, #e6c068, #d4af5a);
     --rank-1-text: #2d2a23;
     --rank-2-bg: linear-gradient(135deg, #b8b5b0, #a8a5a0);
     --rank-2-text: #2d2a23;
@@ -84,6 +84,13 @@ body {
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
+}
+
+.logo-accent {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .nav-links {
@@ -312,9 +319,57 @@ section {
     line-height: 1.8;
 }
 
+.section-subtitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 3rem 0 1.5rem 0;
+    text-align: center;
+    color: var(--text-primary);
+}
+
 /* Leaderboard */
 .leaderboard {
     background-color: var(--bg-secondary);
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    justify-content: flex-end;
+}
+
+.chart-view-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.chart-view-select {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem 2rem 0.5rem 1rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--transition);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23aca595' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+}
+
+.chart-view-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.chart-view-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(193, 125, 90, 0.1);
 }
 
 .leaderboard-chart {

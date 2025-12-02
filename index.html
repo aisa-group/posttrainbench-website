@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +15,7 @@
     <nav class="navbar">
         <div class="container">
             <div class="nav-content">
-                <div class="logo">PostTrainBench</div>
+                <div class="logo">PostTrain<span class="logo-accent">Bench</span></div>
                 <div class="nav-links">
                     <a href="#leaderboard">Leaderboard</a>
                     <a href="#about">About</a>
@@ -104,7 +104,14 @@
                     </tbody>
                 </table>
             </div>
-            <p class="leaderboard-footnote">More agents coming soon: Gemini 3.0, Claude Opus 4.5, and more...</p>
+            <p class="leaderboard-footnote">More agents coming soon: Gemini 3, Claude Opus 4.5, and more...</p>
+
+            <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
+            <div class="leaderboard-chart">
+                <div class="leaderboard-chart-wrapper">
+                    <canvas id="detailedChart"></canvas>
+                </div>
+            </div>
         </div>
     </section>
 
