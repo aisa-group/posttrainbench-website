@@ -185,11 +185,11 @@ function createSimpleChart(modelName = "average") {
                     padding: 12,
                     titleFont: {
                         family: 'monospace',
-                        size: 14
+                        size: 15
                     },
                     bodyFont: {
                         family: 'monospace',
-                        size: 13
+                        size: 14
                     },
                     borderColor: accentPrimary,
                     borderWidth: 1,
@@ -210,7 +210,7 @@ function createSimpleChart(modelName = "average") {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 12,
+                            size: 14,
                             weight: 500
                         }
                     },
@@ -221,7 +221,7 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 11
+                            size: 12
                         },
                         stepSize: 10,
                         callback: function(value) {
@@ -236,7 +236,7 @@ function createSimpleChart(modelName = "average") {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 12,
+                            size: 14,
                             weight: 500
                         }
                     },
@@ -247,7 +247,7 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 11
+                            size: 12
                         }
                     }
                 }
@@ -336,9 +336,9 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 11
+                                size: 13
                             },
-                            padding: 10
+                            padding: 12
                         }
                     },
                     tooltip: {
@@ -346,11 +346,11 @@ function createDetailedChart(modelName = "average") {
                         padding: 12,
                         titleFont: {
                             family: 'monospace',
-                            size: 14
+                            size: 15
                         },
                         bodyFont: {
                             family: 'monospace',
-                            size: 13
+                            size: 14
                         },
                         borderColor: accentPrimary,
                         borderWidth: 1,
@@ -371,7 +371,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 12,
+                                size: 14,
                                 weight: 500
                             }
                         },
@@ -382,7 +382,7 @@ function createDetailedChart(modelName = "average") {
                             color: textSecondary,
                             font: {
                                 family: 'monospace',
-                                size: 11
+                                size: 12
                             },
                             stepSize: 10,
                             callback: function(value) {
@@ -397,7 +397,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 12,
+                                size: 14,
                                 weight: 500
                             }
                         },
@@ -408,7 +408,7 @@ function createDetailedChart(modelName = "average") {
                             color: textSecondary,
                             font: {
                                 family: 'monospace',
-                                size: 11
+                                size: 12
                             }
                         }
                     }
@@ -526,6 +526,30 @@ dropdownOptions.addEventListener('click', (e) => {
     }
 });
 
+// Navbar logo visibility based on hero section
+const navbar = document.querySelector('.navbar');
+const logo = document.querySelector('.logo');
+const heroSection = document.querySelector('.hero');
+
+function handleNavbarLogoVisibility() {
+    if (!heroSection || !logo) return;
+
+    const heroRect = heroSection.getBoundingClientRect();
+    const heroBottom = heroRect.bottom;
+
+    // If hero section is still visible in viewport, hide logo
+    if (heroBottom > 0) {
+        logo.style.opacity = '0';
+        logo.style.visibility = 'hidden';
+    } else {
+        logo.style.opacity = '1';
+        logo.style.visibility = 'visible';
+    }
+}
+
+// Add scroll listener for navbar logo visibility
+window.addEventListener('scroll', handleNavbarLogoVisibility);
+
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     populateLeaderboard();
@@ -533,4 +557,5 @@ document.addEventListener('DOMContentLoaded', () => {
     populateStatistics();
     createSimpleChart();
     createDetailedChart();
+    handleNavbarLogoVisibility(); // Check initial state
 });

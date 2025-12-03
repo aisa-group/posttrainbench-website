@@ -84,6 +84,7 @@ body {
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .logo-accent {
