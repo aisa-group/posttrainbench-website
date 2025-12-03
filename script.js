@@ -300,7 +300,12 @@ function createDetailedChart(modelName = "average") {
         const benchmarkKeys = ['aime2025', 'bfcl', 'gpqamain', 'gsm8k', 'humaneval'];
         const data = getLeaderboardDataForModel(modelName);
 
-        const datasets = data.map(entry => ({
+        const agentOrder = ['Base Model', 'Sonnet 4.5', 'Codex 5.1', 'Human Post-Trained'];
+        const orderedData = agentOrder.map(agentName =>
+            data.find(entry => entry.agent === agentName)
+        ).filter(Boolean);
+
+        const datasets = orderedData.map(entry => ({
             label: entry.agent,
             data: benchmarkKeys.map(key => parseFloat(entry.benchmarkScores[key])),
             backgroundColor: agentColors[entry.agent] || accentPrimary,
@@ -309,7 +314,7 @@ function createDetailedChart(modelName = "average") {
             borderRadius: 4
         }));
 
-        const maxScore = Math.max(...data.flatMap(entry =>
+        const maxScore = Math.max(...orderedData.flatMap(entry =>
             benchmarkKeys.map(key => parseFloat(entry.benchmarkScores[key]))
         ));
         const yAxisMax = Math.ceil(maxScore / 10) * 10;
