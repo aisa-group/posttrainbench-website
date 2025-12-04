@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="19 99 1222 202">
+  <defs>
+    <style>
+      .box { fill: none; stroke: #a0917a; stroke-width: 2; rx: 8; }
+      .text { font-family: 'JetBrains Mono', monospace; font-size: 13px; fill: #6b655a; }
+      .text-small { font-family: 'JetBrains Mono', monospace; font-size: 12px; fill: #6b655a; }
+      .title { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; fill: #8a7965; }
+      .subtitle { font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: #6b655a; font-weight: 500; }
+      .badge { fill: none; stroke: #a0917a; stroke-width: 1; }
+      .badge-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: #8a7965; font-weight: 600; }
+      .arrow { stroke: #a0917a; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrow-success { stroke: #a0917a; stroke-width: 2; fill: none; marker-end: url(#arrowhead-success); }
+      .arrow-error { stroke: #a0917a; stroke-width: 2; fill: none; marker-end: url(#arrowhead-error); }
+      .label-success { fill: none; stroke: #a0917a; stroke-width: 1; }
+      .label-error { fill: none; stroke: #a0917a; stroke-width: 1; }
+      .label-text-success { font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: #8a7965; font-weight: 600; }
+      .label-text-error { font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: #8a7965; font-weight: 600; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#a0917a"/>
+    </marker>
+    <marker id="arrowhead-success" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#a0917a"/>
+    </marker>
+    <marker id="arrowhead-error" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#a0917a"/>
+    </marker>
+  </defs>
+
+  <!-- Box 1: Inputs -->
+  <rect x="20" y="120" width="160" height="160" class="box"/>
+  <text x="100" y="145" class="title" text-anchor="middle">Inputs</text>
+  <text x="30" y="168" class="text-small">• Benchmark tasks</text>
+  <text x="30" y="188" class="text-small">• Base model</text>
+  <text x="30" y="208" class="text-small">• Resources (1 H100,</text>
+  <text x="35" y="223" class="text-small">10 hours)</text>
+  <text x="30" y="248" class="text-small">• Agent</text>
+
+  <!-- Arrow 1 -->
+  <path d="M 180 200 L 220 200" class="arrow"/>
+
+  <!-- Box 2: Agent Processing -->
+  <rect x="220" y="100" width="160" height="200" class="box"/>
+  <text x="300" y="125" class="title" text-anchor="middle">Agent Processing</text>
+  <text x="230" y="148" class="subtitle">Agent receives:</text>
+  <text x="230" y="168" class="text-small">• Prompt</text>
+  <text x="230" y="188" class="text-small">• Testing script</text>
+  <text x="230" y="208" class="text-small">• Task context</text>
+  <text x="230" y="228" class="text-small">• Web search access</text>
+  <rect x="235" y="245" width="130" height="40" class="badge" rx="4"/>
+  <text x="300" y="265" class="badge-text" text-anchor="middle">10hr autonomous</text>
+  <text x="300" y="278" class="badge-text" text-anchor="middle">run</text>
+
+  <!-- Arrow 2 -->
+  <path d="M 380 200 L 420 200" class="arrow"/>
+
+  <!-- Box 3: Post-trained Model -->
+  <rect x="420" y="145" width="160" height="110" class="box"/>
+  <text x="500" y="168" class="title" text-anchor="middle">Post-trained Model</text>
+  <text x="430" y="190" class="subtitle">Agent produces:</text>
+  <text x="430" y="210" class="text-small">• Fine-tuned model</text>
+  <text x="430" y="230" class="text-small">• Training logs</text>
+
+  <!-- Arrow 3 -->
+  <path d="M 580 200 L 635 200" class="arrow"/>
+
+  <!-- Diamond: Validation -->
+  <polygon points="730,118 825,200 730,282 635,200" fill="none" stroke="#a0917a" stroke-width="2"/>
+  <text x="730" y="180" class="title" text-anchor="middle">Validation</text>
+  <text x="730" y="195" class="subtitle" text-anchor="middle" font-style="italic" font-size="10px">(Anti-cheating)</text>
+  <text x="730" y="218" class="text-small" text-anchor="middle" font-size="10px">Contamination?</text>
+  <text x="730" y="232  " class="text-small" text-anchor="middle" font-size="10px">Allowed model?</text>
+
+  <!-- Arrow from validation to evaluation -->
+  <path d="M 825 200 L 880 200" class="arrow"/>
+
+  <!-- Box 4: Evaluation -->
+  <rect x="880" y="155" width="160" height="80" class="box"/>
+  <text x="960" y="180" class="title" text-anchor="middle">Evaluation</text>
+  <text x="890" y="208" class="text-small">• Run full benchmark</text>
+
+  <!-- Arrow 4 -->
+  <path d="M 1040 200 L 1080 200" class="arrow"/>
+
+  <!-- Box 5: Processing -->
+  <rect x="1080" y="145" width="160" height="110" class="box"/>
+  <text x="1160" y="170" class="title" text-anchor="middle">Processing</text>
+  <text x="1088" y="193" class="subtitle">Decision logic:</text>
+  <text x="1086" y="213" class="text-small">• Flagged → baseline</text>
+  <text x="1086" y="233" class="text-small">• Clean → agent score</text>
+</svg>
