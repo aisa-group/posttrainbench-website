@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PostTrain Bench</title>
+    <title>PostTrainBench</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=PT+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
@@ -109,12 +110,25 @@
                     </tbody>
                 </table>
             </div>
-            <p class="leaderboard-footnote">More agents coming soon: Gemini 3, Claude Opus 4.5, and more...</p>
+            <p class="leaderboard-footnote">More agents coming soon...</p>
 
             <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="detailedChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Time Spent Section -->
+    <section id="time-spent" class="time-spent">
+        <div class="container">
+            <h2 class="section-title">Average Time Spent</h2>
+            <p class="section-description">Time taken by each agent to complete post-training (out of 10 hours)</p>
+            <div class="leaderboard-chart">
+                <div class="leaderboard-chart-wrapper">
+                    <canvas id="timeSpentChart"></canvas>
                 </div>
             </div>
         </div>
@@ -198,6 +212,7 @@
     </section>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
 </body>

@@ -1,10 +1,10 @@
-// Per-model benchmark data (values are percentages already multiplied by 100)
+// Per-model benchmark data
 const modelBenchmarkData = {
     "base-model": {
         "Qwen3-1.7B": {
             aime2025: 0.0,
             bfcl: 0.0,
-            gpqamain: 14.0625,
+            gpqamain: 14.06,
             gsm8k: 12.66,
             humaneval: 7.93
         },
@@ -34,60 +34,150 @@ const modelBenchmarkData = {
         "Qwen3-1.7B": {
             aime2025: 0.0,
             bfcl: 0.0,
-            gpqamain: 14.0625,
-            gsm8k: 2.81,
-            humaneval: 7.93
+            gpqamain: 16.74,
+            gsm8k: 12.66,
+            humaneval: 0.61
         },
         "Qwen3-4B": {
-            aime2025: 0.0,
-            bfcl: 0.0,
-            gpqamain: 4.91,
-            gsm8k: 38.51,
-            humaneval: 36.59
-        },
-        "SmolLM3-3B": {
             aime2025: 3.33,
             bfcl: 0.0,
-            gpqamain: 4.91,
+            gpqamain: 13.39,
+            gsm8k: 41.85,
+            humaneval: 44.51
+        },
+        "SmolLM3-3B": {
+            aime2025: 0.0,
+            bfcl: 0.0,
+            gpqamain: 3.13,
             gsm8k: 21.08,
-            humaneval: 4.88
+            humaneval: 12.20
         },
         "Gemma-3-4B-IT": {
             aime2025: 0.0,
             bfcl: 6.0,
-            gpqamain: 0.0,
-            gsm8k: 36.85,
-            humaneval: 0.61
+            gpqamain: 25.22,
+            gsm8k: 57.92,
+            humaneval: 34.76
+        }
+    },
+    "opus-4.5": {
+        "Qwen3-1.7B": {
+            aime2025: 0.0,
+            bfcl: 90.0,
+            gpqamain: 14.73,
+            gsm8k: 5.84,
+            humaneval: 12.20
+        },
+        "Qwen3-4B": {
+            aime2025: 3.33,
+            bfcl: 0.0,
+            gpqamain: 5.80,
+            gsm8k: 5.53,
+            humaneval: 36.59
+        },
+        "SmolLM3-3B": {
+            aime2025: 10.0,
+            bfcl: 0.0,
+            gpqamain: 4.91,
+            gsm8k: 60.50,
+            humaneval: 9.76
+        },
+        "Gemma-3-4B-IT": {
+            aime2025: 0.0,
+            bfcl: 71.0,
+            gpqamain: 1.56,
+            gsm8k: 34.80,
+            humaneval: 35.37
         }
     },
     "codex-5.1": {
         "Qwen3-1.7B": {
             aime2025: 0.0,
-            bfcl: 0.0,
-            gpqamain: 14.0625,
-            gsm8k: 9.10,
-            humaneval: 35.98
+            bfcl: 88.0,
+            gpqamain: 28.79,
+            gsm8k: 47.16,
+            humaneval: 20.12
         },
         "Qwen3-4B": {
             aime2025: 0.0,
-            bfcl: 86.0,
-            gpqamain: 30.36,
-            gsm8k: 47.16,
-            humaneval: 49.39
+            bfcl: 0.0,
+            gpqamain: 26.12,
+            gsm8k: 74.53,
+            humaneval: 40.85
         },
         "SmolLM3-3B": {
             aime2025: 3.33,
-            bfcl: 95.0,
-            gpqamain: 28.35,
-            gsm8k: 52.24,
-            humaneval: 25.61
+            bfcl: 91.0,
+            gpqamain: 30.58,
+            gsm8k: 7.81,
+            humaneval: 36.59
         },
         "Gemma-3-4B-IT": {
             aime2025: 0.0,
-            bfcl: 39.0,
-            gpqamain: 14.96,
-            gsm8k: 6.14,
-            humaneval: 0.61
+            bfcl: 89.0,
+            gpqamain: 33.04,
+            gsm8k: 47.69,
+            humaneval: 34.15
+        }
+    },
+    "gpt-5.2": {
+        "Qwen3-1.7B": {
+            aime2025: 0.0,
+            bfcl: 5.0,
+            gpqamain: 16.74,
+            gsm8k: 12.66,
+            humaneval: 12.20
+        },
+        "Qwen3-4B": {
+            aime2025: 0.0,
+            bfcl: 0.0,
+            gpqamain: 14.06,
+            gsm8k: 45.49,
+            humaneval: 36.59
+        },
+        "SmolLM3-3B": {
+            aime2025: 0.0,
+            bfcl: 0.0,
+            gpqamain: 23.44,
+            gsm8k: 41.47,
+            humaneval: 6.10
+        },
+        "Gemma-3-4B-IT": {
+            aime2025: 0.0,
+            bfcl: 49.0,
+            gpqamain: 25.45,
+            gsm8k: 38.13,
+            humaneval: 23.17
+        }
+    },
+    "gemini-3-pro": {
+        "Qwen3-1.7B": {
+            aime2025: 0.0,
+            bfcl: 0.0,
+            gpqamain: 26.79,
+            gsm8k: 12.66,
+            humaneval: 6.10
+        },
+        "Qwen3-4B": {
+            aime2025: 0.0,
+            bfcl: 0.0,
+            gpqamain: 17.63,
+            gsm8k: 41.85,
+            humaneval: 34.15
+        },
+        "SmolLM3-3B": {
+            aime2025: 0.0,
+            bfcl: 0.0,
+            gpqamain: 25.22,
+            gsm8k: 21.08,
+            humaneval: 9.76
+        },
+        "Gemma-3-4B-IT": {
+            aime2025: 3.33,
+            bfcl: 66.0,
+            gpqamain: 6.70,
+            gsm8k: 47.38,
+            humaneval: 42.07
         }
     },
     "human": {
@@ -103,7 +193,7 @@ const modelBenchmarkData = {
             bfcl: 95.0,
             gpqamain: 44.64,
             gsm8k: 93.78,
-            humaneval: 76.83
+            humaneval: 77.44
         },
         "SmolLM3-3B": {
             aime2025: 26.67,
@@ -178,16 +268,34 @@ const leaderboardDataRaw = [
         description: "No post-training (baseline)"
     },
     {
-        agent: "Codex 5.1",
+        agent: "GPT 5.1 Codex Max",
         averageScore: calculateAverageAcrossModels("codex-5.1"),
         benchmarkScores: getAverageBenchmarkScores("codex-5.1"),
-        description: "Codex 5.1 agent"
+        description: "GPT 5.1 Codex Max agent"
     },
     {
         agent: "Sonnet 4.5",
         averageScore: calculateAverageAcrossModels("sonnet-4.5"),
         benchmarkScores: getAverageBenchmarkScores("sonnet-4.5"),
         description: "Claude Sonnet 4.5 agent"
+    },
+    {
+        agent: "Opus 4.5",
+        averageScore: calculateAverageAcrossModels("opus-4.5"),
+        benchmarkScores: getAverageBenchmarkScores("opus-4.5"),
+        description: "Claude Opus 4.5 agent"
+    },
+    {
+        agent: "GPT-5.2",
+        averageScore: calculateAverageAcrossModels("gpt-5.2"),
+        benchmarkScores: getAverageBenchmarkScores("gpt-5.2"),
+        description: "GPT-5.2 agent"
+    },
+    {
+        agent: "Gemini 3 Pro",
+        averageScore: calculateAverageAcrossModels("gemini-3-pro"),
+        benchmarkScores: getAverageBenchmarkScores("gemini-3-pro"),
+        description: "Gemini 3 Pro agent"
     }
 ];
 
@@ -247,3 +355,32 @@ const statistics = {
     totalModels: setupInfo.models.length,
     timeLimit: setupInfo.timeLimit
 };
+
+// Time spent data (in hours:minutes format, converted to decimal hours)
+const timeSpentData = [
+    {
+        agent: "Opus 4.5",
+        time: "8:13",
+        hours: 8.224
+    },
+    {
+        agent: "Sonnet 4.5",
+        time: "3:18",
+        hours: 3.300
+    },
+    {
+        agent: "GPT 5.1 Codex Max",
+        time: "3:27",
+        hours: 3.457
+    },
+    {
+        agent: "GPT-5.2",
+        time: "1:49",
+        hours: 1.823
+    },
+    {
+        agent: "Gemini 3 Pro",
+        time: "6:49",
+        hours: 6.816
+    }
+];

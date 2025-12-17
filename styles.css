@@ -1024,6 +1024,12 @@ tbody tr:last-child td {
     }
 }
 
+/* Time Spent Section */
+.time-spent {
+    background-color: var(--bg-secondary);
+    padding: 4rem 0;
+}
+
 /* Process Flow Section */
 .process-flow {
     background-color: var(--bg-primary);

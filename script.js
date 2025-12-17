@@ -27,6 +27,10 @@ themeToggle.addEventListener('click', () => {
         detailedChart.destroy();
         createDetailedChart(currentSelectedModel);
     }
+    if (timeSpentChart) {
+        timeSpentChart.destroy();
+        createTimeSpentChart();
+    }
 });
 
 // Get leaderboard data for specific model or average
@@ -34,8 +38,11 @@ function getLeaderboardDataForModel(modelName) {
     const agentKeyMap = {
         "Human Post-Trained": "human",
         "Base Model": "base-model",
-        "Codex 5.1": "codex-5.1",
-        "Sonnet 4.5": "sonnet-4.5"
+        "GPT 5.1 Codex Max": "codex-5.1",
+        "Sonnet 4.5": "sonnet-4.5",
+        "Opus 4.5": "opus-4.5",
+        "GPT-5.2": "gpt-5.2",
+        "Gemini 3 Pro": "gemini-3-pro"
     };
 
     if (modelName === "average") {
@@ -198,6 +205,9 @@ function createSimpleChart(modelName = "average") {
                             return `Average Score: ${context.parsed.y.toFixed(2)}%`;
                         }
                     }
+                },
+                datalabels: {
+                    display: false
                 }
             },
             scales: {
@@ -285,13 +295,19 @@ function createDetailedChart(modelName = "average") {
     const agentColors = currentTheme === 'dark' ? {
         'Human Post-Trained': '#deb070',  // Softer golden amber
         'Base Model': '#b89888',          // Muted dusty rose
-        'Codex 5.1': '#c88968',           // Softer terracotta
-        'Sonnet 4.5': '#a87d60'           // Muted rust
+        'GPT 5.1 Codex Max': '#c88968',   // Softer terracotta
+        'Sonnet 4.5': '#a87d60',          // Muted rust
+        'Opus 4.5': '#d4a373',            // Light terracotta
+        'GPT-5.2': '#b8956e',             // Medium taupe
+        'Gemini 3 Pro': '#9d8268'         // Dark taupe
     } : {
         'Human Post-Trained': '#c49558',  // Deep gold
         'Base Model': '#8a7965',          // Rich taupe
-        'Codex 5.1': '#a66b4f',           // Burnt terracotta
-        'Sonnet 4.5': '#6e5743'           // Dark coffee
+        'GPT 5.1 Codex Max': '#a66b4f',   // Burnt terracotta
+        'Sonnet 4.5': '#6e5743',          // Dark coffee
+        'Opus 4.5': '#c17d5a',            // Terracotta
+        'GPT-5.2': '#a0917a',             // Warm taupe
+        'Gemini 3 Pro': '#8a7561'         // Medium brown
     };
 
     // Grouped bar chart - benchmarks on X-axis, agents as different bars
@@ -300,7 +316,7 @@ function createDetailedChart(modelName = "average") {
         const benchmarkKeys = ['aime2025', 'bfcl', 'gpqamain', 'gsm8k', 'humaneval'];
         const data = getLeaderboardDataForModel(modelName);
 
-        const agentOrder = ['Base Model', 'Sonnet 4.5', 'Codex 5.1', 'Human Post-Trained'];
+        const agentOrder = ['Base Model', 'Gemini 3 Pro', 'GPT-5.2', 'Sonnet 4.5', 'Opus 4.5', 'GPT 5.1 Codex Max', 'Human Post-Trained'];
         const orderedData = agentOrder.map(agentName =>
             data.find(entry => entry.agent === agentName)
         ).filter(Boolean);
@@ -359,6 +375,9 @@ function createDetailedChart(modelName = "average") {
                                 return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%`;
                             }
                         }
+                    },
+                    datalabels: {
+                        display: false
                     }
                 },
                 scales: {
@@ -417,6 +436,148 @@ function createDetailedChart(modelName = "average") {
         });
 }
 
+// Create Time Spent Chart
+let timeSpentChart = null;
+
+function createTimeSpentChart() {
+    const ctx = document.getElementById('timeSpentChart');
+
+    // Get theme colors
+    const style = getComputedStyle(document.documentElement);
+    const textPrimary = style.getPropertyValue('--text-primary').trim();
+    const textSecondary = style.getPropertyValue('--text-secondary').trim();
+    const accentPrimary = style.getPropertyValue('--accent-primary').trim();
+    const borderColor = style.getPropertyValue('--border-color').trim();
+
+    // Check if mobile
+    const isMobile = window.innerWidth <= 768;
+
+    // Set wrapper dimensions based on screen size
+    const wrapper = ctx.closest('.leaderboard-chart-wrapper');
+    if (isMobile) {
+        wrapper.style.minWidth = '600px';
+        wrapper.style.height = '300px';
+    } else {
+        wrapper.style.minWidth = '';
+        wrapper.style.height = '';
+    }
+
+    // Sort by hours (descending) - longest time first
+    const sortedData = [...timeSpentData].sort((a, b) => b.hours - a.hours);
+
+    timeSpentChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedData.map(d => d.agent),
+            datasets: [{
+                label: 'Time Spent (hours)',
+                data: sortedData.map(d => d.hours),
+                backgroundColor: accentPrimary,
+                borderColor: accentPrimary,
+                borderWidth: 2,
+                borderRadius: 4,
+                datalabels: {
+                    display: true,
+                    anchor: 'end',
+                    align: 'end',
+                    color: textPrimary,
+                    font: {
+                        family: 'monospace',
+                        size: 13,
+                        weight: 600
+                    },
+                    formatter: function(_value, context) {
+                        return sortedData[context.dataIndex].time;
+                    },
+                    padding: 4
+                }
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: !isMobile,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        family: 'monospace',
+                        size: 15
+                    },
+                    bodyFont: {
+                        family: 'monospace',
+                        size: 14
+                    },
+                    borderColor: accentPrimary,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const dataItem = sortedData[context.dataIndex];
+                            return `Time: ${dataItem.time} (${context.parsed.x.toFixed(2)} hours)`;
+                        }
+                    }
+                },
+                datalabels: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 10,
+                    title: {
+                        display: true,
+                        text: 'Time (hours)',
+                        color: textPrimary,
+                        font: {
+                            family: 'monospace',
+                            size: 14,
+                            weight: 500
+                        }
+                    },
+                    grid: {
+                        color: borderColor
+                    },
+                    ticks: {
+                        color: textSecondary,
+                        font: {
+                            family: 'monospace',
+                            size: 12
+                        },
+                        stepSize: 2
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Agent',
+                        color: textPrimary,
+                        font: {
+                            family: 'monospace',
+                            size: 14,
+                            weight: 500
+                        }
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: textSecondary,
+                        font: {
+                            family: 'monospace',
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 // Smooth Scroll
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
@@ -450,6 +611,10 @@ window.addEventListener('resize', () => {
         if (detailedChart) {
             detailedChart.destroy();
             createDetailedChart(currentSelectedModel);
+        }
+        if (timeSpentChart) {
+            timeSpentChart.destroy();
+            createTimeSpentChart();
         }
     }, 250);
 });
@@ -557,5 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
     populateStatistics();
     createSimpleChart();
     createDetailedChart();
+    createTimeSpentChart();
     handleNavbarLogoVisibility(); // Check initial state
 });
