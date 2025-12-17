@@ -3,6 +3,31 @@
 let performanceChart = null;
 let detailedChart = null;
 
+// Hamburger Menu Toggle
+const hamburgerBtn = document.getElementById('hamburger-btn');
+const navLinks = document.getElementById('nav-links');
+
+hamburgerBtn.addEventListener('click', () => {
+    hamburgerBtn.classList.toggle('active');
+    navLinks.classList.toggle('active');
+});
+
+// Close menu when clicking a link
+navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+        hamburgerBtn.classList.remove('active');
+        navLinks.classList.remove('active');
+    });
+});
+
+// Close menu when clicking outside
+document.addEventListener('click', (e) => {
+    if (!hamburgerBtn.contains(e.target) && !navLinks.contains(e.target)) {
+        hamburgerBtn.classList.remove('active');
+        navLinks.classList.remove('active');
+    }
+});
+
 // Theme Toggle
 const themeToggle = document.getElementById('theme-toggle');
 const html = document.documentElement;
