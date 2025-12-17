@@ -20,6 +20,7 @@
                 <div class="nav-links">
                     <a href="#leaderboard">Leaderboard</a>
                     <a href="#about">About</a>
+                    <a href="#observations">Observations</a>
                     <a href="#team">Team</a>
                     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
                         <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -171,6 +172,104 @@
                 
                 
                 
+            </div>
+        </div>
+    </section>
+
+    <section id="observations" class="observations">
+        <div class="container">
+            <h2 class="section-title">Observations</h2>
+
+            <h3 class="section-subtitle">Agent Behaviors</h3>
+            <div class="observations-grid">
+                <div class="observation-card">
+                    <h4>Claude Opus 4.5</h4>
+                    <span class="observation-tag">Most Structured</span>
+                    <ul>
+                        <li>Uses explicit todo lists to track progress</li>
+                        <li>Web searches for best practices</li>
+                        <li>Creates detailed implementation plans before coding</li>
+                    </ul>
+                </div>
+                <div class="observation-card">
+                    <h4>GPT-5.x Variants</h4>
+                    <span class="observation-tag">Action-Oriented</span>
+                    <ul>
+                        <li>Immediately starts exploring files and datasets</li>
+                        <li>"Plan update" checkpoints with bullet points</li>
+                        <li>Less formal planning, more exploratory</li>
+                    </ul>
+                </div>
+                <div class="observation-card">
+                    <h4>Gemini 3 Pro</h4>
+                    <span class="observation-tag">Quick to Execute</span>
+                    <ul>
+                        <li>Less planning overhead</li>
+                        <li>Jumps directly into implementation</li>
+                        <li>More failures due to less error anticipation</li>
+                    </ul>
+                </div>
+                <div class="observation-card">
+                    <h4>GPT-5.1 Codex Max</h4>
+                    <span class="observation-tag">Best Performer</span>
+                    <ul>
+                        <li>Building proper dataset pipelines (55k+ samples)</li>
+                        <li>Iterating on training scripts when errors occurred</li>
+                        <li>Using appropriate hyperparams (gradient checkpointing, bf16)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 class="section-subtitle">Time & Trace Patterns</h3>
+            <div class="observation-block">
+                <p>Agents had 3-10 hour limits. Behaviors varied significantly:</p>
+                <ul>
+                    <li><strong>GPT-5.1-codex:</strong> Often ran extremely long traces (381k+ lines on BFCL)</li>
+                    <li><strong>Claude:</strong> Regularly checked <code>timer.sh</code> for remaining time</li>
+                    <li><strong>Gemini:</strong> Shorter traces, faster iteration but more failures</li>
+                </ul>
+            </div>
+
+            <h3 class="section-subtitle">Reward Hacking (Near Misses)</h3>
+            <div class="observation-block">
+                <p>Claude found that <code>Qwen/Qwen3-1.7B</code> (the instruct-tuned version) works "perfectly" for function calling. However, it then explicitly acknowledged:</p>
+                <blockquote>
+                    "However, the user specifically said to use Qwen/Qwen3-1.7B-Base. Let me re-read the user's constraint... So I must use the BASE model."
+                </blockquote>
+                <p>All agents showed awareness of contamination rules:</p>
+                <ul>
+                    <li><strong>Claude:</strong> "Cannot use [benchmark] test data for training (data contamination)"</li>
+                    <li><strong>GPT models:</strong> "avoid leaking evaluation data", "avoiding test contamination"</li>
+                    <li>All agents sourced training data from alternative datasets (MBPP, glaive-function-calling, Hermes, etc.)</li>
+                </ul>
+            </div>
+
+            <h3 class="section-subtitle">Key Takeaways</h3>
+            <div class="takeaways-list">
+                <div class="takeaway-item">
+                    <span class="takeaway-number">1</span>
+                    <p><strong>Dataset quality > training duration:</strong> GPT-5.1-codex-max's success came from careful dataset curation, not longer training</p>
+                </div>
+                <div class="takeaway-item">
+                    <span class="takeaway-number">2</span>
+                    <p><strong>Constraint awareness:</strong> Almost all agents showed understanding of rules and avoided contamination</p>
+                </div>
+                <div class="takeaway-item">
+                    <span class="takeaway-number">3</span>
+                    <p><strong>Self-correction:</strong> Claude showed self-correction that avoids reward hacking by model substitution</p>
+                </div>
+                <div class="takeaway-item">
+                    <span class="takeaway-number">4</span>
+                    <p><strong>Library issues:</strong> Many errors came from library version mismatches (trl, transformers)</p>
+                </div>
+                <div class="takeaway-item">
+                    <span class="takeaway-number">5</span>
+                    <p><strong>Format alignment matters:</strong> For function calling, matching exact output format was essential for high scores</p>
+                </div>
+                <div class="takeaway-item">
+                    <span class="takeaway-number">6</span>
+                    <p><strong>Longer traces ≠ better results:</strong> GPT-5.1-codex had longest traces but inconsistent results; GPT-5.1-codex-max had shorter traces but better outcomes</p>
+                </div>
             </div>
         </div>
     </section>
