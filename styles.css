@@ -85,6 +85,12 @@ body {
     gap: 0.75rem;
 }
 
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
 .logo {
     font-size: 1.25rem;
     font-weight: 700;
@@ -117,6 +123,21 @@ body {
 
 .nav-links a:hover {
     color: var(--text-primary);
+}
+
+.nav-github {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: var(--transition);
+}
+
+.nav-github:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
 }
 
 /* Hamburger Menu */
@@ -976,9 +997,8 @@ tbody tr:last-child td {
         border-bottom: none;
     }
 
-    .nav-links .theme-toggle {
-        margin-top: 0.75rem;
-        align-self: flex-start;
+    .nav-right {
+        gap: 0.5rem;
     }
 
     .logo {
