@@ -188,6 +188,22 @@ function createSimpleChart(modelName = "average") {
     // Reverse order for chart (ascending - lowest to highest)
     const reversedData = [...data].reverse();
 
+    // Update labels to add (baseline) for Base Model and Human Post-Trained
+    const chartLabels = reversedData.map(d => {
+        if (d.agent === 'Base Model' || d.agent === 'Human Post-Trained') {
+            return [d.agent, '(baseline)'];
+        }
+        return d.agent;
+    });
+
+    // Set colors - baseline agents get different color
+    const chartColors = reversedData.map(d => {
+        if (d.agent === 'Base Model' || d.agent === 'Human Post-Trained') {
+            return '#6b655a'; // Darker muted color for baselines
+        }
+        return accentPrimary;
+    });
+
     // Calculate max value dynamically - round up to nearest 10
     const maxScore = Math.max(...data.map(d => parseFloat(d.averageScore)));
     const yAxisMax = Math.ceil(maxScore / 10) * 10;
@@ -195,12 +211,12 @@ function createSimpleChart(modelName = "average") {
     performanceChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: reversedData.map(d => d.agent),
+            labels: chartLabels,
             datasets: [{
                 label: 'Average Score (%)',
                 data: reversedData.map(d => parseFloat(d.averageScore)),
-                backgroundColor: accentPrimary,
-                borderColor: accentPrimary,
+                backgroundColor: chartColors,
+                borderColor: chartColors,
                 borderWidth: 2,
                 borderRadius: 4
             }]
@@ -238,10 +254,10 @@ function createSimpleChart(modelName = "average") {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: yAxisMax,
+                    max: 65,
                     title: {
                         display: true,
-                        text: 'Average Score (%)',
+                        text: 'Average performance of post-trained LLMs',
                         color: textPrimary,
                         font: {
                             family: 'monospace',
@@ -260,6 +276,7 @@ function createSimpleChart(modelName = "average") {
                         },
                         stepSize: 10,
                         callback: function(value) {
+                            if (value === 65) return null;
                             return value + '%';
                         }
                     }
@@ -267,7 +284,7 @@ function createSimpleChart(modelName = "average") {
                 x: {
                     title: {
                         display: true,
-                        text: 'Models',
+                        text: 'LLM powering the CLI agent',
                         color: textPrimary,
                         font: {
                             family: 'monospace',
@@ -283,7 +300,8 @@ function createSimpleChart(modelName = "average") {
                         font: {
                             family: 'monospace',
                             size: 12
-                        }
+                        },
+                        maxRotation: 0
                     }
                 }
             }
@@ -579,7 +597,7 @@ function createTimeSpentChart() {
                 y: {
                     title: {
                         display: true,
-                        text: 'Agent',
+                        text: 'LLM powering the CLI agent',
                         color: textPrimary,
                         font: {
                             family: 'monospace',
