@@ -241,11 +241,11 @@ function createSimpleChart(modelName = "average") {
                     max: yAxisMax,
                     title: {
                         display: true,
-                        text: 'Performance',
+                        text: 'Average Score (%)',
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 14,
+                            size: 16,
                             weight: 500
                         }
                     },
@@ -271,7 +271,7 @@ function createSimpleChart(modelName = "average") {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 14,
+                            size: 16,
                             weight: 500
                         }
                     },
@@ -415,7 +415,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 14,
+                                size: 16,
                                 weight: 500
                             }
                         },
@@ -441,7 +441,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 14,
+                                size: 16,
                                 weight: 500
                             }
                         },
@@ -560,7 +560,7 @@ function createTimeSpentChart() {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 14,
+                            size: 16,
                             weight: 500
                         }
                     },
@@ -583,7 +583,7 @@ function createTimeSpentChart() {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 14,
+                            size: 16,
                             weight: 500
                         }
                     },
