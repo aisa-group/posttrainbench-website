@@ -599,6 +599,13 @@ th {
 
 td {
     font-size: 0.875rem;
+    transition: background-color 0.3s ease;
+}
+
+/* Heatmap cells - scores */
+tbody td[style*="background-color"] {
+    font-weight: 500;
+    position: relative;
 }
 
 tbody tr {
@@ -607,6 +614,10 @@ tbody tr {
 
 tbody tr:hover {
     background-color: var(--bg-secondary);
+}
+
+tbody tr:hover td[style*="background-color"] {
+    filter: brightness(1.1);
 }
 
 tbody tr:last-child td {
@@ -1036,7 +1047,6 @@ tbody tr:last-child td {
         padding: 0 0.5rem;
         margin-left: auto;
         margin-right: auto;
-        width: 100%;
     }
 
     .task-grid {

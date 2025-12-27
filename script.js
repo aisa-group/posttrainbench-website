@@ -95,6 +95,54 @@ function getLeaderboardDataForModel(modelName) {
         }));
 }
 
+// Get heatmap color based on normalized value (0-1 scale)
+// Uses red-yellow-green gradient
+function getHeatmapColor(normalizedValue) {
+    // Get current theme
+    const currentTheme = html.getAttribute('data-theme');
+
+    // Clamp value between 0 and 1
+    const value = Math.max(0, Math.min(1, normalizedValue));
+
+    // Use red-yellow-green gradient
+    // Red for low values, yellow for medium, green for high
+    let r, g, b, alpha;
+
+    if (currentTheme === 'dark') {
+        alpha = 0.4;
+        if (value < 0.5) {
+            // Red to Yellow (0 to 0.5)
+            const t = value * 2;
+            r = 220;
+            g = Math.round(100 + (155 * t));
+            b = 80;
+        } else {
+            // Yellow to Green (0.5 to 1)
+            const t = (value - 0.5) * 2;
+            r = Math.round(220 - (120 * t));
+            g = 255;
+            b = Math.round(80 + (70 * t));
+        }
+    } else {
+        alpha = 0.35;
+        if (value < 0.5) {
+            // Red to Yellow (0 to 0.5)
+            const t = value * 2;
+            r = 200;
+            g = Math.round(80 + (145 * t));
+            b = 70;
+        } else {
+            // Yellow to Green (0.5 to 1)
+            const t = (value - 0.5) * 2;
+            r = Math.round(200 - (110 * t));
+            g = 225;
+            b = Math.round(70 + (60 * t));
+        }
+    }
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // Populate Leaderboard
 function populateLeaderboard(modelName = "average") {
     const tbody = document.getElementById('leaderboard-data');
@@ -102,20 +150,61 @@ function populateLeaderboard(modelName = "average") {
 
     const data = getLeaderboardDataForModel(modelName);
 
+    // Collect all values for each column to find min/max
+    const columns = {
+        average: data.map(e => parseFloat(e.averageScore)),
+        aime2025: data.map(e => parseFloat(e.benchmarkScores.aime2025)),
+        bfcl: data.map(e => parseFloat(e.benchmarkScores.bfcl)),
+        gpqamain: data.map(e => parseFloat(e.benchmarkScores.gpqamain)),
+        gsm8k: data.map(e => parseFloat(e.benchmarkScores.gsm8k)),
+        humaneval: data.map(e => parseFloat(e.benchmarkScores.humaneval))
+    };
+
+    // Find min and max for each column
+    const ranges = {};
+    for (const [key, values] of Object.entries(columns)) {
+        ranges[key] = {
+            min: Math.min(...values),
+            max: Math.max(...values)
+        };
+    }
+
+    // Normalize value within column range
+    const normalize = (value, column) => {
+        const range = ranges[column];
+        if (range.max === range.min) return 0.5; // All same values
+        return (value - range.min) / (range.max - range.min);
+    };
+
     data.forEach(entry => {
         const row = document.createElement('tr');
 
         const rankClass = entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other';
 
+        // Create cells with heatmap colors normalized per column
+        const avgValue = parseFloat(entry.averageScore);
+        const aimeValue = parseFloat(entry.benchmarkScores.aime2025);
+        const bfclValue = parseFloat(entry.benchmarkScores.bfcl);
+        const gpqaValue = parseFloat(entry.benchmarkScores.gpqamain);
+        const gsmValue = parseFloat(entry.benchmarkScores.gsm8k);
+        const humanValue = parseFloat(entry.benchmarkScores.humaneval);
+
+        const avgColor = getHeatmapColor(normalize(avgValue, 'average'));
+        const aimeColor = getHeatmapColor(normalize(aimeValue, 'aime2025'));
+        const bfclColor = getHeatmapColor(normalize(bfclValue, 'bfcl'));
+        const gpqaColor = getHeatmapColor(normalize(gpqaValue, 'gpqamain'));
+        const gsmColor = getHeatmapColor(normalize(gsmValue, 'gsm8k'));
+        const humanColor = getHeatmapColor(normalize(humanValue, 'humaneval'));
+
         row.innerHTML = `
             <td><span class="rank-badge ${rankClass}">${entry.rank}</span></td>
             <td><strong>${entry.agent}</strong></td>
-            <td><strong>${entry.averageScore}%</strong></td>
-            <td>${entry.benchmarkScores.aime2025}%</td>
-            <td>${entry.benchmarkScores.bfcl}%</td>
-            <td>${entry.benchmarkScores.gpqamain}%</td>
-            <td>${entry.benchmarkScores.gsm8k}%</td>
-            <td>${entry.benchmarkScores.humaneval}%</td>
+            <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong></td>
+            <td style="background-color: ${aimeColor}">${entry.benchmarkScores.aime2025}%</td>
+            <td style="background-color: ${bfclColor}">${entry.benchmarkScores.bfcl}%</td>
+            <td style="background-color: ${gpqaColor}">${entry.benchmarkScores.gpqamain}%</td>
+            <td style="background-color: ${gsmColor}">${entry.benchmarkScores.gsm8k}%</td>
+            <td style="background-color: ${humanColor}">${entry.benchmarkScores.humaneval}%</td>
         `;
 
         tbody.appendChild(row);
@@ -158,6 +247,28 @@ function populateStatistics() {
     if (timeLimitEl) timeLimitEl.textContent = statistics.timeLimit;
 }
 
+// Calculate adaptive font sizes based on chart dimensions
+function calculateFontSizes(canvas) {
+    const width = canvas.offsetWidth || canvas.width;
+    const height = canvas.offsetHeight || canvas.height;
+
+    // Use width for better scaling on desktop, min(width, height) for mobile
+    const isMobile = window.innerWidth <= 768;
+    const baseSize = isMobile ? Math.min(width, height) : width;
+
+    // Desktop scales up for better readability
+    const scale = isMobile ? 1 : 2.0;
+
+    // Calculate sizes - mobile gets good base sizes, desktop scales up more
+    return {
+        tooltipTitle: Math.max(14, Math.round(baseSize * 0.028 * scale)),
+        tooltipBody: Math.max(13, Math.round(baseSize * 0.026 * scale)),
+        axisTitle: Math.max(13, Math.round(baseSize * 0.026 * scale)),
+        axisTicks: Math.max(11, Math.round(baseSize * 0.020 * scale)),
+        legend: Math.max(12, Math.round(baseSize * 0.022 * scale))
+    };
+}
+
 // Create Simple Performance Chart (average view)
 function createSimpleChart(modelName = "average") {
     const ctx = document.getElementById('performanceChart');
@@ -174,12 +285,15 @@ function createSimpleChart(modelName = "average") {
 
     // Set wrapper dimensions based on screen size
     const wrapper = document.querySelector('.leaderboard-chart-wrapper');
+    const footnotes = wrapper.parentElement.querySelectorAll('.chart-footnote');
     if (isMobile) {
         wrapper.style.minWidth = '600px';
         wrapper.style.height = '300px';
+        footnotes.forEach(fn => fn.style.width = '600px');
     } else {
         wrapper.style.minWidth = '';
         wrapper.style.height = '';
+        footnotes.forEach(fn => fn.style.width = '');
     }
 
     // Get data for selected model
@@ -211,6 +325,9 @@ function createSimpleChart(modelName = "average") {
     const maxScore = Math.max(...data.map(d => parseFloat(d.averageScore)));
     const yAxisMax = Math.ceil(maxScore / 10) * 10;
 
+    // Calculate adaptive font sizes
+    const fontSizes = calculateFontSizes(ctx);
+
     performanceChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -236,11 +353,11 @@ function createSimpleChart(modelName = "average") {
                     padding: 12,
                     titleFont: {
                         family: 'monospace',
-                        size: 15
+                        size: fontSizes.tooltipTitle
                     },
                     bodyFont: {
                         family: 'monospace',
-                        size: 14
+                        size: fontSizes.tooltipBody
                     },
                     borderColor: accentPrimary,
                     borderWidth: 1,
@@ -264,7 +381,7 @@ function createSimpleChart(modelName = "average") {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 14,
+                            size: fontSizes.axisTitle,
                             weight: 500
                         }
                     },
@@ -275,7 +392,7 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 11
+                            size: fontSizes.axisTicks
                         },
                         stepSize: 10,
                         callback: function(value) {
@@ -291,7 +408,7 @@ function createSimpleChart(modelName = "average") {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 14,
+                            size: fontSizes.axisTitle,
                             weight: 500
                         }
                     },
@@ -302,7 +419,7 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 11
+                            size: fontSizes.axisTicks
                         },
                         maxRotation: 0
                     }
@@ -381,6 +498,9 @@ function createDetailedChart(modelName = "average") {
         ));
         const yAxisMax = Math.ceil(maxScore / 10) * 10;
 
+        // Calculate adaptive font sizes
+        const fontSizes = calculateFontSizes(ctx);
+
         detailedChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -398,7 +518,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 13
+                                size: fontSizes.legend
                             },
                             padding: 12
                         }
@@ -408,11 +528,11 @@ function createDetailedChart(modelName = "average") {
                         padding: 12,
                         titleFont: {
                             family: 'monospace',
-                            size: 15
+                            size: fontSizes.tooltipTitle
                         },
                         bodyFont: {
                             family: 'monospace',
-                            size: 14
+                            size: fontSizes.tooltipBody
                         },
                         borderColor: accentPrimary,
                         borderWidth: 1,
@@ -436,7 +556,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 14,
+                                size: fontSizes.axisTitle,
                                 weight: 500
                             }
                         },
@@ -447,7 +567,7 @@ function createDetailedChart(modelName = "average") {
                             color: textSecondary,
                             font: {
                                 family: 'monospace',
-                                size: 11
+                                size: fontSizes.axisTicks
                             },
                             stepSize: 10,
                             callback: function(value) {
@@ -462,7 +582,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 14,
+                                size: fontSizes.axisTitle,
                                 weight: 500
                             }
                         },
@@ -473,7 +593,7 @@ function createDetailedChart(modelName = "average") {
                             color: textSecondary,
                             font: {
                                 family: 'monospace',
-                                size: 11
+                                size: fontSizes.axisTicks
                             }
                         }
                     }
@@ -511,6 +631,9 @@ function createTimeSpentChart() {
     // Sort by hours (descending) - longest time first
     const sortedData = [...timeSpentData].sort((a, b) => b.hours - a.hours);
 
+    // Calculate adaptive font sizes
+    const fontSizes = calculateFontSizes(ctx);
+
     timeSpentChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -529,7 +652,7 @@ function createTimeSpentChart() {
                     color: textPrimary,
                     font: {
                         family: 'monospace',
-                        size: 13,
+                        size: fontSizes.legend,
                         weight: 600
                     },
                     formatter: function(_value, context) {
@@ -552,11 +675,11 @@ function createTimeSpentChart() {
                     padding: 12,
                     titleFont: {
                         family: 'monospace',
-                        size: 15
+                        size: fontSizes.tooltipTitle
                     },
                     bodyFont: {
                         family: 'monospace',
-                        size: 14
+                        size: fontSizes.tooltipBody
                     },
                     borderColor: accentPrimary,
                     borderWidth: 1,
@@ -581,7 +704,7 @@ function createTimeSpentChart() {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 14,
+                            size: fontSizes.axisTitle,
                             weight: 500
                         }
                     },
@@ -592,7 +715,7 @@ function createTimeSpentChart() {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 11
+                            size: fontSizes.axisTicks
                         },
                         stepSize: 2
                     }
@@ -604,7 +727,7 @@ function createTimeSpentChart() {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 14,
+                            size: fontSizes.axisTitle,
                             weight: 500
                         }
                     },
@@ -615,7 +738,7 @@ function createTimeSpentChart() {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 11
+                            size: fontSizes.axisTicks
                         }
                     }
                 }
