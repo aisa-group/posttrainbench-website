@@ -22,7 +22,7 @@ const modelBenchmarkData = {
             gsm8k: 21.08,
             humaneval: 6.10
         },
-        "Gemma-3-4B-IT": {
+        "Gemma-3-4B": {
             aime2025: 0.0,
             bfcl: 6.0,
             gpqamain: 1.56,
@@ -52,7 +52,7 @@ const modelBenchmarkData = {
             gsm8k: 21.08,
             humaneval: 12.20
         },
-        "Gemma-3-4B-IT": {
+        "Gemma-3-4B": {
             aime2025: 0.0,
             bfcl: 6.0,
             gpqamain: 25.22,
@@ -82,7 +82,7 @@ const modelBenchmarkData = {
             gsm8k: 60.50,
             humaneval: 9.76
         },
-        "Gemma-3-4B-IT": {
+        "Gemma-3-4B": {
             aime2025: 0.0,
             bfcl: 71.0,
             gpqamain: 1.56,
@@ -112,7 +112,7 @@ const modelBenchmarkData = {
             gsm8k: 7.81,
             humaneval: 36.59
         },
-        "Gemma-3-4B-IT": {
+        "Gemma-3-4B": {
             aime2025: 0.0,
             bfcl: 89.0,
             gpqamain: 33.04,
@@ -142,7 +142,7 @@ const modelBenchmarkData = {
             gsm8k: 41.47,
             humaneval: 6.10
         },
-        "Gemma-3-4B-IT": {
+        "Gemma-3-4B": {
             aime2025: 0.0,
             bfcl: 49.0,
             gpqamain: 25.45,
@@ -172,7 +172,7 @@ const modelBenchmarkData = {
             gsm8k: 21.08,
             humaneval: 9.76
         },
-        "Gemma-3-4B-IT": {
+        "Gemma-3-4B": {
             aime2025: 3.33,
             bfcl: 66.0,
             gpqamain: 6.70,
@@ -202,7 +202,7 @@ const modelBenchmarkData = {
             gsm8k: 82.18,
             humaneval: 70.12
         },
-        "Gemma-3-4B-IT": {
+        "Gemma-3-4B": {
             aime2025: 10.0,
             bfcl: 67.0,
             gpqamain: 31.47,
@@ -214,7 +214,7 @@ const modelBenchmarkData = {
 
 // Calculate average scores across all models for each agent
 function calculateAverageAcrossModels(agentKey) {
-    const models = ["Qwen3-1.7B", "Qwen3-4B", "SmolLM3-3B", "Gemma-3-4B-IT"];
+    const models = ["Qwen3-1.7B", "Qwen3-4B", "SmolLM3-3B", "Gemma-3-4B"];
     const benchmarks = ["aime2025", "bfcl", "gpqamain", "gsm8k", "humaneval"];
 
     let totalSum = 0;
@@ -239,7 +239,7 @@ function calculateAverageForModel(agentKey, modelName) {
 
 // Calculate average across all models for each benchmark
 function getAverageBenchmarkScores(agentKey) {
-    const models = ["Qwen3-1.7B", "Qwen3-4B", "SmolLM3-3B", "Gemma-3-4B-IT"];
+    const models = ["Qwen3-1.7B", "Qwen3-4B", "SmolLM3-3B", "Gemma-3-4B"];
     const benchmarks = ["aime2025", "bfcl", "gpqamain", "gsm8k", "humaneval"];
     const avgScores = {};
 
@@ -342,7 +342,7 @@ const taskData = [
 
 // Training setup information (unused rn)
 const setupInfo = {
-    models: ["Qwen 3.1 7B", "Qwen 3 4B", "SmolLM3-3B", "Gemma 3 4B IT"],
+    models: ["Qwen 3.1 7B", "Qwen 3 4B", "SmolLM3-3B", "Gemma 3 4B"],
     hardware: "H100 GPU",
     timeLimit: "10 hours",
     modelsPerAgent: 4

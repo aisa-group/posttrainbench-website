@@ -89,7 +89,8 @@
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="performanceChart"></canvas>
                 </div>
-                <p class="chart-footnote">* "Human Post-Trained" is not directly comparable since it exceeds the 10h + 1 GPU constraint</p>
+                <p class="chart-footnote"><sup>1</sup> The average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B IT) and benchmarks (AIME 2025, BFCL, GPQA Main, GSM8K, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
+                <p class="chart-footnote"><sup>2</sup> "Human Post-Trained" is not directly comparable to the rest since it usually exceeds the 10h + 1 GPU constraint.</p>
             </div>
             <div class="leaderboard-controls">
                 <label class="model-select-label">Filter by model:</label>
@@ -102,7 +103,7 @@
                         <div class="dropdown-option" data-value="Qwen3-1.7B">Qwen3-1.7B</div>
                         <div class="dropdown-option" data-value="Qwen3-4B">Qwen3-4B</div>
                         <div class="dropdown-option" data-value="SmolLM3-3B">SmolLM3-3B</div>
-                        <div class="dropdown-option" data-value="Gemma-3-4B-IT">Gemma-3-4B-IT</div>
+                        <div class="dropdown-option" data-value="Gemma-3-4B">Gemma-3-4B</div>
                     </div>
                 </div>
             </div>
@@ -173,15 +174,15 @@
         <div class="container">
             <h2 class="section-title">About</h2>
             <div class="about-content">
-                <p>Post-Train Bench measures AI R&D automation by testing whether AI agents can successfully post-train other language models. Each agent receives 4 base models (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, and Gemma 3 4B IT), access to an H100 GPU, and a 10-hour time limit to improve model performance through post-training</p>
+                <p>Post-Train Bench measures AI R&D automation by testing whether AI agents can successfully post-train other language models. Each agent receives 4 base models (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, and Gemma 3 4B), access to an H100 GPU, and a 10-hour time limit to improve model performance through post-training</p>
                 <div class="setup-info">
                     <h3>Experimental Setup</h3>
                     <ul>
-                        <li><strong>Models:</strong> Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B IT</li>
+                        <li><strong>Models:</strong> Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</li>
                         <li><strong>Hardware:</strong> Single H100 GPU per agent</li>
                         <li><strong>Time Limit:</strong> 10 hours per agent</li>
                         <li><strong>Evaluation:</strong> Average score across 5 benchmarks</li>
-                        <li><strong>CLI Scaffolds:</strong> Native agent scaffolds (Claude Code for Claude models, Codex CLI for OpenAI models, Gemini CLI for Gemini models)</li>
+                        <li><strong>Agent scaffolds:</strong> Native CLI scaffolds (Claude Code for Claude models, Codex CLI for OpenAI, Gemini CLI for Gemini)</li>
                     </ul>
                 </div>
                 

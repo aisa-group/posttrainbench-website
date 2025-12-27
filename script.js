@@ -190,8 +190,11 @@ function createSimpleChart(modelName = "average") {
 
     // Update labels to add (baseline) for Base Model and Human Post-Trained
     const chartLabels = reversedData.map(d => {
-        if (d.agent === 'Base Model' || d.agent === 'Human Post-Trained') {
+        if (d.agent === 'Base Model') {
             return [d.agent, '(baseline)'];
+        }
+        if (d.agent === 'Human Post-Trained') {
+            return [d.agent, '(baseline)²'];
         }
         return d.agent;
     });
@@ -257,7 +260,7 @@ function createSimpleChart(modelName = "average") {
                     max: 65,
                     title: {
                         display: true,
-                        text: 'Average performance of post-trained LLMs',
+                        text: 'Average benchmark performance¹',
                         color: textPrimary,
                         font: {
                             family: 'monospace',
@@ -429,7 +432,7 @@ function createDetailedChart(modelName = "average") {
                         max: yAxisMax,
                         title: {
                             display: true,
-                            text: 'Score (%)',
+                            text: 'Benchmark Score (%)',
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
