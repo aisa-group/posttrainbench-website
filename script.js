@@ -264,7 +264,7 @@ function createSimpleChart(modelName = "average") {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 16,
+                            size: 14,
                             weight: 500
                         }
                     },
@@ -275,7 +275,7 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 12
+                            size: 11
                         },
                         stepSize: 10,
                         callback: function(value) {
@@ -291,7 +291,7 @@ function createSimpleChart(modelName = "average") {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 16,
+                            size: 14,
                             weight: 500
                         }
                     },
@@ -302,7 +302,7 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 12
+                            size: 11
                         },
                         maxRotation: 0
                     }
@@ -436,7 +436,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 16,
+                                size: 14,
                                 weight: 500
                             }
                         },
@@ -447,7 +447,7 @@ function createDetailedChart(modelName = "average") {
                             color: textSecondary,
                             font: {
                                 family: 'monospace',
-                                size: 12
+                                size: 11
                             },
                             stepSize: 10,
                             callback: function(value) {
@@ -462,7 +462,7 @@ function createDetailedChart(modelName = "average") {
                             color: textPrimary,
                             font: {
                                 family: 'monospace',
-                                size: 16,
+                                size: 14,
                                 weight: 500
                             }
                         },
@@ -473,7 +473,7 @@ function createDetailedChart(modelName = "average") {
                             color: textSecondary,
                             font: {
                                 family: 'monospace',
-                                size: 12
+                                size: 11
                             }
                         }
                     }
@@ -581,7 +581,7 @@ function createTimeSpentChart() {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 16,
+                            size: 14,
                             weight: 500
                         }
                     },
@@ -592,7 +592,7 @@ function createTimeSpentChart() {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 12
+                            size: 11
                         },
                         stepSize: 2
                     }
@@ -604,7 +604,7 @@ function createTimeSpentChart() {
                         color: textPrimary,
                         font: {
                             family: 'monospace',
-                            size: 16,
+                            size: 14,
                             weight: 500
                         }
                     },
@@ -615,7 +615,7 @@ function createTimeSpentChart() {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: 12
+                            size: 11
                         }
                     }
                 }

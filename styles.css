@@ -452,7 +452,8 @@ section {
     font-size: 0.8rem;
     color: var(--text-secondary);
     font-style: italic;
-    text-align: center;
+    text-align: left;
+    width: 100%;
 }
 
 .leaderboard-controls {
