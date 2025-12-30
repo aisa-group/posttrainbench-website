@@ -96,49 +96,20 @@ function getLeaderboardDataForModel(modelName) {
 }
 
 // Get heatmap color based on normalized value (0-1 scale)
-// Uses red-yellow-green gradient
+// Uses site's terracotta accent color (#c17d5a) with varying intensity
 function getHeatmapColor(normalizedValue) {
-    // Get current theme
     const currentTheme = html.getAttribute('data-theme');
-
-    // Clamp value between 0 and 1
     const value = Math.max(0, Math.min(1, normalizedValue));
 
-    // Use red-yellow-green gradient
-    // Red for low values, yellow for medium, green for high
-    let r, g, b, alpha;
+    // Site accent color: #c17d5a (193, 125, 90)
+    const r = 193;
+    const g = 125;
+    const b = 90;
 
-    if (currentTheme === 'dark') {
-        alpha = 0.4;
-        if (value < 0.5) {
-            // Red to Yellow (0 to 0.5)
-            const t = value * 2;
-            r = 220;
-            g = Math.round(100 + (155 * t));
-            b = 80;
-        } else {
-            // Yellow to Green (0.5 to 1)
-            const t = (value - 0.5) * 2;
-            r = Math.round(220 - (120 * t));
-            g = 255;
-            b = Math.round(80 + (70 * t));
-        }
-    } else {
-        alpha = 0.35;
-        if (value < 0.5) {
-            // Red to Yellow (0 to 0.5)
-            const t = value * 2;
-            r = 200;
-            g = Math.round(80 + (145 * t));
-            b = 70;
-        } else {
-            // Yellow to Green (0.5 to 1)
-            const t = (value - 0.5) * 2;
-            r = Math.round(200 - (110 * t));
-            g = 225;
-            b = Math.round(70 + (60 * t));
-        }
-    }
+    // Vary opacity based on value - low scores subtle, high scores prominent
+    const alpha = currentTheme === 'dark'
+        ? 0.1 + (0.5 * value)   // 0.1 → 0.6
+        : 0.08 + (0.42 * value); // 0.08 → 0.5
 
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
@@ -219,9 +190,13 @@ function populateTasks() {
         const card = document.createElement('div');
         card.className = 'task-card';
 
+        const versionBadge = task.version
+            ? `<span class="task-version">${task.version}</span>`
+            : '';
+
         card.innerHTML = `
             <div class="task-header">
-                <h3 class="task-title">${task.title}</h3>
+                <h3 class="task-title">${task.title}${versionBadge}</h3>
             </div>
             <p class="task-description">${task.description}</p>
             <div class="task-meta">
@@ -809,19 +784,12 @@ let currentSelectedModel = 'average';
 
 const dropdownDisplay = document.getElementById('model-select-display');
 const dropdownOptions = document.getElementById('model-select-options');
-const customDropdown = document.querySelector('.custom-dropdown');
+const modelDropdown = dropdownDisplay.closest('.custom-dropdown');
 
 // Toggle dropdown
 dropdownDisplay.addEventListener('click', (e) => {
     e.stopPropagation();
-    customDropdown.classList.toggle('open');
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    if (!customDropdown.contains(e.target)) {
-        customDropdown.classList.remove('open');
-    }
+    modelDropdown.classList.toggle('open');
 });
 
 // Handle option selection
@@ -834,13 +802,13 @@ dropdownOptions.addEventListener('click', (e) => {
         dropdownDisplay.textContent = selectedText;
 
         // Update active state
-        document.querySelectorAll('.dropdown-option').forEach(opt => {
+        dropdownOptions.querySelectorAll('.dropdown-option').forEach(opt => {
             opt.classList.remove('active');
         });
         e.target.classList.add('active');
 
         // Close dropdown
-        customDropdown.classList.remove('open');
+        modelDropdown.classList.remove('open');
 
         // Update model if changed
         if (selectedValue !== currentSelectedModel) {
@@ -857,6 +825,13 @@ dropdownOptions.addEventListener('click', (e) => {
                 createDetailedChart(selectedValue);
             }
         }
+    }
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!modelDropdown.contains(e.target)) {
+        modelDropdown.classList.remove('open');
     }
 });
 

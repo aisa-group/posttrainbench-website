@@ -381,6 +381,16 @@ section {
     line-height: 1.8;
 }
 
+.section-description a {
+    color: var(--accent-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.section-description a:hover {
+    color: var(--accent-secondary);
+}
+
 .section-subtitle {
     font-size: 1.5rem;
     font-weight: 600;
@@ -657,6 +667,19 @@ tbody tr:last-child td {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.task-version {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.15rem 0.4rem;
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    border-radius: 0.25rem;
+    text-transform: uppercase;
 }
 
 .difficulty-badge {

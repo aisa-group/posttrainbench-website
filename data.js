@@ -310,30 +310,35 @@ const leaderboardData = leaderboardDataRaw
 const taskData = [
     {
         title: "AIME 2025",
+        version: "",
         difficulty: "hard",
         description: "American Invitational Mathematics Examination - tests advanced mathematical problem-solving and reasoning capabilities.",
         category: "Mathematics"
     },
     {
         title: "BFCL",
+        version: "V1",
         difficulty: "medium",
         description: "Berkeley Function Calling Leaderboard - evaluates function calling and tool use capabilities.",
         category: "Function Calling"
     },
     {
-        title: "GPQA Main",
+        title: "GPQA",
+        version: "Main",
         difficulty: "hard",
         description: "Graduate-level Google-Proof Q&A - tests expert-level knowledge across science domains.",
         category: "Knowledge"
     },
     {
         title: "GSM8K",
+        version: "",
         difficulty: "medium",
         description: "Grade School Math 8K - evaluates mathematical reasoning and multi-step problem solving.",
         category: "Mathematics"
     },
     {
         title: "HumanEval",
+        version: "",
         difficulty: "medium",
         description: "Evaluates code generation capabilities through hand-written programming problems.",
         category: "Coding"
