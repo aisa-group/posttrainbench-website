@@ -1,0 +1,13 @@
+[project]
+name = "post-train-bench-website"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cairosvg>=2.8.2",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.5",
+    "pandas>=3.0.0",
+    "pillow>=12.0.0",
+]

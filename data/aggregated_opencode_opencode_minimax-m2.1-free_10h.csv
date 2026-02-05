@@ -1,0 +1,5 @@
+model,aime2025,arenahardwriting,bfcl,gpqamain,gsm8k,healthbench,humaneval
+Qwen3-1.7B-Base,0.0,not stored,0.0,0.14508928571428573,0.1152388172858226,not stored,0.12195121951219512
+Qwen3-4B-Base,0.03333333333333333,not stored,0.0,0.10491071428571429,ERR,not stored,0.38414634146341464
+SmolLM3-3B-Base,0.0,not stored,0.0,0.12053571428571429,not stored,not stored,0.054878048780487805
+gemma-3-4b-pt,0.0,not stored,0.54,ERR,0.029567854435178165,not stored,0.3048780487804878

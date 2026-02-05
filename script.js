@@ -1,4 +1,9 @@
 
+// Register Chart.js datalabels plugin (if available)
+if (typeof ChartDataLabels !== 'undefined') {
+    Chart.register(ChartDataLabels);
+}
+
 // Global chart instances
 let performanceChart = null;
 let detailedChart = null;
@@ -58,31 +63,45 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
+// Map dropdown display values to actual model names in data
+const modelNameMap = {
+    "Qwen3-1.7B": "Qwen3-1.7B-Base",
+    "Qwen3-4B": "Qwen3-4B-Base",
+    "SmolLM3-3B": "SmolLM3-3B-Base",
+    "Gemma-3-4B": "gemma-3-4b-pt"
+};
+
 // Get leaderboard data for specific model or average
 function getLeaderboardDataForModel(modelName) {
-    const agentKeyMap = {
-        "Human Post-Trained": "human",
-        "Base Model": "base-model",
-        "GPT 5.1 Codex Max": "codex-5.1",
-        "Sonnet 4.5": "sonnet-4.5",
-        "Opus 4.5": "opus-4.5",
-        "GPT-5.2": "gpt-5.2",
-        "Gemini 3 Pro": "gemini-3-pro"
-    };
-
     if (modelName === "average") {
         return leaderboardData;
     }
 
+    // Map display name to actual model name
+    const actualModelName = modelNameMap[modelName] || modelName;
+
     // Create data for specific model
-    const modelData = leaderboardDataRaw.map(entry => {
-        const agentKey = agentKeyMap[entry.agent];
-        const modelScores = modelBenchmarkData[agentKey][modelName];
+    const modelData = leaderboardData.map(entry => {
+        const modelScores = modelBenchmarkData[entry.agentKey][actualModelName];
+        // Convert to the expected format with values and fallback types
+        const benchmarkScoresForDisplay = {};
+        Object.keys(modelScores).forEach(key => {
+            benchmarkScoresForDisplay[key] = {
+                value: modelScores[key].value.toFixed(2),
+                fallbackType: modelScores[key].fallbackType
+            };
+        });
         return {
+            agentKey: entry.agentKey,
             agent: entry.agent,
-            averageScore: calculateAverageForModel(agentKey, modelName),
-            benchmarkScores: modelScores,
-            description: entry.description
+            averageScore: calculateWeightedAverageForModel(entry.agentKey, actualModelName),
+            stdDev: entry.stdDev,
+            benchmarkScores: benchmarkScoresForDisplay,
+            description: entry.description,
+            isBaseline: entry.isBaseline,
+            isOpenCode: entry.isOpenCode,
+            scaffold: entry.scaffold,
+            showInChart: entry.showInChart
         };
     });
 
@@ -114,6 +133,54 @@ function getHeatmapColor(normalizedValue) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// Helper to get value from benchmark score (handles both old and new format)
+function getBenchmarkValue(score) {
+    if (typeof score === 'object' && score !== null) {
+        return parseFloat(score.value);
+    }
+    return parseFloat(score);
+}
+
+// Helper to get fallback type from benchmark score
+function getFallbackType(score) {
+    if (typeof score === 'object' && score !== null) {
+        return score.fallbackType || false;
+    }
+    return false;
+}
+
+// Helper to get std value from benchmark score
+function getBenchmarkStd(score) {
+    if (typeof score === 'object' && score !== null && score.std !== undefined) {
+        return score.std;
+    }
+    return null;
+}
+
+// Helper to format benchmark value with fallback marker (only in model-specific view)
+function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
+    const value = getBenchmarkValue(score);
+    const std = getBenchmarkStd(score);
+
+    let valueStr = `${value.toFixed(2)}%`;
+
+    if (showMarkers) {
+        const fallbackType = getFallbackType(score);
+        if (fallbackType === 'not_stored') {
+            valueStr += '<sup>*</sup>';
+        } else if (fallbackType === 'error') {
+            valueStr += '<sup>†</sup>';
+        }
+    }
+
+    // Add std display if available and requested
+    if (showStd && std !== null) {
+        valueStr += `<span class="std-value">± ${std}%</span>`;
+    }
+
+    return valueStr;
+}
+
 // Populate Leaderboard
 function populateLeaderboard(modelName = "average") {
     const tbody = document.getElementById('leaderboard-data');
@@ -121,14 +188,19 @@ function populateLeaderboard(modelName = "average") {
 
     const data = getLeaderboardDataForModel(modelName);
 
+    // Only show markers in model-specific view, not average
+    const showMarkers = modelName !== "average";
+
     // Collect all values for each column to find min/max
     const columns = {
         average: data.map(e => parseFloat(e.averageScore)),
-        aime2025: data.map(e => parseFloat(e.benchmarkScores.aime2025)),
-        bfcl: data.map(e => parseFloat(e.benchmarkScores.bfcl)),
-        gpqamain: data.map(e => parseFloat(e.benchmarkScores.gpqamain)),
-        gsm8k: data.map(e => parseFloat(e.benchmarkScores.gsm8k)),
-        humaneval: data.map(e => parseFloat(e.benchmarkScores.humaneval))
+        aime2025: data.map(e => getBenchmarkValue(e.benchmarkScores.aime2025)),
+        arenahardwriting: data.map(e => getBenchmarkValue(e.benchmarkScores.arenahardwriting)),
+        bfcl: data.map(e => getBenchmarkValue(e.benchmarkScores.bfcl)),
+        gpqamain: data.map(e => getBenchmarkValue(e.benchmarkScores.gpqamain)),
+        gsm8k: data.map(e => getBenchmarkValue(e.benchmarkScores.gsm8k)),
+        healthbench: data.map(e => getBenchmarkValue(e.benchmarkScores.healthbench)),
+        humaneval: data.map(e => getBenchmarkValue(e.benchmarkScores.humaneval))
     };
 
     // Find min and max for each column
@@ -150,32 +222,51 @@ function populateLeaderboard(modelName = "average") {
     data.forEach(entry => {
         const row = document.createElement('tr');
 
-        const rankClass = entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other';
+        // Handle null ranks for baselines
+        const rankDisplay = entry.rank !== null ? entry.rank : '-';
+        const rankClass = entry.rank !== null && entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other';
 
         // Create cells with heatmap colors normalized per column
         const avgValue = parseFloat(entry.averageScore);
-        const aimeValue = parseFloat(entry.benchmarkScores.aime2025);
-        const bfclValue = parseFloat(entry.benchmarkScores.bfcl);
-        const gpqaValue = parseFloat(entry.benchmarkScores.gpqamain);
-        const gsmValue = parseFloat(entry.benchmarkScores.gsm8k);
-        const humanValue = parseFloat(entry.benchmarkScores.humaneval);
+        const aimeValue = getBenchmarkValue(entry.benchmarkScores.aime2025);
+        const arenaValue = getBenchmarkValue(entry.benchmarkScores.arenahardwriting);
+        const bfclValue = getBenchmarkValue(entry.benchmarkScores.bfcl);
+        const gpqaValue = getBenchmarkValue(entry.benchmarkScores.gpqamain);
+        const gsmValue = getBenchmarkValue(entry.benchmarkScores.gsm8k);
+        const healthValue = getBenchmarkValue(entry.benchmarkScores.healthbench);
+        const humanValue = getBenchmarkValue(entry.benchmarkScores.humaneval);
 
         const avgColor = getHeatmapColor(normalize(avgValue, 'average'));
         const aimeColor = getHeatmapColor(normalize(aimeValue, 'aime2025'));
+        const arenaColor = getHeatmapColor(normalize(arenaValue, 'arenahardwriting'));
         const bfclColor = getHeatmapColor(normalize(bfclValue, 'bfcl'));
         const gpqaColor = getHeatmapColor(normalize(gpqaValue, 'gpqamain'));
         const gsmColor = getHeatmapColor(normalize(gsmValue, 'gsm8k'));
+        const healthColor = getHeatmapColor(normalize(healthValue, 'healthbench'));
         const humanColor = getHeatmapColor(normalize(humanValue, 'humaneval'));
 
+        // Format std display (only show if available)
+        const stdDisplay = entry.stdDev ? `<span class="std-value">± ${entry.stdDev}%</span>` : '';
+        // Show std for benchmarks in average view (when showMarkers is false)
+        const showStd = !showMarkers;
+
+        // Format agent name - put scaffold name on separate line with smaller styling
+        let agentNameHtml = entry.agent;
+        if (entry.scaffold) {
+            agentNameHtml = `${entry.agent}<span class="scaffold-label">${entry.scaffold}</span>`;
+        }
+
         row.innerHTML = `
-            <td><span class="rank-badge ${rankClass}">${entry.rank}</span></td>
-            <td><strong>${entry.agent}</strong></td>
-            <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong></td>
-            <td style="background-color: ${aimeColor}">${entry.benchmarkScores.aime2025}%</td>
-            <td style="background-color: ${bfclColor}">${entry.benchmarkScores.bfcl}%</td>
-            <td style="background-color: ${gpqaColor}">${entry.benchmarkScores.gpqamain}%</td>
-            <td style="background-color: ${gsmColor}">${entry.benchmarkScores.gsm8k}%</td>
-            <td style="background-color: ${humanColor}">${entry.benchmarkScores.humaneval}%</td>
+            <td><span class="rank-badge ${rankClass}">${rankDisplay}</span></td>
+            <td><strong>${agentNameHtml}</strong></td>
+            <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
+            <td style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
+            <td style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
+            <td style="background-color: ${bfclColor}">${formatBenchmarkValue(entry.benchmarkScores.bfcl, showMarkers, showStd)}</td>
+            <td style="background-color: ${gpqaColor}">${formatBenchmarkValue(entry.benchmarkScores.gpqamain, showMarkers, showStd)}</td>
+            <td style="background-color: ${gsmColor}">${formatBenchmarkValue(entry.benchmarkScores.gsm8k, showMarkers, showStd)}</td>
+            <td style="background-color: ${healthColor}">${formatBenchmarkValue(entry.benchmarkScores.healthbench, showMarkers, showStd)}</td>
+            <td style="background-color: ${humanColor}">${formatBenchmarkValue(entry.benchmarkScores.humaneval, showMarkers, showStd)}</td>
         `;
 
         tbody.appendChild(row);
@@ -272,29 +363,40 @@ function createSimpleChart(modelName = "average") {
     }
 
     // Get data for selected model
-    const data = getLeaderboardDataForModel(modelName);
+    const allData = getLeaderboardDataForModel(modelName);
+
+    // Filter to only show agents that should appear in chart
+    const data = allData.filter(d => d.showInChart !== false);
 
     // Reverse order for chart (ascending - lowest to highest)
     const reversedData = [...data].reverse();
 
-    // Update labels to add (baseline) for Base Model and Human Post-Trained
+    // Update labels - split long names into two lines for readability
     const chartLabels = reversedData.map(d => {
         if (d.agent === 'Base Model') {
-            return [d.agent, '(baseline)'];
+            return ['Base Model', '(baseline)'];
         }
-        if (d.agent === 'Human Post-Trained') {
-            return [d.agent, '(baseline)²'];
+        if (d.agent === 'Instruction Tuned') {
+            return ['Instruction', 'Tuned'];
+        }
+        // Split longer agent names into two lines
+        const words = d.agent.split(' ');
+        if (words.length >= 3) {
+            // Split at roughly the middle
+            const midpoint = Math.ceil(words.length / 2);
+            return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ')];
         }
         return d.agent;
     });
 
-    // Set colors - baseline agents get different color
     const chartColors = reversedData.map(d => {
-        if (d.agent === 'Base Model' || d.agent === 'Human Post-Trained') {
-            return '#6b655a'; // Darker muted color for baselines
-        }
+        if (d.agent === 'Base Model') return '#9a9590';
+        if (d.agent === 'Instruction Tuned') return '#6b655a';
         return accentPrimary;
     });
+
+    // Get error bar data (std deviations)
+    const errorBars = reversedData.map(d => d.stdDev ? parseFloat(d.stdDev) : null);
 
     // Calculate max value dynamically - round up to nearest 10
     const maxScore = Math.max(...data.map(d => parseFloat(d.averageScore)));
@@ -302,6 +404,49 @@ function createSimpleChart(modelName = "average") {
 
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
+
+    // Custom plugin for error bars
+    const errorBarPlugin = {
+        id: 'errorBars',
+        afterDatasetsDraw(chart) {
+            const { ctx, scales: { x, y } } = chart;
+            const dataset = chart.data.datasets[0];
+
+            ctx.save();
+            ctx.strokeStyle = '#704028'; // Dark terracotta for error bars
+            ctx.lineWidth = 1.5;
+
+            dataset.data.forEach((value, index) => {
+                const error = errorBars[index];
+                if (error !== null && error > 0) {
+                    const xPos = x.getPixelForValue(index);
+                    const yPos = y.getPixelForValue(value);
+                    const errorTop = y.getPixelForValue(value + error);
+                    const errorBottom = y.getPixelForValue(value - error);
+                    const capWidth = 6;
+
+                    // Vertical line
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, errorTop);
+                    ctx.lineTo(xPos, errorBottom);
+                    ctx.stroke();
+
+                    // Top cap
+                    ctx.beginPath();
+                    ctx.moveTo(xPos - capWidth, errorTop);
+                    ctx.lineTo(xPos + capWidth, errorTop);
+                    ctx.stroke();
+
+                    // Bottom cap
+                    ctx.beginPath();
+                    ctx.moveTo(xPos - capWidth, errorBottom);
+                    ctx.lineTo(xPos + capWidth, errorBottom);
+                    ctx.stroke();
+                }
+            });
+            ctx.restore();
+        }
+    };
 
     performanceChart = new Chart(ctx, {
         type: 'bar',
@@ -316,6 +461,7 @@ function createSimpleChart(modelName = "average") {
                 borderRadius: 4
             }]
         },
+        plugins: [errorBarPlugin],
         options: {
             responsive: true,
             maintainAspectRatio: !isMobile,
@@ -338,12 +484,26 @@ function createSimpleChart(modelName = "average") {
                     borderWidth: 1,
                     callbacks: {
                         label: function(context) {
-                            return `Average Score: ${context.parsed.y.toFixed(2)}%`;
+                            const std = errorBars[context.dataIndex];
+                            const stdText = std ? ` ± ${std}%` : '';
+                            return `Average Score: ${context.parsed.y.toFixed(1)}%${stdText}`;
                         }
                     }
                 },
                 datalabels: {
-                    display: false
+                    display: true,
+                    color: '#ffffff',
+                    anchor: 'start',
+                    align: 'end',
+                    offset: 4,
+                    font: {
+                        family: 'monospace',
+                        size: fontSizes.axisTicks,
+                        weight: 500
+                    },
+                    formatter: function(value) {
+                        return value.toFixed(1) + '%';
+                    }
                 }
             },
             scales: {
@@ -396,7 +556,8 @@ function createSimpleChart(modelName = "average") {
                             family: 'monospace',
                             size: fontSizes.axisTicks
                         },
-                        maxRotation: 0
+                        maxRotation: 0,
+                        autoSkip: false
                     }
                 }
             }
@@ -428,40 +589,35 @@ function createDetailedChart(modelName = "average") {
         wrapper.style.height = '';
     }
 
-    // Agent colors for grouped view - theme-adaptive
-    const currentTheme = html.getAttribute('data-theme');
-    const agentColors = currentTheme === 'dark' ? {
-        'Human Post-Trained': '#deb070',  // Softer golden amber
-        'Base Model': '#b89888',          // Muted dusty rose
-        'GPT 5.1 Codex Max': '#c88968',   // Softer terracotta
-        'Sonnet 4.5': '#a87d60',          // Muted rust
-        'Opus 4.5': '#d4a373',            // Light terracotta
-        'GPT-5.2': '#b8956e',             // Medium taupe
-        'Gemini 3 Pro': '#9d8268'         // Dark taupe
-    } : {
-        'Human Post-Trained': '#c49558',  // Deep gold
-        'Base Model': '#8a7965',          // Rich taupe
-        'GPT 5.1 Codex Max': '#a66b4f',   // Burnt terracotta
-        'Sonnet 4.5': '#6e5743',          // Dark coffee
-        'Opus 4.5': '#c17d5a',            // Terracotta
-        'GPT-5.2': '#a0917a',             // Warm taupe
-        'Gemini 3 Pro': '#8a7561'         // Medium brown
+    const agentColors = {
+        'Instruction Tuned': '#6b655a',
+        'Base Model': '#9a9590',
+        'GPT 5.1 Codex Max': '#6a7a5a',
+        'GPT-5.2': '#7a8a6a',
+        'GPT-5.2 Codex': '#8a9a7a',
+        'Opus 4.5': '#c17d5a',
+        'Sonnet 4.5': '#a66b4f',
+        'Gemini 3 Pro': '#6a7a85',
+        'GLM 4.7': '#6a8078',
+        'MiniMax M2.1': '#8a7078'
     };
 
     // Grouped bar chart - benchmarks on X-axis, agents as different bars
-        // Grouped bar chart - benchmarks on X-axis, agents as different bars
-        const benchmarks = ['AIME 2025', 'BFCL', 'GPQA Main', 'GSM8K', 'HumanEval'];
-        const benchmarkKeys = ['aime2025', 'bfcl', 'gpqamain', 'gsm8k', 'humaneval'];
-        const data = getLeaderboardDataForModel(modelName);
+        const benchmarks = ['AIME 2025', 'Arena Hard', 'BFCL', 'GPQA Main', 'GSM8K', 'HealthBench', 'HumanEval'];
+        const benchmarkKeys = ['aime2025', 'arenahardwriting', 'bfcl', 'gpqamain', 'gsm8k', 'healthbench', 'humaneval'];
+        const allData = getLeaderboardDataForModel(modelName);
 
-        const agentOrder = ['Base Model', 'Gemini 3 Pro', 'GPT-5.2', 'Sonnet 4.5', 'Opus 4.5', 'GPT 5.1 Codex Max', 'Human Post-Trained'];
+        // Filter to only chart agents and order them
+        const data = allData.filter(d => d.showInChart !== false);
+
+        const agentOrder = ['Base Model', 'MiniMax M2.1', 'Sonnet 4.5', 'GPT-5.2 Codex', 'Opus 4.5', 'Gemini 3 Pro', 'GPT 5.1 Codex Max', 'GPT-5.2', 'Instruction Tuned'];
         const orderedData = agentOrder.map(agentName =>
             data.find(entry => entry.agent === agentName)
         ).filter(Boolean);
 
         const datasets = orderedData.map(entry => ({
             label: entry.agent,
-            data: benchmarkKeys.map(key => parseFloat(entry.benchmarkScores[key])),
+            data: benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key])),
             backgroundColor: agentColors[entry.agent] || accentPrimary,
             borderColor: agentColors[entry.agent] || accentPrimary,
             borderWidth: 1,
@@ -469,7 +625,7 @@ function createDetailedChart(modelName = "average") {
         }));
 
         const maxScore = Math.max(...orderedData.flatMap(entry =>
-            benchmarkKeys.map(key => parseFloat(entry.benchmarkScores[key]))
+            benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key]))
         ));
         const yAxisMax = Math.ceil(maxScore / 10) * 10;
 
@@ -603,16 +759,117 @@ function createTimeSpentChart() {
         wrapper.style.height = '';
     }
 
-    // Sort by hours (descending) - longest time first
-    const sortedData = [...timeSpentData].sort((a, b) => b.hours - a.hours);
+    // Sort by hours (descending), filter out baselines
+    const sortedData = [...timeSpentData]
+        .filter(d => !d.isBaseline)
+        .sort((a, b) => b.hours - a.hours);
 
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
 
+    const timeErrorBarPlugin = {
+        id: 'timeErrorBars',
+        afterDatasetsDraw(chart) {
+            const { ctx, scales } = chart;
+            const dataset = chart.data.datasets[0];
+
+            ctx.save();
+
+            dataset.data.forEach((value, index) => {
+                const dataItem = sortedData[index];
+                const meta = chart.getDatasetMeta(0);
+                const bar = meta.data[index];
+                const yPos = bar.y;
+                const barHeight = bar.height;
+
+                let labelX;
+
+                if (dataItem.stdHours) {
+                    ctx.strokeStyle = '#704028';
+                    ctx.lineWidth = 2;
+
+                    const capSize = Math.min(barHeight * 0.3, 6);
+                    const xMin = scales.x.getPixelForValue(value - dataItem.stdHours);
+                    const xMax = scales.x.getPixelForValue(value + dataItem.stdHours);
+
+                    ctx.beginPath();
+                    ctx.moveTo(xMin, yPos);
+                    ctx.lineTo(xMax, yPos);
+                    ctx.moveTo(xMin, yPos - capSize);
+                    ctx.lineTo(xMin, yPos + capSize);
+                    ctx.moveTo(xMax, yPos - capSize);
+                    ctx.lineTo(xMax, yPos + capSize);
+                    ctx.stroke();
+
+                    labelX = xMax + 8;
+                } else {
+                    labelX = scales.x.getPixelForValue(value) + 8;
+                }
+
+                ctx.fillStyle = textPrimary;
+                ctx.font = `600 ${fontSizes.legend}px monospace`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                const labelText = dataItem.stdHours
+                    ? `${dataItem.time} ± ${dataItem.stdTime}`
+                    : dataItem.time;
+                ctx.fillText(labelText, labelX, yPos);
+            });
+
+            ctx.restore();
+        }
+    };
+
+    const getScaffold = (agentKey) => agentInfo[agentKey]?.scaffold || null;
+
+    const labels = sortedData.map(d => {
+        const scaffold = getScaffold(d.agentKey);
+        return d.agent.length > (scaffold?.length || 0) ? d.agent : scaffold;
+    });
+
+    const customLabelsPlugin = {
+        id: 'customLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx, chartArea, scales } = chart;
+            const meta = chart.getDatasetMeta(0);
+
+            ctx.save();
+            ctx.textAlign = 'right';
+            const xPos = chartArea.left - 10;
+
+            sortedData.forEach((dataItem, index) => {
+                const bar = meta.data[index];
+                const yPos = bar.y;
+                const scaffold = getScaffold(dataItem.agentKey);
+
+                if (scaffold) {
+                    ctx.fillStyle = textSecondary;
+                    ctx.font = `500 ${fontSizes.axisTicks}px monospace`;
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(dataItem.agent, xPos, yPos - 1);
+
+                    ctx.globalAlpha = 0.55;
+                    ctx.font = `400 ${Math.round(fontSizes.axisTicks * 0.8)}px monospace`;
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(scaffold, xPos, yPos + 1);
+                    ctx.globalAlpha = 1;
+                } else {
+                    ctx.fillStyle = textSecondary;
+                    ctx.font = `500 ${fontSizes.axisTicks}px monospace`;
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(dataItem.agent, xPos, yPos);
+                }
+            });
+
+            ctx.restore();
+        }
+    };
+
     timeSpentChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sortedData.map(d => d.agent),
+            labels: labels,
             datasets: [{
                 label: 'Time Spent (hours)',
                 data: sortedData.map(d => d.hours),
@@ -620,23 +877,10 @@ function createTimeSpentChart() {
                 borderColor: accentPrimary,
                 borderWidth: 2,
                 borderRadius: 4,
-                datalabels: {
-                    display: true,
-                    anchor: 'end',
-                    align: 'end',
-                    color: textPrimary,
-                    font: {
-                        family: 'monospace',
-                        size: fontSizes.legend,
-                        weight: 600
-                    },
-                    formatter: function(_value, context) {
-                        return sortedData[context.dataIndex].time;
-                    },
-                    padding: 4
-                }
+                datalabels: { display: false }
             }]
         },
+        plugins: [timeErrorBarPlugin, customLabelsPlugin],
         options: {
             indexAxis: 'y',
             responsive: true,
@@ -661,7 +905,11 @@ function createTimeSpentChart() {
                     callbacks: {
                         label: function(context) {
                             const dataItem = sortedData[context.dataIndex];
-                            return `Time: ${dataItem.time} (${context.parsed.x.toFixed(2)} hours)`;
+                            let label = `Time: ${dataItem.time} (${context.parsed.x.toFixed(2)} hours)`;
+                            if (dataItem.stdHours) {
+                                label += ` ± ${dataItem.stdTime}`;
+                            }
+                            return label;
                         }
                     }
                 },
@@ -710,7 +958,7 @@ function createTimeSpentChart() {
                         display: false
                     },
                     ticks: {
-                        color: textSecondary,
+                        color: 'transparent',
                         font: {
                             family: 'monospace',
                             size: fontSizes.axisTicks
@@ -722,7 +970,6 @@ function createTimeSpentChart() {
     });
 }
 
-// Smooth Scroll
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
@@ -736,14 +983,11 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Paper button - Prevent default action, tooltip only on hover
 document.getElementById('paper-btn').addEventListener('click', (e) => {
     e.preventDefault();
-    // Remove focus to hide tooltip after click
     e.target.blur();
 });
 
-// Handle window resize for chart responsiveness
 let resizeTimeout;
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
@@ -860,7 +1104,15 @@ function handleNavbarLogoVisibility() {
 window.addEventListener('scroll', handleNavbarLogoVisibility);
 
 // Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Load scores data from JSON
+    const loaded = await loadScoresData();
+    if (!loaded) {
+        console.error('Failed to initialize: could not load scores data');
+        return;
+    }
+
+    // Initialize UI
     populateLeaderboard();
     populateTasks();
     populateStatistics();
