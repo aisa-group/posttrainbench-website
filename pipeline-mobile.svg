@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 660">
   <defs>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap');
+
       .box1 { fill: #f8f0e8; stroke: #c0a890; stroke-width: 2; }
       .box2 { fill: #f5f0e5; stroke: #c0a890; stroke-width: 2; }
       .box-judge { fill: #f5f0e5; stroke: #b0a090; stroke-width: 2; }

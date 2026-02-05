@@ -488,11 +488,11 @@ function createSimpleChart(modelName = "average") {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
                     titleFont: {
-                        family: 'monospace',
+                        family: "'JetBrains Mono', monospace",
                         size: fontSizes.tooltipTitle
                     },
                     bodyFont: {
-                        family: 'monospace',
+                        family: "'JetBrains Mono', monospace",
                         size: fontSizes.tooltipBody
                     },
                     borderColor: accentPrimary,
@@ -512,7 +512,7 @@ function createSimpleChart(modelName = "average") {
                     align: 'end',
                     offset: 4,
                     font: {
-                        family: 'monospace',
+                        family: "'JetBrains Mono', monospace",
                         size: fontSizes.axisTicks,
                         weight: 500
                     },
@@ -530,7 +530,7 @@ function createSimpleChart(modelName = "average") {
                         text: 'Average benchmark performance¹',
                         color: textPrimary,
                         font: {
-                            family: 'monospace',
+                            family: "'JetBrains Mono', monospace",
                             size: fontSizes.axisTitle,
                             weight: 500
                         }
@@ -541,7 +541,7 @@ function createSimpleChart(modelName = "average") {
                     ticks: {
                         color: textSecondary,
                         font: {
-                            family: 'monospace',
+                            family: "'JetBrains Mono', monospace",
                             size: isMobile ? 9 : fontSizes.axisTicks
                         },
                         stepSize: isMobile ? 20 : 10,
@@ -557,7 +557,7 @@ function createSimpleChart(modelName = "average") {
                         text: 'LLM powering the CLI agent',
                         color: textPrimary,
                         font: {
-                            family: 'monospace',
+                            family: "'JetBrains Mono', monospace",
                             size: fontSizes.axisTitle,
                             weight: 500
                         }
@@ -568,7 +568,7 @@ function createSimpleChart(modelName = "average") {
                     ticks: {
                         color: textSecondary,
                         font: {
-                            family: 'monospace',
+                            family: "'JetBrains Mono', monospace",
                             size: isMobile ? 9 : fontSizes.axisTicks
                         },
                         maxRotation: isMobile ? 55 : 0,
@@ -675,8 +675,8 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                     tooltip: {
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         padding: 8,
-                        titleFont: { family: 'monospace', size: 11 },
-                        bodyFont: { family: 'monospace', size: 10 },
+                        titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
+                        bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
                         borderColor: accentPrimary,
                         borderWidth: 1,
                         callbacks: {
@@ -695,7 +695,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                         grid: { color: borderColor },
                         ticks: {
                             color: textSecondary,
-                            font: { family: 'monospace', size: 9 },
+                            font: { family: "'JetBrains Mono', monospace", size: 9 },
                             stepSize: 20,
                             callback: value => value + '%'
                         }
@@ -705,7 +705,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                         grid: { display: false },
                         ticks: {
                             color: textSecondary,
-                            font: { family: 'monospace', size: 9 },
+                            font: { family: "'JetBrains Mono', monospace", size: 9 },
                             maxRotation: 55,
                             minRotation: 55
                         }
@@ -749,15 +749,15 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                         position: 'top',
                         labels: {
                             color: textPrimary,
-                            font: { family: 'monospace', size: fontSizes.legend },
+                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.legend },
                             padding: 12
                         }
                     },
                     tooltip: {
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         padding: 12,
-                        titleFont: { family: 'monospace', size: fontSizes.tooltipTitle },
-                        bodyFont: { family: 'monospace', size: fontSizes.tooltipBody },
+                        titleFont: { family: "'JetBrains Mono', monospace", size: fontSizes.tooltipTitle },
+                        bodyFont: { family: "'JetBrains Mono', monospace", size: fontSizes.tooltipBody },
                         borderColor: accentPrimary,
                         borderWidth: 1,
                         callbacks: {
@@ -776,12 +776,12 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                             display: true,
                             text: 'Benchmark Score (%)',
                             color: textPrimary,
-                            font: { family: 'monospace', size: fontSizes.axisTitle, weight: 500 }
+                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTitle, weight: 500 }
                         },
                         grid: { color: borderColor },
                         ticks: {
                             color: textSecondary,
-                            font: { family: 'monospace', size: fontSizes.axisTicks },
+                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks },
                             stepSize: 10,
                             callback: value => value + '%'
                         }
@@ -791,7 +791,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                         grid: { display: false },
                         ticks: {
                             color: textSecondary,
-                            font: { family: 'monospace', size: fontSizes.axisTicks },
+                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks },
                             maxRotation: 0,
                             minRotation: 0
                         }
@@ -878,7 +878,7 @@ function createTimeSpentChart() {
                 }
 
                 ctx.fillStyle = textPrimary;
-                ctx.font = `600 ${isMobile ? 9 : fontSizes.legend}px monospace`;
+                ctx.font = `600 ${isMobile ? 9 : fontSizes.legend}px 'JetBrains Mono', monospace`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
@@ -922,23 +922,23 @@ function createTimeSpentChart() {
                 if (isMobile) {
                     // On mobile: show only agent name, single line
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${labelFontSize}px monospace`;
+                    ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
                     ctx.textBaseline = 'middle';
                     ctx.fillText(dataItem.agent, xPos, yPos);
                 } else if (scaffold) {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${labelFontSize}px monospace`;
+                    ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(dataItem.agent, xPos, yPos - 1);
 
                     ctx.globalAlpha = 0.55;
-                    ctx.font = `400 ${scaffoldFontSize}px monospace`;
+                    ctx.font = `400 ${scaffoldFontSize}px 'JetBrains Mono', monospace`;
                     ctx.textBaseline = 'top';
                     ctx.fillText(scaffold, xPos, yPos + 1);
                     ctx.globalAlpha = 1;
                 } else {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${labelFontSize}px monospace`;
+                    ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
                     ctx.textBaseline = 'middle';
                     ctx.fillText(dataItem.agent, xPos, yPos);
                 }
@@ -977,11 +977,11 @@ function createTimeSpentChart() {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: isMobile ? 8 : 12,
                     titleFont: {
-                        family: 'monospace',
+                        family: "'JetBrains Mono', monospace",
                         size: isMobile ? 11 : fontSizes.tooltipTitle
                     },
                     bodyFont: {
-                        family: 'monospace',
+                        family: "'JetBrains Mono', monospace",
                         size: isMobile ? 10 : fontSizes.tooltipBody
                     },
                     borderColor: accentPrimary,
@@ -1010,7 +1010,7 @@ function createTimeSpentChart() {
                         text: 'Time (hours)',
                         color: textPrimary,
                         font: {
-                            family: 'monospace',
+                            family: "'JetBrains Mono', monospace",
                             size: fontSizes.axisTitle,
                             weight: 500
                         }
@@ -1021,7 +1021,7 @@ function createTimeSpentChart() {
                     ticks: {
                         color: textSecondary,
                         font: {
-                            family: 'monospace',
+                            family: "'JetBrains Mono', monospace",
                             size: isMobile ? 9 : fontSizes.axisTicks
                         },
                         stepSize: isMobile ? 5 : 2
@@ -1037,7 +1037,7 @@ function createTimeSpentChart() {
                     ticks: {
                         color: 'transparent',
                         font: {
-                            family: 'monospace',
+                            family: "'JetBrains Mono', monospace",
                             size: isMobile ? 9 : fontSizes.axisTicks
                         }
                     }
