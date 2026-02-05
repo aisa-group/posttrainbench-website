@@ -251,6 +251,8 @@ body {
     color: var(--text-secondary);
     margin-bottom: 1.5rem;
     white-space: nowrap;
+    letter-spacing: 0.02em;
+    margin-top: 0.5rem;
 }
 
 .hero-description {
@@ -571,6 +573,53 @@ section {
     border-radius: 0.5rem;
 }
 
+/* Mobile table toggle notice - hidden on desktop */
+.mobile-table-notice {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.toggle-table-btn {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.toggle-table-btn:hover {
+    background: var(--accent-secondary);
+}
+
+.toggle-table-btn .hide-text {
+    display: none;
+}
+
+.mobile-table-notice.show-full .toggle-table-btn .show-text {
+    display: none;
+}
+
+.mobile-table-notice.show-full .toggle-table-btn .hide-text {
+    display: inline;
+}
+
+.mobile-table-notice.show-full span:first-child {
+    display: none;
+}
+
 .leaderboard-footnote {
     margin-top: 1.5rem;
     font-size: 0.875rem;
@@ -583,6 +632,11 @@ section {
     text-align: left;
     font-style: normal;
     margin-top: 0.75rem;
+}
+
+/* Benchmark dropdown - hidden on desktop, shown on mobile */
+.benchmark-select-container {
+    display: none !important;
 }
 
 /* Standard deviation display in table */
@@ -1014,31 +1068,42 @@ tbody tr:last-child td {
     .hero-subtitle {
         font-size: 1rem;
         white-space: normal;
+        letter-spacing: 0.01em;
+        margin-top: 0.25rem;
+        padding: 0 1rem;
+    }
+
+    .hero-description {
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding: 0 1.5rem;
     }
 
     .hero-description p {
         font-size: 0.9rem;
+        line-height: 1.8;
     }
 
     .hero-buttons {
-        flex-direction: column;
-        align-items: center;
+        flex-direction: row;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
     }
 
-    .btn {
-        width: 100%;
-        max-width: 300px;
+    .hero-buttons .btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
         justify-content: center;
     }
 
-    .btn-wrapper {
-        width: 100%;
-        max-width: 300px;
+    .hero-buttons .btn-wrapper {
+        display: inline-flex;
     }
 
-    .btn-wrapper .btn {
-        width: 100%;
-        max-width: none;
+    .hero-buttons .btn-wrapper .btn {
+        width: auto;
     }
 
     .hamburger {
@@ -1092,6 +1157,52 @@ tbody tr:last-child td {
         padding: 1rem;
     }
 
+    /* Show benchmark dropdown on mobile */
+    .benchmark-select-container.leaderboard-controls {
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .benchmark-select-container .custom-dropdown {
+        min-width: 150px;
+    }
+
+    /* Mobile table: show toggle, hide benchmark columns */
+    .mobile-table-notice {
+        display: flex;
+    }
+
+    .benchmark-col {
+        display: none;
+    }
+
+    /* More padding on Avg column (3rd column) */
+    td:nth-child(3),
+    th:nth-child(3) {
+        padding-left: 1rem;
+    }
+
+    /* When showing full table on mobile */
+    .leaderboard-table.show-full table {
+        min-width: 1000px;
+    }
+
+    .leaderboard-table.show-full .benchmark-col {
+        display: table-cell;
+    }
+
+    /* Hide table footnote in summary view since it references hidden columns */
+    .table-footnote {
+        display: none;
+    }
+
+    .mobile-table-notice.show-full ~ .table-footnote {
+        display: block;
+    }
+
     .chart-footnote {
         text-align: center !important;
         padding: 0 0.5rem;
@@ -1102,7 +1213,35 @@ tbody tr:last-child td {
 
     .task-grid {
         grid-template-columns: 1fr;
-        gap: 1rem;
+        gap: 0.75rem;
+    }
+
+    .task-card {
+        padding: 1rem;
+    }
+
+    .task-header {
+        margin-bottom: 0.5rem;
+    }
+
+    .task-title {
+        font-size: 1rem;
+    }
+
+    .task-description {
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+        line-height: 1.4;
+    }
+
+    .difficulty-badge {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.65rem;
+    }
+
+    .task-tag {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
     }
 
     .about-content > p {
@@ -1134,7 +1273,7 @@ tbody tr:last-child td {
 
     table {
         font-size: 0.75rem;
-        min-width: 600px;
+        min-width: auto;
     }
 
     th, td {
@@ -1169,7 +1308,11 @@ tbody tr:last-child td {
 
     table {
         font-size: 0.7rem;
-        min-width: 500px;
+        min-width: auto;
+    }
+
+    .leaderboard-table.show-full table {
+        min-width: 900px;
     }
 
     th, td {
@@ -1205,7 +1348,15 @@ tbody tr:last-child td {
     height: auto;
     display: block;
     margin: 0 auto;
-    min-width: 1000px;
+}
+
+.pipeline-desktop {
+    min-width: 900px;
+}
+
+.pipeline-mobile {
+    display: none;
+    max-width: 320px;
 }
 
 .flow-step {
@@ -1545,10 +1696,17 @@ tbody tr:last-child td {
 @media (max-width: 768px) {
     .pipeline-diagram {
         padding: 1rem;
+        overflow-x: visible;
     }
 
-    .pipeline-svg {
-        min-width: 800px;
+    .pipeline-desktop {
+        display: none;
+    }
+
+    .pipeline-mobile {
+        display: block;
+        min-width: auto;
+        max-width: 100%;
     }
 
     .flowchart {

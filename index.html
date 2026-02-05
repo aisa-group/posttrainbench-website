@@ -107,6 +107,13 @@
                     </div>
                 </div>
             </div>
+            <div class="mobile-table-notice">
+                <span>Showing summary view</span>
+                <button id="toggle-full-table" class="toggle-table-btn">
+                    <span class="show-text">Show all benchmarks</span>
+                    <span class="hide-text">Hide benchmarks</span>
+                </button>
+            </div>
             <div class="leaderboard-table">
                 <table>
                     <thead>
@@ -114,13 +121,13 @@
                             <th>Rank</th>
                             <th>Method</th>
                             <th>Avg</th>
-                            <th>AIME 2025</th>
-                            <th>ArenaHard</th>
-                            <th>BFCL</th>
-                            <th>GPQA Main</th>
-                            <th>GSM8K</th>
-                            <th>HealthBench</th>
-                            <th>HumanEval</th>
+                            <th class="benchmark-col">AIME 2025</th>
+                            <th class="benchmark-col">ArenaHard</th>
+                            <th class="benchmark-col">BFCL</th>
+                            <th class="benchmark-col">GPQA Main</th>
+                            <th class="benchmark-col">GSM8K</th>
+                            <th class="benchmark-col">HealthBench</th>
+                            <th class="benchmark-col">HumanEval</th>
                         </tr>
                     </thead>
                     <tbody id="leaderboard-data">
@@ -132,6 +139,21 @@
             <p class="leaderboard-footnote">More agents coming soon...</p>
 
             <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
+            <div class="benchmark-select-container leaderboard-controls">
+                <label class="model-select-label">Select benchmark:</label>
+                <div class="custom-dropdown">
+                    <div class="dropdown-selected" id="benchmark-select-display">BFCL</div>
+                    <div class="dropdown-options" id="benchmark-select-options">
+                        <div class="dropdown-option" data-value="aime2025">AIME 2025</div>
+                        <div class="dropdown-option" data-value="arenahardwriting">Arena Hard</div>
+                        <div class="dropdown-option active" data-value="bfcl">BFCL</div>
+                        <div class="dropdown-option" data-value="gpqamain">GPQA Main</div>
+                        <div class="dropdown-option" data-value="gsm8k">GSM8K</div>
+                        <div class="dropdown-option" data-value="healthbench">HealthBench</div>
+                        <div class="dropdown-option" data-value="humaneval">HumanEval</div>
+                    </div>
+                </div>
+            </div>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="detailedChart"></canvas>
@@ -157,7 +179,8 @@
         <div class="container">
             <h2 class="section-title">Pipeline</h2>
             <div class="pipeline-diagram">
-                <img src="pipeline.svg" alt="PostTrainBench Pipeline Diagram" class="pipeline-svg">
+                <img src="pipeline.svg" alt="PostTrainBench Pipeline Diagram" class="pipeline-svg pipeline-desktop">
+                <img src="pipeline-mobile.svg" alt="PostTrainBench Pipeline Diagram" class="pipeline-svg pipeline-mobile">
             </div>
         </div>
     </section>

@@ -55,7 +55,7 @@ themeToggle.addEventListener('click', () => {
     }
     if (detailedChart) {
         detailedChart.destroy();
-        createDetailedChart(currentSelectedModel);
+        createDetailedChart(currentSelectedModel, currentSelectedBenchmark);
     }
     if (timeSpentChart) {
         timeSpentChart.destroy();
@@ -260,13 +260,13 @@ function populateLeaderboard(modelName = "average") {
             <td><span class="rank-badge ${rankClass}">${rankDisplay}</span></td>
             <td><strong>${agentNameHtml}</strong></td>
             <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
-            <td style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
-            <td style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
-            <td style="background-color: ${bfclColor}">${formatBenchmarkValue(entry.benchmarkScores.bfcl, showMarkers, showStd)}</td>
-            <td style="background-color: ${gpqaColor}">${formatBenchmarkValue(entry.benchmarkScores.gpqamain, showMarkers, showStd)}</td>
-            <td style="background-color: ${gsmColor}">${formatBenchmarkValue(entry.benchmarkScores.gsm8k, showMarkers, showStd)}</td>
-            <td style="background-color: ${healthColor}">${formatBenchmarkValue(entry.benchmarkScores.healthbench, showMarkers, showStd)}</td>
-            <td style="background-color: ${humanColor}">${formatBenchmarkValue(entry.benchmarkScores.humaneval, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${bfclColor}">${formatBenchmarkValue(entry.benchmarkScores.bfcl, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${gpqaColor}">${formatBenchmarkValue(entry.benchmarkScores.gpqamain, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${gsmColor}">${formatBenchmarkValue(entry.benchmarkScores.gsm8k, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${healthColor}">${formatBenchmarkValue(entry.benchmarkScores.healthbench, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${humanColor}">${formatBenchmarkValue(entry.benchmarkScores.humaneval, showMarkers, showStd)}</td>
         `;
 
         tbody.appendChild(row);
@@ -353,9 +353,10 @@ function createSimpleChart(modelName = "average") {
     const wrapper = document.querySelector('.leaderboard-chart-wrapper');
     const footnotes = wrapper.parentElement.querySelectorAll('.chart-footnote');
     if (isMobile) {
-        wrapper.style.minWidth = '600px';
-        wrapper.style.height = '300px';
-        footnotes.forEach(fn => fn.style.width = '600px');
+        // Fit chart on mobile screen without horizontal scroll
+        wrapper.style.minWidth = '';
+        wrapper.style.height = '320px';
+        footnotes.forEach(fn => fn.style.width = '');
     } else {
         wrapper.style.minWidth = '';
         wrapper.style.height = '';
@@ -371,18 +372,30 @@ function createSimpleChart(modelName = "average") {
     // Reverse order for chart (ascending - lowest to highest)
     const reversedData = [...data].reverse();
 
-    // Update labels - split long names into two lines for readability
+    // Update labels - use shorter names on mobile, split on desktop
     const chartLabels = reversedData.map(d => {
+        if (isMobile) {
+            // Abbreviated labels for mobile
+            if (d.agent === 'Base Model') return 'Base Model';
+            if (d.agent === 'Instruction Tuned') return 'Instruct Tuned';
+            if (d.agent === 'GPT 5.1 Codex Max') return 'GPT 5.1 Codex';
+            if (d.agent === 'GPT-5.2 Codex') return 'GPT 5.2 Codex';
+            if (d.agent === 'GPT-5.2') return 'GPT-5.2';
+            if (d.agent === 'Gemini 3 Pro') return 'Gemini 3';
+            if (d.agent === 'Opus 4.5') return 'Opus 4.5';
+            if (d.agent === 'Sonnet 4.5') return 'Sonnet 4.5';
+            if (d.agent === 'MiniMax M2.1') return 'MiniMax';
+            return d.agent;
+        }
+        // Desktop: split long names into two lines
         if (d.agent === 'Base Model') {
             return ['Base Model', '(baseline)'];
         }
         if (d.agent === 'Instruction Tuned') {
             return ['Instruction', 'Tuned'];
         }
-        // Split longer agent names into two lines
         const words = d.agent.split(' ');
         if (words.length >= 3) {
-            // Split at roughly the middle
             const midpoint = Math.ceil(words.length / 2);
             return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ')];
         }
@@ -414,7 +427,7 @@ function createSimpleChart(modelName = "average") {
 
             ctx.save();
             ctx.strokeStyle = '#704028'; // Dark terracotta for error bars
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = isMobile ? 1 : 1.5;
 
             dataset.data.forEach((value, index) => {
                 const error = errorBars[index];
@@ -423,7 +436,7 @@ function createSimpleChart(modelName = "average") {
                     const yPos = y.getPixelForValue(value);
                     const errorTop = y.getPixelForValue(value + error);
                     const errorBottom = y.getPixelForValue(value - error);
-                    const capWidth = 6;
+                    const capWidth = isMobile ? 3 : 6;
 
                     // Vertical line
                     ctx.beginPath();
@@ -457,8 +470,10 @@ function createSimpleChart(modelName = "average") {
                 data: reversedData.map(d => parseFloat(d.averageScore)),
                 backgroundColor: chartColors,
                 borderColor: chartColors,
-                borderWidth: 2,
-                borderRadius: 4
+                borderWidth: isMobile ? 1 : 2,
+                borderRadius: isMobile ? 2 : 4,
+                barPercentage: isMobile ? 0.7 : 0.8,
+                categoryPercentage: isMobile ? 0.8 : 0.9
             }]
         },
         plugins: [errorBarPlugin],
@@ -491,7 +506,7 @@ function createSimpleChart(modelName = "average") {
                     }
                 },
                 datalabels: {
-                    display: true,
+                    display: !isMobile,
                     color: '#ffffff',
                     anchor: 'start',
                     align: 'end',
@@ -511,7 +526,7 @@ function createSimpleChart(modelName = "average") {
                     beginAtZero: true,
                     max: 65,
                     title: {
-                        display: true,
+                        display: !isMobile,
                         text: 'Average benchmark performance¹',
                         color: textPrimary,
                         font: {
@@ -527,9 +542,9 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: fontSizes.axisTicks
+                            size: isMobile ? 9 : fontSizes.axisTicks
                         },
-                        stepSize: 10,
+                        stepSize: isMobile ? 20 : 10,
                         callback: function(value) {
                             if (value === 65) return null;
                             return value + '%';
@@ -538,7 +553,7 @@ function createSimpleChart(modelName = "average") {
                 },
                 x: {
                     title: {
-                        display: true,
+                        display: !isMobile,
                         text: 'LLM powering the CLI agent',
                         color: textPrimary,
                         font: {
@@ -554,9 +569,10 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: fontSizes.axisTicks
+                            size: isMobile ? 9 : fontSizes.axisTicks
                         },
-                        maxRotation: 0,
+                        maxRotation: isMobile ? 55 : 0,
+                        minRotation: isMobile ? 55 : 0,
                         autoSkip: false
                     }
                 }
@@ -565,8 +581,22 @@ function createSimpleChart(modelName = "average") {
     });
 }
 
-// Create Detailed Chart (grouped by benchmark)
-function createDetailedChart(modelName = "average") {
+// Current selected benchmark for mobile view
+let currentSelectedBenchmark = 'bfcl';
+
+// Benchmark display names
+const benchmarkDisplayNames = {
+    'aime2025': 'AIME 2025',
+    'arenahardwriting': 'Arena Hard',
+    'bfcl': 'BFCL',
+    'gpqamain': 'GPQA Main',
+    'gsm8k': 'GSM8K',
+    'healthbench': 'HealthBench',
+    'humaneval': 'HumanEval'
+};
+
+// Create Detailed Chart (grouped by benchmark on desktop, single benchmark on mobile)
+function createDetailedChart(modelName = "average", benchmarkKey = null) {
     const ctx = document.getElementById('detailedChart');
 
     // Get theme colors
@@ -582,7 +612,7 @@ function createDetailedChart(modelName = "average") {
     // Set wrapper dimensions based on screen size
     const wrapper = ctx.closest('.leaderboard-chart-wrapper');
     if (isMobile) {
-        wrapper.style.minWidth = '600px';
+        wrapper.style.minWidth = '';
         wrapper.style.height = '300px';
     } else {
         wrapper.style.minWidth = '';
@@ -602,18 +632,91 @@ function createDetailedChart(modelName = "average") {
         'MiniMax M2.1': '#8a7078'
     };
 
-    // Grouped bar chart - benchmarks on X-axis, agents as different bars
+    const allData = getLeaderboardDataForModel(modelName);
+    const data = allData.filter(d => d.showInChart !== false);
+
+    const agentOrder = ['Base Model', 'MiniMax M2.1', 'Sonnet 4.5', 'GPT-5.2 Codex', 'Opus 4.5', 'Gemini 3 Pro', 'GPT 5.1 Codex Max', 'GPT-5.2', 'Instruction Tuned'];
+    const orderedData = agentOrder.map(agentName =>
+        data.find(entry => entry.agent === agentName)
+    ).filter(Boolean);
+
+    const fontSizes = calculateFontSizes(ctx);
+
+    if (isMobile) {
+        // Mobile: Single benchmark, agents on X-axis
+        const selectedBenchmark = benchmarkKey || currentSelectedBenchmark;
+        const scores = orderedData.map(entry => getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]));
+        const labels = orderedData.map(d => d.agent);
+        const colors = orderedData.map(d => agentColors[d.agent] || accentPrimary);
+
+        const maxScore = Math.max(...scores);
+        const yAxisMax = Math.ceil(maxScore / 10) * 10 + 10;
+
+        detailedChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: benchmarkDisplayNames[selectedBenchmark],
+                    data: scores,
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    barPercentage: 0.7,
+                    categoryPercentage: 0.85
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 8,
+                        titleFont: { family: 'monospace', size: 11 },
+                        bodyFont: { family: 'monospace', size: 10 },
+                        borderColor: accentPrimary,
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y.toFixed(2)}%`;
+                            }
+                        }
+                    },
+                    datalabels: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: yAxisMax,
+                        title: { display: false },
+                        grid: { color: borderColor },
+                        ticks: {
+                            color: textSecondary,
+                            font: { family: 'monospace', size: 9 },
+                            stepSize: 20,
+                            callback: value => value + '%'
+                        }
+                    },
+                    x: {
+                        title: { display: false },
+                        grid: { display: false },
+                        ticks: {
+                            color: textSecondary,
+                            font: { family: 'monospace', size: 9 },
+                            maxRotation: 55,
+                            minRotation: 55
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        // Desktop: Grouped bar chart - benchmarks on X-axis, agents as different bars
         const benchmarks = ['AIME 2025', 'Arena Hard', 'BFCL', 'GPQA Main', 'GSM8K', 'HealthBench', 'HumanEval'];
         const benchmarkKeys = ['aime2025', 'arenahardwriting', 'bfcl', 'gpqamain', 'gsm8k', 'healthbench', 'humaneval'];
-        const allData = getLeaderboardDataForModel(modelName);
-
-        // Filter to only chart agents and order them
-        const data = allData.filter(d => d.showInChart !== false);
-
-        const agentOrder = ['Base Model', 'MiniMax M2.1', 'Sonnet 4.5', 'GPT-5.2 Codex', 'Opus 4.5', 'Gemini 3 Pro', 'GPT 5.1 Codex Max', 'GPT-5.2', 'Instruction Tuned'];
-        const orderedData = agentOrder.map(agentName =>
-            data.find(entry => entry.agent === agentName)
-        ).filter(Boolean);
 
         const datasets = orderedData.map(entry => ({
             label: entry.agent,
@@ -621,16 +724,15 @@ function createDetailedChart(modelName = "average") {
             backgroundColor: agentColors[entry.agent] || accentPrimary,
             borderColor: agentColors[entry.agent] || accentPrimary,
             borderWidth: 1,
-            borderRadius: 4
+            borderRadius: 4,
+            barPercentage: 0.8,
+            categoryPercentage: 0.9
         }));
 
         const maxScore = Math.max(...orderedData.flatMap(entry =>
             benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key]))
         ));
         const yAxisMax = Math.ceil(maxScore / 10) * 10;
-
-        // Calculate adaptive font sizes
-        const fontSizes = calculateFontSizes(ctx);
 
         detailedChart = new Chart(ctx, {
             type: 'bar',
@@ -640,31 +742,22 @@ function createDetailedChart(modelName = "average") {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: !isMobile,
+                maintainAspectRatio: true,
                 plugins: {
                     legend: {
                         display: true,
                         position: 'top',
                         labels: {
                             color: textPrimary,
-                            font: {
-                                family: 'monospace',
-                                size: fontSizes.legend
-                            },
+                            font: { family: 'monospace', size: fontSizes.legend },
                             padding: 12
                         }
                     },
                     tooltip: {
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         padding: 12,
-                        titleFont: {
-                            family: 'monospace',
-                            size: fontSizes.tooltipTitle
-                        },
-                        bodyFont: {
-                            family: 'monospace',
-                            size: fontSizes.tooltipBody
-                        },
+                        titleFont: { family: 'monospace', size: fontSizes.tooltipTitle },
+                        bodyFont: { family: 'monospace', size: fontSizes.tooltipBody },
                         borderColor: accentPrimary,
                         borderWidth: 1,
                         callbacks: {
@@ -673,9 +766,7 @@ function createDetailedChart(modelName = "average") {
                             }
                         }
                     },
-                    datalabels: {
-                        display: false
-                    }
+                    datalabels: { display: false }
                 },
                 scales: {
                     y: {
@@ -685,52 +776,30 @@ function createDetailedChart(modelName = "average") {
                             display: true,
                             text: 'Benchmark Score (%)',
                             color: textPrimary,
-                            font: {
-                                family: 'monospace',
-                                size: fontSizes.axisTitle,
-                                weight: 500
-                            }
+                            font: { family: 'monospace', size: fontSizes.axisTitle, weight: 500 }
                         },
-                        grid: {
-                            color: borderColor
-                        },
+                        grid: { color: borderColor },
                         ticks: {
                             color: textSecondary,
-                            font: {
-                                family: 'monospace',
-                                size: fontSizes.axisTicks
-                            },
+                            font: { family: 'monospace', size: fontSizes.axisTicks },
                             stepSize: 10,
-                            callback: function(value) {
-                                return value + '%';
-                            }
+                            callback: value => value + '%'
                         }
                     },
                     x: {
-                        title: {
-                            display: true,
-                            text: 'Benchmarks',
-                            color: textPrimary,
-                            font: {
-                                family: 'monospace',
-                                size: fontSizes.axisTitle,
-                                weight: 500
-                            }
-                        },
-                        grid: {
-                            display: false
-                        },
+                        title: { display: false },
+                        grid: { display: false },
                         ticks: {
                             color: textSecondary,
-                            font: {
-                                family: 'monospace',
-                                size: fontSizes.axisTicks
-                            }
+                            font: { family: 'monospace', size: fontSizes.axisTicks },
+                            maxRotation: 0,
+                            minRotation: 0
                         }
                     }
                 }
             }
         });
+    }
 }
 
 // Create Time Spent Chart
@@ -749,20 +818,22 @@ function createTimeSpentChart() {
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
 
-    // Set wrapper dimensions based on screen size
-    const wrapper = ctx.closest('.leaderboard-chart-wrapper');
-    if (isMobile) {
-        wrapper.style.minWidth = '600px';
-        wrapper.style.height = '300px';
-    } else {
-        wrapper.style.minWidth = '';
-        wrapper.style.height = '';
-    }
-
     // Sort by hours (descending), filter out baselines
     const sortedData = [...timeSpentData]
         .filter(d => !d.isBaseline)
         .sort((a, b) => b.hours - a.hours);
+
+    // Set wrapper dimensions based on screen size
+    const wrapper = ctx.closest('.leaderboard-chart-wrapper');
+    if (isMobile) {
+        // Fit on mobile, smaller height per agent
+        const dynamicHeight = Math.max(250, sortedData.length * 38);
+        wrapper.style.minWidth = '';
+        wrapper.style.height = `${dynamicHeight}px`;
+    } else {
+        wrapper.style.minWidth = '';
+        wrapper.style.height = '';
+    }
 
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
@@ -786,9 +857,9 @@ function createTimeSpentChart() {
 
                 if (dataItem.stdHours) {
                     ctx.strokeStyle = '#704028';
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = isMobile ? 1 : 2;
 
-                    const capSize = Math.min(barHeight * 0.3, 6);
+                    const capSize = Math.min(barHeight * 0.3, isMobile ? 4 : 6);
                     const xMin = scales.x.getPixelForValue(value - dataItem.stdHours);
                     const xMax = scales.x.getPixelForValue(value + dataItem.stdHours);
 
@@ -801,19 +872,20 @@ function createTimeSpentChart() {
                     ctx.lineTo(xMax, yPos + capSize);
                     ctx.stroke();
 
-                    labelX = xMax + 8;
+                    labelX = xMax + (isMobile ? 4 : 8);
                 } else {
-                    labelX = scales.x.getPixelForValue(value) + 8;
+                    labelX = scales.x.getPixelForValue(value) + (isMobile ? 4 : 8);
                 }
 
                 ctx.fillStyle = textPrimary;
-                ctx.font = `600 ${fontSizes.legend}px monospace`;
+                ctx.font = `600 ${isMobile ? 9 : fontSizes.legend}px monospace`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
-                const labelText = dataItem.stdHours
-                    ? `${dataItem.time} ± ${dataItem.stdTime}`
-                    : dataItem.time;
+                // On mobile, show shorter time labels
+                const labelText = isMobile
+                    ? dataItem.time
+                    : (dataItem.stdHours ? `${dataItem.time} ± ${dataItem.stdTime}` : dataItem.time);
                 ctx.fillText(labelText, labelX, yPos);
             });
 
@@ -828,35 +900,45 @@ function createTimeSpentChart() {
         return d.agent.length > (scaffold?.length || 0) ? d.agent : scaffold;
     });
 
+    // Adjust font sizes for mobile
+    const labelFontSize = isMobile ? 9 : fontSizes.axisTicks;
+    const scaffoldFontSize = isMobile ? 7 : Math.round(fontSizes.axisTicks * 0.8);
+
     const customLabelsPlugin = {
         id: 'customLabels',
         afterDatasetsDraw(chart) {
-            const { ctx, chartArea, scales } = chart;
+            const { ctx, chartArea } = chart;
             const meta = chart.getDatasetMeta(0);
 
             ctx.save();
             ctx.textAlign = 'right';
-            const xPos = chartArea.left - 10;
+            const xPos = chartArea.left - (isMobile ? 6 : 10);
 
             sortedData.forEach((dataItem, index) => {
                 const bar = meta.data[index];
                 const yPos = bar.y;
                 const scaffold = getScaffold(dataItem.agentKey);
 
-                if (scaffold) {
+                if (isMobile) {
+                    // On mobile: show only agent name, single line
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${fontSizes.axisTicks}px monospace`;
+                    ctx.font = `500 ${labelFontSize}px monospace`;
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(dataItem.agent, xPos, yPos);
+                } else if (scaffold) {
+                    ctx.fillStyle = textSecondary;
+                    ctx.font = `500 ${labelFontSize}px monospace`;
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(dataItem.agent, xPos, yPos - 1);
 
                     ctx.globalAlpha = 0.55;
-                    ctx.font = `400 ${Math.round(fontSizes.axisTicks * 0.8)}px monospace`;
+                    ctx.font = `400 ${scaffoldFontSize}px monospace`;
                     ctx.textBaseline = 'top';
                     ctx.fillText(scaffold, xPos, yPos + 1);
                     ctx.globalAlpha = 1;
                 } else {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${fontSizes.axisTicks}px monospace`;
+                    ctx.font = `500 ${labelFontSize}px monospace`;
                     ctx.textBaseline = 'middle';
                     ctx.fillText(dataItem.agent, xPos, yPos);
                 }
@@ -875,8 +957,10 @@ function createTimeSpentChart() {
                 data: sortedData.map(d => d.hours),
                 backgroundColor: accentPrimary,
                 borderColor: accentPrimary,
-                borderWidth: 2,
-                borderRadius: 4,
+                borderWidth: isMobile ? 1 : 2,
+                borderRadius: isMobile ? 2 : 4,
+                barPercentage: isMobile ? 0.6 : 0.8,
+                categoryPercentage: isMobile ? 0.8 : 0.9,
                 datalabels: { display: false }
             }]
         },
@@ -891,14 +975,14 @@ function createTimeSpentChart() {
                 },
                 tooltip: {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 12,
+                    padding: isMobile ? 8 : 12,
                     titleFont: {
                         family: 'monospace',
-                        size: fontSizes.tooltipTitle
+                        size: isMobile ? 11 : fontSizes.tooltipTitle
                     },
                     bodyFont: {
                         family: 'monospace',
-                        size: fontSizes.tooltipBody
+                        size: isMobile ? 10 : fontSizes.tooltipBody
                     },
                     borderColor: accentPrimary,
                     borderWidth: 1,
@@ -922,7 +1006,7 @@ function createTimeSpentChart() {
                     beginAtZero: true,
                     max: 10,
                     title: {
-                        display: true,
+                        display: !isMobile,
                         text: 'Time (hours)',
                         color: textPrimary,
                         font: {
@@ -938,21 +1022,14 @@ function createTimeSpentChart() {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: fontSizes.axisTicks
+                            size: isMobile ? 9 : fontSizes.axisTicks
                         },
-                        stepSize: 2
+                        stepSize: isMobile ? 5 : 2
                     }
                 },
                 y: {
                     title: {
-                        display: true,
-                        text: 'LLM powering the CLI agent',
-                        color: textPrimary,
-                        font: {
-                            family: 'monospace',
-                            size: fontSizes.axisTitle,
-                            weight: 500
-                        }
+                        display: false
                     },
                     grid: {
                         display: false
@@ -961,7 +1038,7 @@ function createTimeSpentChart() {
                         color: 'transparent',
                         font: {
                             family: 'monospace',
-                            size: fontSizes.axisTicks
+                            size: isMobile ? 9 : fontSizes.axisTicks
                         }
                     }
                 }
@@ -998,7 +1075,7 @@ window.addEventListener('resize', () => {
         }
         if (detailedChart) {
             detailedChart.destroy();
-            createDetailedChart(currentSelectedModel);
+            createDetailedChart(currentSelectedModel, currentSelectedBenchmark);
         }
         if (timeSpentChart) {
             timeSpentChart.destroy();
@@ -1066,7 +1143,7 @@ dropdownOptions.addEventListener('click', (e) => {
             }
             if (detailedChart) {
                 detailedChart.destroy();
-                createDetailedChart(selectedValue);
+                createDetailedChart(selectedValue, currentSelectedBenchmark);
             }
         }
     }
@@ -1078,6 +1155,60 @@ document.addEventListener('click', (e) => {
         modelDropdown.classList.remove('open');
     }
 });
+
+// Benchmark dropdown functionality (mobile only)
+const benchmarkDropdownDisplay = document.getElementById('benchmark-select-display');
+const benchmarkDropdownOptions = document.getElementById('benchmark-select-options');
+const benchmarkDropdown = benchmarkDropdownDisplay?.closest('.custom-dropdown');
+
+if (benchmarkDropdownDisplay && benchmarkDropdownOptions && benchmarkDropdown) {
+    benchmarkDropdownDisplay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        benchmarkDropdown.classList.toggle('open');
+    });
+
+    benchmarkDropdownOptions.addEventListener('click', (e) => {
+        if (e.target.classList.contains('dropdown-option')) {
+            const selectedValue = e.target.getAttribute('data-value');
+            const selectedText = e.target.textContent;
+
+            benchmarkDropdownDisplay.textContent = selectedText;
+
+            benchmarkDropdownOptions.querySelectorAll('.dropdown-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            e.target.classList.add('active');
+
+            benchmarkDropdown.classList.remove('open');
+
+            if (selectedValue !== currentSelectedBenchmark) {
+                currentSelectedBenchmark = selectedValue;
+                if (detailedChart) {
+                    detailedChart.destroy();
+                    createDetailedChart(currentSelectedModel, selectedValue);
+                }
+            }
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!benchmarkDropdown.contains(e.target)) {
+            benchmarkDropdown.classList.remove('open');
+        }
+    });
+}
+
+// Mobile table toggle - show/hide benchmark columns
+const toggleTableBtn = document.getElementById('toggle-full-table');
+const leaderboardTable = document.querySelector('.leaderboard-table');
+const mobileTableNotice = document.querySelector('.mobile-table-notice');
+
+if (toggleTableBtn && leaderboardTable && mobileTableNotice) {
+    toggleTableBtn.addEventListener('click', () => {
+        leaderboardTable.classList.toggle('show-full');
+        mobileTableNotice.classList.toggle('show-full');
+    });
+}
 
 // Navbar logo visibility based on hero section
 const navbar = document.querySelector('.navbar');
