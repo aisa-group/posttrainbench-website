@@ -260,13 +260,13 @@ function populateLeaderboard(modelName = "average") {
             <td><span class="rank-badge ${rankClass}">${rankDisplay}</span></td>
             <td><strong>${agentNameHtml}</strong></td>
             <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
-            <td style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
-            <td style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
-            <td style="background-color: ${bfclColor}">${formatBenchmarkValue(entry.benchmarkScores.bfcl, showMarkers, showStd)}</td>
-            <td style="background-color: ${gpqaColor}">${formatBenchmarkValue(entry.benchmarkScores.gpqamain, showMarkers, showStd)}</td>
-            <td style="background-color: ${gsmColor}">${formatBenchmarkValue(entry.benchmarkScores.gsm8k, showMarkers, showStd)}</td>
-            <td style="background-color: ${healthColor}">${formatBenchmarkValue(entry.benchmarkScores.healthbench, showMarkers, showStd)}</td>
-            <td style="background-color: ${humanColor}">${formatBenchmarkValue(entry.benchmarkScores.humaneval, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${bfclColor}">${formatBenchmarkValue(entry.benchmarkScores.bfcl, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${gpqaColor}">${formatBenchmarkValue(entry.benchmarkScores.gpqamain, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${gsmColor}">${formatBenchmarkValue(entry.benchmarkScores.gsm8k, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${healthColor}">${formatBenchmarkValue(entry.benchmarkScores.healthbench, showMarkers, showStd)}</td>
+            <td class="benchmark-col" style="background-color: ${humanColor}">${formatBenchmarkValue(entry.benchmarkScores.humaneval, showMarkers, showStd)}</td>
         `;
 
         tbody.appendChild(row);
@@ -353,9 +353,10 @@ function createSimpleChart(modelName = "average") {
     const wrapper = document.querySelector('.leaderboard-chart-wrapper');
     const footnotes = wrapper.parentElement.querySelectorAll('.chart-footnote');
     if (isMobile) {
-        wrapper.style.minWidth = '600px';
-        wrapper.style.height = '300px';
-        footnotes.forEach(fn => fn.style.width = '600px');
+        // Wider chart on mobile for better label spacing (9 agents * ~90px each)
+        wrapper.style.minWidth = '800px';
+        wrapper.style.height = '320px';
+        footnotes.forEach(fn => fn.style.width = '800px');
     } else {
         wrapper.style.minWidth = '';
         wrapper.style.height = '';
@@ -554,9 +555,10 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: 'monospace',
-                            size: fontSizes.axisTicks
+                            size: isMobile ? Math.max(10, fontSizes.axisTicks - 1) : fontSizes.axisTicks
                         },
-                        maxRotation: 0,
+                        maxRotation: isMobile ? 45 : 0,
+                        minRotation: isMobile ? 45 : 0,
                         autoSkip: false
                     }
                 }
@@ -582,8 +584,9 @@ function createDetailedChart(modelName = "average") {
     // Set wrapper dimensions based on screen size
     const wrapper = ctx.closest('.leaderboard-chart-wrapper');
     if (isMobile) {
-        wrapper.style.minWidth = '600px';
-        wrapper.style.height = '300px';
+        // Wider chart for grouped bars (7 benchmarks * 9 agents)
+        wrapper.style.minWidth = '900px';
+        wrapper.style.height = '350px';
     } else {
         wrapper.style.minWidth = '';
         wrapper.style.height = '';
@@ -724,8 +727,10 @@ function createDetailedChart(modelName = "average") {
                             color: textSecondary,
                             font: {
                                 family: 'monospace',
-                                size: fontSizes.axisTicks
-                            }
+                                size: isMobile ? Math.max(10, fontSizes.axisTicks - 1) : fontSizes.axisTicks
+                            },
+                            maxRotation: isMobile ? 45 : 0,
+                            minRotation: isMobile ? 45 : 0
                         }
                     }
                 }
@@ -749,20 +754,22 @@ function createTimeSpentChart() {
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
 
-    // Set wrapper dimensions based on screen size
-    const wrapper = ctx.closest('.leaderboard-chart-wrapper');
-    if (isMobile) {
-        wrapper.style.minWidth = '600px';
-        wrapper.style.height = '300px';
-    } else {
-        wrapper.style.minWidth = '';
-        wrapper.style.height = '';
-    }
-
     // Sort by hours (descending), filter out baselines
     const sortedData = [...timeSpentData]
         .filter(d => !d.isBaseline)
         .sort((a, b) => b.hours - a.hours);
+
+    // Set wrapper dimensions based on screen size
+    const wrapper = ctx.closest('.leaderboard-chart-wrapper');
+    if (isMobile) {
+        // Calculate height based on number of agents (~50px per agent for good spacing)
+        const dynamicHeight = Math.max(300, sortedData.length * 50);
+        wrapper.style.minWidth = '500px';
+        wrapper.style.height = `${dynamicHeight}px`;
+    } else {
+        wrapper.style.minWidth = '';
+        wrapper.style.height = '';
+    }
 
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
@@ -828,10 +835,14 @@ function createTimeSpentChart() {
         return d.agent.length > (scaffold?.length || 0) ? d.agent : scaffold;
     });
 
+    // Adjust font sizes for mobile
+    const labelFontSize = isMobile ? Math.max(10, fontSizes.axisTicks - 1) : fontSizes.axisTicks;
+    const scaffoldFontSize = isMobile ? Math.max(8, Math.round(labelFontSize * 0.75)) : Math.round(fontSizes.axisTicks * 0.8);
+
     const customLabelsPlugin = {
         id: 'customLabels',
         afterDatasetsDraw(chart) {
-            const { ctx, chartArea, scales } = chart;
+            const { ctx, chartArea } = chart;
             const meta = chart.getDatasetMeta(0);
 
             ctx.save();
@@ -845,18 +856,18 @@ function createTimeSpentChart() {
 
                 if (scaffold) {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${fontSizes.axisTicks}px monospace`;
+                    ctx.font = `500 ${labelFontSize}px monospace`;
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(dataItem.agent, xPos, yPos - 1);
 
                     ctx.globalAlpha = 0.55;
-                    ctx.font = `400 ${Math.round(fontSizes.axisTicks * 0.8)}px monospace`;
+                    ctx.font = `400 ${scaffoldFontSize}px monospace`;
                     ctx.textBaseline = 'top';
                     ctx.fillText(scaffold, xPos, yPos + 1);
                     ctx.globalAlpha = 1;
                 } else {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${fontSizes.axisTicks}px monospace`;
+                    ctx.font = `500 ${labelFontSize}px monospace`;
                     ctx.textBaseline = 'middle';
                     ctx.fillText(dataItem.agent, xPos, yPos);
                 }
@@ -1078,6 +1089,18 @@ document.addEventListener('click', (e) => {
         modelDropdown.classList.remove('open');
     }
 });
+
+// Mobile table toggle - show/hide benchmark columns
+const toggleTableBtn = document.getElementById('toggle-full-table');
+const leaderboardTable = document.querySelector('.leaderboard-table');
+const mobileTableNotice = document.querySelector('.mobile-table-notice');
+
+if (toggleTableBtn && leaderboardTable && mobileTableNotice) {
+    toggleTableBtn.addEventListener('click', () => {
+        leaderboardTable.classList.toggle('show-full');
+        mobileTableNotice.classList.toggle('show-full');
+    });
+}
 
 // Navbar logo visibility based on hero section
 const navbar = document.querySelector('.navbar');
