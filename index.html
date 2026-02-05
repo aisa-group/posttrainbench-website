@@ -139,6 +139,21 @@
             <p class="leaderboard-footnote">More agents coming soon...</p>
 
             <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
+            <div class="benchmark-select-container leaderboard-controls">
+                <label class="model-select-label">Select benchmark:</label>
+                <div class="custom-dropdown">
+                    <div class="dropdown-selected" id="benchmark-select-display">BFCL</div>
+                    <div class="dropdown-options" id="benchmark-select-options">
+                        <div class="dropdown-option" data-value="aime2025">AIME 2025</div>
+                        <div class="dropdown-option" data-value="arenahardwriting">Arena Hard</div>
+                        <div class="dropdown-option active" data-value="bfcl">BFCL</div>
+                        <div class="dropdown-option" data-value="gpqamain">GPQA Main</div>
+                        <div class="dropdown-option" data-value="gsm8k">GSM8K</div>
+                        <div class="dropdown-option" data-value="healthbench">HealthBench</div>
+                        <div class="dropdown-option" data-value="humaneval">HumanEval</div>
+                    </div>
+                </div>
+            </div>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="detailedChart"></canvas>
@@ -164,7 +179,8 @@
         <div class="container">
             <h2 class="section-title">Pipeline</h2>
             <div class="pipeline-diagram">
-                <img src="pipeline.svg" alt="PostTrainBench Pipeline Diagram" class="pipeline-svg">
+                <img src="pipeline.svg" alt="PostTrainBench Pipeline Diagram" class="pipeline-svg pipeline-desktop">
+                <img src="pipeline-mobile.svg" alt="PostTrainBench Pipeline Diagram" class="pipeline-svg pipeline-mobile">
             </div>
         </div>
     </section>

@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 660">
+  <defs>
+    <style>
+      .box1 { fill: #f8f0e8; stroke: #c0a890; stroke-width: 2; }
+      .box2 { fill: #f5f0e5; stroke: #c0a890; stroke-width: 2; }
+      .box-judge { fill: #f5f0e5; stroke: #b0a090; stroke-width: 2; }
+      .box-fail { fill: #f5f0e5; stroke: #c09080; stroke-width: 2; }
+      .box-eval { fill: #f5f0e5; stroke: #7a9868; stroke-width: 2; }
+      .box-score { fill: #f5f0e5; stroke: #c8b888; stroke-width: 2; }
+
+      .text { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 11px; fill: #2d2a23; }
+      .text-small { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 10px; fill: #4a453c; }
+      .title1 { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; font-weight: 600; fill: #8a5038; }
+      .title2 { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; font-weight: 600; fill: #704028; }
+      .title-judge { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 11px; font-weight: 600; fill: #5a4828; }
+      .title-fail { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 11px; font-weight: 600; fill: #8a4840; }
+      .title-eval { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; font-weight: 600; fill: #3a6030; }
+      .title-score { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; font-weight: 600; fill: #6a5820; }
+      .subtitle { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 10px; fill: #3d3830; font-weight: 800; }
+
+      .arrow { stroke: #8a7860; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+      .arrow-fail { stroke: #c09080; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-fail); }
+      .arrow-pass { stroke: #7a9868; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-pass); }
+
+      .label-text { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 9px; fill: #8a5048; font-style: italic; font-weight: 600; }
+      .label-text-pass { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 9px; fill: #406838; font-style: italic; font-weight: 600; }
+      .diamond-text { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 8px; fill: #4a4238; }
+      .subtitle-plain { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 10px; fill: #4a453c; font-weight: 500; }
+      .annotation { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 7px; fill: #4a453c; font-style: italic; }
+    </style>
+    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#8a7860" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrowhead-fail" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#c09080" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrowhead-pass" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#7a9868" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Box 1: Agent post-trains LLM -->
+  <rect x="20" y="15" width="280" height="140" class="box1" rx="8"/>
+  <text x="160" y="38" class="title1" text-anchor="middle">Agent post-trains LLM</text>
+  <text x="35" y="60" class="subtitle">Inputs:</text>
+  <text x="35" y="77" class="text-small">• Benchmark script</text>
+  <text x="35" y="94" class="text-small">• Base LLM</text>
+  <text x="35" y="115" class="subtitle">Resources:</text>
+  <text x="35" y="132" class="text-small">• 10h on H100 • Terminal • Web</text>
+
+  <!-- Arrow 1 (down) -->
+  <path d="M 160 155 L 160 175" class="arrow"/>
+
+  <!-- Box 2: Agent produces -->
+  <rect x="55" y="180" width="210" height="50" class="box2" rx="8"/>
+  <text x="160" y="200" class="subtitle-plain" text-anchor="middle">Agent produces:</text>
+  <text x="160" y="218" class="title2" text-anchor="middle">Post-trained LLM</text>
+
+  <!-- Arrow 2 (down) -->
+  <path d="M 160 230 L 160 250" class="arrow"/>
+
+  <!-- Diamond: Anti-cheat Judge -->
+  <polygon points="160,255 240,330 160,405 80,330" class="box-judge"/>
+  <text x="160" y="315" class="title-judge" text-anchor="middle">Anti-cheat</text>
+  <text x="160" y="330" class="title-judge" text-anchor="middle">Judge</text>
+  <text x="160" y="350" class="diamond-text" text-anchor="middle">Cheating detected?</text>
+
+  <!-- Branch: Cheating detected (right then down) -->
+  <path d="M 240 330 L 280 330 L 280 420 L 255 420" class="arrow-fail"/>
+  <text x="240" y="320" class="label-text">Cheating</text>
+
+  <!-- Box: Base LLM Score (right side) -->
+  <rect x="170" y="400" width="130" height="40" class="box-fail" rx="8"/>
+  <text x="235" y="425" class="title-fail" text-anchor="middle">Base LLM Score</text>
+
+  <!-- Branch: No cheating (down) -->
+  <path d="M 160 405 L 160 490" class="arrow-pass"/>
+  <text x="120" y="420" class="label-text-pass">Clean</text>
+
+  <!-- Box: Evaluation -->
+  <rect x="55" y="495" width="210" height="55" class="box-eval" rx="8"/>
+  <text x="160" y="518" class="title-eval" text-anchor="middle">Evaluation</text>
+  <text x="160" y="536" class="text-small" text-anchor="middle">Run full benchmark</text>
+
+  <!-- Arrow to final score (down) -->
+  <path d="M 160 550 L 160 575" class="arrow"/>
+
+  <!-- Box: Benchmark Score -->
+  <rect x="55" y="580" width="210" height="65" class="box-score" rx="8"/>
+  <text x="160" y="608" class="title-score" text-anchor="middle">Benchmark Score</text>
+  <text x="160" y="628" class="annotation" text-anchor="middle">Averaged across 4 LLMs × 7 benchmarks</text>
+
+</svg>
