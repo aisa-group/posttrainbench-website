@@ -89,8 +89,8 @@
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="performanceChart"></canvas>
                 </div>
-                <p class="chart-footnote"><sup>1</sup> The average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B IT) and benchmarks (AIME 2025, BFCL, GPQA Main, GSM8K, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
-                <p class="chart-footnote"><sup>2</sup> "Human Post-Trained" is not directly comparable to the rest since it usually exceeds the 10h + 1 GPU constraint.</p>
+                <p class="chart-footnote"><sup>1</sup> The weighted average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
+                <p class="chart-footnote"><sup>2</sup> "Instruction Tuned" is not directly comparable to the rest since it usually exceeds the 10h + 1 GPU constraint.</p>
             </div>
             <div class="leaderboard-controls">
                 <label class="model-select-label">Filter by model:</label>
@@ -113,11 +113,13 @@
                         <tr>
                             <th>Rank</th>
                             <th>Method</th>
-                            <th>Average Score</th>
+                            <th>Avg</th>
                             <th>AIME 2025</th>
+                            <th>ArenaHard</th>
                             <th>BFCL</th>
                             <th>GPQA Main</th>
                             <th>GSM8K</th>
+                            <th>HealthBench</th>
                             <th>HumanEval</th>
                         </tr>
                     </thead>
@@ -126,6 +128,7 @@
                     </tbody>
                 </table>
             </div>
+            <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown</p>
             <p class="leaderboard-footnote">More agents coming soon...</p>
 
             <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
@@ -181,7 +184,7 @@
                         <li><strong>Models:</strong> Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</li>
                         <li><strong>Hardware:</strong> Single H100 GPU per agent</li>
                         <li><strong>Time Limit:</strong> 10 hours per agent</li>
-                        <li><strong>Evaluation:</strong> Average score across 5 benchmarks</li>
+                        <li><strong>Evaluation:</strong> Weighted average score across 7 benchmarks</li>
                         <li><strong>Agent scaffolds:</strong> Native CLI scaffolds (Claude Code for Claude models, Codex CLI for OpenAI, Gemini CLI for Gemini)</li>
                     </ul>
                 </div>
@@ -351,6 +354,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="config.js"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
 </body>

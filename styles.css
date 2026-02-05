@@ -579,13 +579,39 @@ section {
     font-style: italic;
 }
 
+.leaderboard-footnote.table-footnote {
+    text-align: left;
+    font-style: normal;
+    margin-top: 0.75rem;
+}
+
+/* Standard deviation display in table */
+.std-value {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    margin-top: 0.2rem;
+}
+
+/* Scaffold label in method column */
+.scaffold-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    margin-top: 0.15rem;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
-    min-width: 800px;
+    min-width: 1000px;
 }
 
 thead {
@@ -610,6 +636,7 @@ th {
 td {
     font-size: 0.875rem;
     transition: background-color 0.3s ease;
+    white-space: nowrap;
 }
 
 /* Heatmap cells - scores */
