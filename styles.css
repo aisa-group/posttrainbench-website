@@ -234,17 +234,6 @@ body {
     position: relative;
 }
 
-.title-accent::after {
-    content: '';
-    position: absolute;
-    bottom: 0.2em;
-    left: 0;
-    right: 0;
-    height: 0.15em;
-    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-    opacity: 0.3;
-    border-radius: 0.1em;
-}
 
 .hero-subtitle {
     font-size: 1.25rem;

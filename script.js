@@ -635,16 +635,19 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
     const allData = getLeaderboardDataForModel(modelName);
     const data = allData.filter(d => d.showInChart !== false);
 
-    const agentOrder = ['Base Model', 'MiniMax M2.1', 'Sonnet 4.5', 'GPT-5.2 Codex', 'Opus 4.5', 'Gemini 3 Pro', 'GPT 5.1 Codex Max', 'GPT-5.2', 'Instruction Tuned'];
-    const orderedData = agentOrder.map(agentName =>
-        data.find(entry => entry.agent === agentName)
-    ).filter(Boolean);
-
     const fontSizes = calculateFontSizes(ctx);
 
     if (isMobile) {
         // Mobile: Single benchmark, agents on X-axis
         const selectedBenchmark = benchmarkKey || currentSelectedBenchmark;
+
+        // Sort by the selected benchmark score ascending (lowest to highest)
+        const orderedData = [...data].sort((a, b) => {
+            const scoreA = getBenchmarkValue(a.benchmarkScores[selectedBenchmark]);
+            const scoreB = getBenchmarkValue(b.benchmarkScores[selectedBenchmark]);
+            return scoreA - scoreB;
+        });
+
         const scores = orderedData.map(entry => getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]));
         const labels = orderedData.map(d => d.agent);
         const colors = orderedData.map(d => agentColors[d.agent] || accentPrimary);
@@ -718,6 +721,9 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
         const benchmarks = ['AIME 2025', 'Arena Hard', 'BFCL', 'GPQA Main', 'GSM8K', 'HealthBench', 'HumanEval'];
         const benchmarkKeys = ['aime2025', 'arenahardwriting', 'bfcl', 'gpqamain', 'gsm8k', 'healthbench', 'humaneval'];
 
+        // Sort by average score ascending (lowest to highest, like main chart)
+        const orderedData = [...data].sort((a, b) => parseFloat(a.averageScore) - parseFloat(b.averageScore));
+
         const datasets = orderedData.map(entry => ({
             label: entry.agent,
             data: benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key])),
@@ -746,11 +752,14 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top',
+                        position: 'bottom',
+                        align: 'center',
                         labels: {
                             color: textPrimary,
                             font: { family: "'JetBrains Mono', monospace", size: fontSizes.legend },
-                            padding: 12
+                            padding: 15,
+                            boxWidth: 14,
+                            boxHeight: 14
                         }
                     },
                     tooltip: {
@@ -877,8 +886,8 @@ function createTimeSpentChart() {
                     labelX = scales.x.getPixelForValue(value) + (isMobile ? 4 : 8);
                 }
 
-                ctx.fillStyle = textPrimary;
-                ctx.font = `600 ${isMobile ? 9 : fontSizes.legend}px 'JetBrains Mono', monospace`;
+                ctx.fillStyle = textSecondary;
+                ctx.font = `500 ${isMobile ? 9 : fontSizes.axisTicks}px 'JetBrains Mono', monospace`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
