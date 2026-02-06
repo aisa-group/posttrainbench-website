@@ -1066,7 +1066,14 @@ document.getElementById('paper-btn').addEventListener('click', (e) => {
 });
 
 let resizeTimeout;
+let lastWindowWidth = window.innerWidth;
 window.addEventListener('resize', () => {
+    // Only recreate charts if width changed (ignore height changes from mobile address bar)
+    if (window.innerWidth === lastWindowWidth) {
+        return;
+    }
+    lastWindowWidth = window.innerWidth;
+
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
         if (performanceChart) {
