@@ -654,7 +654,11 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
 
         const scores = orderedData.map(entry => getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]));
         const labels = orderedData.map(d => d.agent);
-        const colors = orderedData.map(d => agentColors[d.agent] || accentPrimary);
+        const colors = orderedData.map(d => {
+            if (d.agent === 'Base Model') return '#9a9590';
+            if (d.agent === 'Instruction Tuned') return '#6b655a';
+            return accentPrimary;
+        });
 
         const maxScore = Math.max(...scores);
         const yAxisMax = Math.ceil(maxScore / 10) * 10 + 10;
