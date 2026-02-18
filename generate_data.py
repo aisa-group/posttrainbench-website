@@ -16,6 +16,8 @@ AGGREGATED_NAME_TO_KEY = {
     "GPT-5.2-Codex": "gpt-5.2-codex",
     "Opus-4.5": "opus-4.5",
     "Gemini-3-Pro": "gemini-3-pro",
+    "GPT-5.3-Codex": "gpt-5.3-codex",
+    "Opus-4.6": "opus-4.6",
 }
 
 CSV_TO_AGENT = {
@@ -24,6 +26,8 @@ CSV_TO_AGENT = {
     "aggregated_avg_GPT-5.2-Codex.csv": "gpt-5.2-codex",
     "aggregated_avg_Opus-4.5.csv": "opus-4.5",
     "aggregated_avg_Gemini-3-Pro.csv": "gemini-3-pro",
+    "aggregated_avg_GPT-5.3-Codex.csv": "gpt-5.3-codex",
+    "aggregated_avg_Opus-4.6.csv": "opus-4.6",
 }
 
 STD_CSV_TO_AGENT = {
@@ -32,6 +36,8 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_GPT-5.2-Codex.csv": "gpt-5.2-codex",
     "aggregated_std_Opus-4.5.csv": "opus-4.5",
     "aggregated_std_Gemini-3-Pro.csv": "gemini-3-pro",
+    "aggregated_std_GPT-5.3-Codex.csv": "gpt-5.3-codex",
+    "aggregated_std_Opus-4.6.csv": "opus-4.6",
 }
 
 OPENCODE_CSV_TO_AGENT = {
@@ -41,6 +47,9 @@ OPENCODE_CSV_TO_AGENT = {
     "opencode_gemini-3-pro_10h": "gemini-3-pro-opencode",
     "opencode_gpt-5.1-codex-max_10h": "gpt-5.1-codex-max-opencode",
     "opencode_kimi-k2-thinking_10h": "kimi-k2",
+    "opencode_kimi-k2.5_10h_run2": "kimi-k2.5",
+    "opencode_minimax-m2.5-free_10h_run2": "minimax-m2.5",
+    "zai_glm-5_10h_run2": "glm-5",
 }
 
 QWEN3MAX_KEY = "qwen3-max"
@@ -65,6 +74,8 @@ TIME_AGGREGATED_TO_KEY = {
     "GPT-5.2-Codex": "gpt-5.2-codex",
     "GPT-5.2": "gpt-5.2",
     "Gemini-3-Pro": "gemini-3-pro",
+    "GPT-5.3-Codex": "gpt-5.3-codex",
+    "Opus-4.6": "opus-4.6",
 }
 
 

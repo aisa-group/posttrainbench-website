@@ -9,3 +9,6 @@ opencode_opencode_gpt-5.1-codex-max_10h,0:32:56,5.5%
 opencode_opencode_kimi-k2-thinking_10h,1:22:04,13.7%
 opencode_opencode_minimax-m2.1-free_10h,3:43:36,37.3%
 qwen3max_qwen3-max-2026-01-23_10h,2:05:45,21.0%
+opencode_opencode_kimi-k2.5_10h_run2,2:32:49,25.5%
+opencode_opencode_minimax-m2.5-free_10h_run2,2:59:00,29.8%
+opencode_zai_glm-5_10h_run2,3:33:43,35.6%
