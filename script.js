@@ -379,7 +379,8 @@ function createSimpleChart(modelName = "average") {
             if (d.agent === 'Base Model') return 'Base Model';
             if (d.agent === 'Instruction Tuned') return 'Instruct Tuned';
             if (d.agent === 'GPT 5.1 Codex Max') return 'GPT 5.1 Codex';
-            if (d.agent === 'GPT-5.2 Codex') return 'GPT 5.2 Codex';
+            if (d.agent === 'GPT 5.2 Codex') return 'GPT 5.2 Codex';
+            if (d.agent === 'GPT 5.3 Codex') return 'GPT 5.3 Codex';
             if (d.agent === 'GPT-5.2') return 'GPT-5.2';
             if (d.agent === 'Gemini 3 Pro') return 'Gemini 3';
             if (d.agent === 'Opus 4.5') return 'Opus 4.5';
@@ -624,11 +625,14 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
         'Base Model': '#9a9590',
         'GPT 5.1 Codex Max': '#6a7a5a',
         'GPT-5.2': '#7a8a6a',
-        'GPT-5.2 Codex': '#8a9a7a',
+        'GPT 5.2 Codex': '#8a9a7a',
+        'GPT 5.3 Codex': '#5a6a4a',
         'Opus 4.5': '#c17d5a',
+        'Opus 4.6': '#d48a60',
         'Sonnet 4.5': '#a66b4f',
         'Gemini 3 Pro': '#6a7a85',
         'GLM 4.7': '#6a8078',
+        'GLM 5': '#5a7068',
         'MiniMax M2.1': '#8a7078'
     };
 
