@@ -1275,4 +1275,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     createDetailedChart();
     createTimeSpentChart();
     handleNavbarLogoVisibility(); // Check initial state
+
+    // Changelog expand/collapse animation
+    const changelog = document.querySelector('details.changelog');
+    if (changelog) {
+        const content = changelog.querySelector('.changelog-content');
+        changelog.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (changelog.open) {
+                // Closing: animate out, then remove open
+                content.classList.remove('open');
+                content.addEventListener('transitionend', () => {
+                    changelog.open = false;
+                }, { once: true });
+            } else {
+                // Opening: set open, then animate in
+                changelog.open = true;
+                requestAnimationFrame(() => content.classList.add('open'));
+            }
+        });
+    }
 });
