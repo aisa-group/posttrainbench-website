@@ -23,8 +23,29 @@ const chartAgentKeys = [
     "gpt-5.2-codex",
     "gpt-5.3-codex",
     "sonnet-4.5",
+    "sonnet-4.6",
     "glm-5",
     "base-model"
+];
+
+// Agents to show in time spent chart
+const timeChartAgentKeys = [
+    "opus-4.6",
+    "opus-4.5",
+    "opus-4.5-opencode",
+    "gemini-3-pro",
+    "gemini-3-pro-opencode",
+    "gpt-5.2",
+    "gpt-5.1-codex-max",
+    "gpt-5.1-codex-max-opencode",
+    "gpt-5.2-codex",
+    "gpt-5.3-codex",
+    "glm-5",
+    "kimi-k2.5",
+    "minimax-m2.5",
+    "qwen3-max",
+    "sonnet-4.6",
+    "human",
 ];
 
 // All agents (for table) - order determines display order before sorting by score
@@ -38,6 +59,7 @@ const allAgentKeys = [
     "gpt-5.2-codex",
     "gpt-5.3-codex",
     "sonnet-4.5",
+    "sonnet-4.6",
     "minimax-m2.1",
     "glm-4.7",
     "base-model",
@@ -63,6 +85,7 @@ const agentInfo = {
     "opus-4.5": { name: "Opus 4.5", description: "Claude Opus 4.5 agent", scaffold: "Claude Code" },
     "gemini-3-pro": { name: "Gemini 3 Pro", description: "Gemini 3 Pro agent", scaffold: "Gemini CLI" },
     "sonnet-4.5": { name: "Sonnet 4.5", description: "Claude Sonnet 4.5 agent", scaffold: "Claude Code" },
+    "sonnet-4.6": { name: "Sonnet 4.6", description: "Claude Sonnet 4.6 agent", scaffold: "Claude Code" },
     "glm-4.7": { name: "GLM 4.7", description: "GLM 4.7 agent", scaffold: "OpenCode" },
     "minimax-m2.1": { name: "MiniMax M2.1", description: "MiniMax M2.1 agent", scaffold: "OpenCode" },
     "opus-4.5-opencode": { name: "Opus 4.5", description: "Claude Opus 4.5 with OpenCode", isOpenCode: true, scaffold: "OpenCode" },

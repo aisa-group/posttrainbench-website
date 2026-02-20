@@ -837,7 +837,7 @@ function createTimeSpentChart() {
 
     // Sort by hours (descending), filter out baselines
     const sortedData = [...timeSpentData]
-        .filter(d => !d.isBaseline)
+        .filter(d => !d.isBaseline && timeChartAgentKeys.includes(d.agentKey))
         .sort((a, b) => b.hours - a.hours);
 
     // Set wrapper dimensions based on screen size
