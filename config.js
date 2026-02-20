@@ -24,6 +24,7 @@ const chartAgentKeys = [
     "gpt-5.3-codex",
     "sonnet-4.5",
     "sonnet-4.6",
+    "gemini-3.1-pro",
     "glm-5",
     "base-model"
 ];
@@ -45,6 +46,7 @@ const timeChartAgentKeys = [
     "minimax-m2.5",
     "qwen3-max",
     "sonnet-4.6",
+    "gemini-3.1-pro",
     "human",
 ];
 
@@ -71,6 +73,7 @@ const allAgentKeys = [
     "kimi-k2.5",
     "minimax-m2.5",
     "glm-5",
+    "gemini-3.1-pro",
     "qwen3-max"
 ];
 
@@ -84,6 +87,7 @@ const agentInfo = {
     "gpt-5.2-codex": { name: "GPT 5.2 Codex", description: "GPT 5.2 Codex agent", scaffold: "Codex CLI" },
     "opus-4.5": { name: "Opus 4.5", description: "Claude Opus 4.5 agent", scaffold: "Claude Code" },
     "gemini-3-pro": { name: "Gemini 3 Pro", description: "Gemini 3 Pro agent", scaffold: "Gemini CLI" },
+    "gemini-3.1-pro": { name: "Gemini 3.1 Pro", description: "Gemini 3.1 Pro agent", isOpenCode: true, scaffold: "OpenCode" },
     "sonnet-4.5": { name: "Sonnet 4.5", description: "Claude Sonnet 4.5 agent", scaffold: "Claude Code" },
     "sonnet-4.6": { name: "Sonnet 4.6", description: "Claude Sonnet 4.6 agent", scaffold: "Claude Code" },
     "glm-4.7": { name: "GLM 4.7", description: "GLM 4.7 agent", scaffold: "OpenCode" },

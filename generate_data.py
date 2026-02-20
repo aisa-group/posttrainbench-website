@@ -50,6 +50,7 @@ OPENCODE_CSV_TO_AGENT = {
     "opencode_kimi-k2.5_10h_run2": "kimi-k2.5",
     "opencode_minimax-m2.5-free_10h_run2": "minimax-m2.5",
     "zai_glm-5_10h_run2": "glm-5",
+    "opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
 }
 
 QWEN3MAX_KEY = "qwen3-max"
@@ -71,6 +72,7 @@ TIME_OVERVIEW_TO_KEY = {
     "opencode_opencode_minimax-m2.5-free_10h_run2": "minimax-m2.5",
     "opencode_zai_glm-5_10h_run2": "glm-5",
     "claude_non_api_claude-sonnet-4-6_10h": "sonnet-4.6",
+    "opencode_opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
 }
 
 TIME_AGGREGATED_TO_KEY = {
