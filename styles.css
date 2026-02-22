@@ -393,6 +393,9 @@ section {
 /* Changelog */
 .changelog {
     margin: 1rem 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
 }
 
 .changelog summary {
@@ -404,15 +407,6 @@ section {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.3rem 0.6rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-
-.changelog summary:hover {
-    background-color: var(--bg-tertiary, rgba(0, 0, 0, 0.03));
-    border-color: var(--accent-primary);
 }
 
 .changelog summary::-webkit-details-marker {
