@@ -1,0 +1,4 @@
+effort,score,score_std,time_hours,time_std_hours,tokens
+Low,15.6,0.2,3.743,0.103,1051258
+Medium,20.2,3.4,4.053,0.333,964379
+High,17.4,0.3,5.484,0.047,1890246
