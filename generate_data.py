@@ -18,6 +18,7 @@ AGGREGATED_NAME_TO_KEY = {
     "Gemini-3-Pro": "gemini-3-pro",
     "GPT-5.3-Codex": "gpt-5.3-codex",
     "Opus-4.6": "opus-4.6",
+    "Gemini-3.1-Pro": "gemini-3.1-pro",
 }
 
 CSV_TO_AGENT = {
@@ -28,6 +29,7 @@ CSV_TO_AGENT = {
     "aggregated_avg_Gemini-3-Pro.csv": "gemini-3-pro",
     "aggregated_avg_GPT-5.3-Codex.csv": "gpt-5.3-codex",
     "aggregated_avg_Opus-4.6.csv": "opus-4.6",
+    "aggregated_avg_Gemini-3.1-Pro.csv": "gemini-3.1-pro",
 }
 
 STD_CSV_TO_AGENT = {
@@ -38,6 +40,7 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_Gemini-3-Pro.csv": "gemini-3-pro",
     "aggregated_std_GPT-5.3-Codex.csv": "gpt-5.3-codex",
     "aggregated_std_Opus-4.6.csv": "opus-4.6",
+    "aggregated_std_Gemini-3.1-Pro.csv": "gemini-3.1-pro",
 }
 
 OPENCODE_CSV_TO_AGENT = {
@@ -50,7 +53,6 @@ OPENCODE_CSV_TO_AGENT = {
     "opencode_kimi-k2.5_10h_run2": "kimi-k2.5",
     "opencode_minimax-m2.5-free_10h_run2": "minimax-m2.5",
     "zai_glm-5_10h_run2": "glm-5",
-    "opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
 }
 
 QWEN3MAX_KEY = "qwen3-max"
@@ -83,6 +85,7 @@ TIME_AGGREGATED_TO_KEY = {
     "Gemini-3-Pro": "gemini-3-pro",
     "GPT-5.3-Codex": "gpt-5.3-codex",
     "Opus-4.6": "opus-4.6",
+    "Gemini-3.1-Pro": "gemini-3.1-pro",
 }
 
 

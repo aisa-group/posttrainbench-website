@@ -435,6 +435,26 @@ section {
     opacity: 1;
     max-height: 200px;
     transform: translateY(0);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.changelog-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.changelog-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.changelog-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 2px;
+}
+
+.changelog-content::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
 }
 
 .changelog-entry {
