@@ -108,7 +108,7 @@ const agentInfo = {
 const benchmarkInfo = {
     aime2025: { title: "AIME 2025", version: "", difficulty: "hard", category: "Mathematics", description: "American Invitational Mathematics Examination - tests advanced mathematical problem-solving and reasoning capabilities." },
     arenahardwriting: { title: "Arena Hard", version: "Writing", difficulty: "medium", category: "Writing", description: "Arena Hard Writing benchmark - evaluates writing quality and instruction following." },
-    bfcl: { title: "BFCL", version: "V1", difficulty: "medium", category: "Function Calling", description: "Berkeley Function Calling Leaderboard - evaluates function calling and tool use capabilities." },
+    bfcl: { title: "BFCL", version: "", difficulty: "medium", category: "Function Calling", description: "Berkeley Function Calling Leaderboard - evaluates function calling and tool use capabilities." },
     gpqamain: { title: "GPQA", version: "Main", difficulty: "hard", category: "Knowledge", description: "Graduate-level Google-Proof Q&A - tests expert-level knowledge across science domains." },
     gsm8k: { title: "GSM8K", version: "", difficulty: "medium", category: "Mathematics", description: "Grade School Math 8K - evaluates mathematical reasoning and multi-step problem solving." },
     healthbench: { title: "HealthBench", version: "", difficulty: "hard", category: "Healthcare", description: "Health and medical knowledge benchmark - tests understanding of healthcare and medical concepts." },
