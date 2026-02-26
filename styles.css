@@ -234,17 +234,6 @@ body {
     position: relative;
 }
 
-.title-accent::after {
-    content: '';
-    position: absolute;
-    bottom: 0.2em;
-    left: 0;
-    right: 0;
-    height: 0.15em;
-    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-    opacity: 0.3;
-    border-radius: 0.1em;
-}
 
 .hero-subtitle {
     font-size: 1.25rem;
@@ -398,6 +387,101 @@ section {
     font-weight: 600;
     margin: 3rem 0 1.5rem 0;
     text-align: center;
+    color: var(--text-primary);
+}
+
+/* Changelog */
+.changelog {
+    margin: 1rem 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+}
+
+.changelog summary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent-primary);
+    cursor: pointer;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.changelog summary::-webkit-details-marker {
+    display: none;
+}
+
+.changelog summary::after {
+    content: '+';
+    font-size: 0.85rem;
+    transition: transform 0.2s ease;
+}
+
+.changelog[open] summary::after {
+    content: '-';
+}
+
+.changelog-content {
+    overflow: hidden;
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.2s ease, max-height 0.2s ease, transform 0.2s ease;
+}
+
+.changelog-content.open {
+    opacity: 1;
+    max-height: 200px;
+    transform: translateY(0);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.changelog-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.changelog-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.changelog-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 2px;
+}
+
+.changelog-content::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}
+
+.changelog-entry {
+    margin-top: 0.5rem;
+}
+
+.changelog-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    margin-bottom: 0.25rem;
+}
+
+.changelog-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style-type: disc;
+}
+
+.changelog-list li {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.changelog-list li strong {
     color: var(--text-primary);
 }
 
@@ -1155,6 +1239,17 @@ tbody tr:last-child td {
 
     .leaderboard-chart {
         padding: 1rem;
+    }
+
+    .changelog {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .changelog-content {
+        text-align: left;
+        align-self: flex-start;
     }
 
     /* Show benchmark dropdown on mobile */

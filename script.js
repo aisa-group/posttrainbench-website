@@ -379,7 +379,8 @@ function createSimpleChart(modelName = "average") {
             if (d.agent === 'Base Model') return 'Base Model';
             if (d.agent === 'Instruction Tuned') return 'Instruct Tuned';
             if (d.agent === 'GPT 5.1 Codex Max') return 'GPT 5.1 Codex';
-            if (d.agent === 'GPT-5.2 Codex') return 'GPT 5.2 Codex';
+            if (d.agent === 'GPT 5.2 Codex') return 'GPT 5.2 Codex';
+            if (d.agent === 'GPT 5.3 Codex') return 'GPT 5.3 Codex';
             if (d.agent === 'GPT-5.2') return 'GPT-5.2';
             if (d.agent === 'Gemini 3 Pro') return 'Gemini 3';
             if (d.agent === 'Opus 4.5') return 'Opus 4.5';
@@ -624,30 +625,40 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
         'Base Model': '#9a9590',
         'GPT 5.1 Codex Max': '#6a7a5a',
         'GPT-5.2': '#7a8a6a',
-        'GPT-5.2 Codex': '#8a9a7a',
+        'GPT 5.2 Codex': '#8a9a7a',
+        'GPT 5.3 Codex': '#5a6a4a',
         'Opus 4.5': '#c17d5a',
+        'Opus 4.6': '#d48a60',
         'Sonnet 4.5': '#a66b4f',
         'Gemini 3 Pro': '#6a7a85',
         'GLM 4.7': '#6a8078',
+        'GLM 5': '#5a7068',
         'MiniMax M2.1': '#8a7078'
     };
 
     const allData = getLeaderboardDataForModel(modelName);
     const data = allData.filter(d => d.showInChart !== false);
 
-    const agentOrder = ['Base Model', 'MiniMax M2.1', 'Sonnet 4.5', 'GPT-5.2 Codex', 'Opus 4.5', 'Gemini 3 Pro', 'GPT 5.1 Codex Max', 'GPT-5.2', 'Instruction Tuned'];
-    const orderedData = agentOrder.map(agentName =>
-        data.find(entry => entry.agent === agentName)
-    ).filter(Boolean);
-
     const fontSizes = calculateFontSizes(ctx);
 
     if (isMobile) {
         // Mobile: Single benchmark, agents on X-axis
         const selectedBenchmark = benchmarkKey || currentSelectedBenchmark;
+
+        // Sort by the selected benchmark score ascending (lowest to highest)
+        const orderedData = [...data].sort((a, b) => {
+            const scoreA = getBenchmarkValue(a.benchmarkScores[selectedBenchmark]);
+            const scoreB = getBenchmarkValue(b.benchmarkScores[selectedBenchmark]);
+            return scoreA - scoreB;
+        });
+
         const scores = orderedData.map(entry => getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]));
         const labels = orderedData.map(d => d.agent);
-        const colors = orderedData.map(d => agentColors[d.agent] || accentPrimary);
+        const colors = orderedData.map(d => {
+            if (d.agent === 'Base Model') return '#9a9590';
+            if (d.agent === 'Instruction Tuned') return '#6b655a';
+            return accentPrimary;
+        });
 
         const maxScore = Math.max(...scores);
         const yAxisMax = Math.ceil(maxScore / 10) * 10 + 10;
@@ -718,6 +729,9 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
         const benchmarks = ['AIME 2025', 'Arena Hard', 'BFCL', 'GPQA Main', 'GSM8K', 'HealthBench', 'HumanEval'];
         const benchmarkKeys = ['aime2025', 'arenahardwriting', 'bfcl', 'gpqamain', 'gsm8k', 'healthbench', 'humaneval'];
 
+        // Sort by average score ascending (lowest to highest, like main chart)
+        const orderedData = [...data].sort((a, b) => parseFloat(a.averageScore) - parseFloat(b.averageScore));
+
         const datasets = orderedData.map(entry => ({
             label: entry.agent,
             data: benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key])),
@@ -746,11 +760,14 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top',
+                        position: 'bottom',
+                        align: 'center',
                         labels: {
                             color: textPrimary,
                             font: { family: "'JetBrains Mono', monospace", size: fontSizes.legend },
-                            padding: 12
+                            padding: 15,
+                            boxWidth: 14,
+                            boxHeight: 14
                         }
                     },
                     tooltip: {
@@ -820,7 +837,7 @@ function createTimeSpentChart() {
 
     // Sort by hours (descending), filter out baselines
     const sortedData = [...timeSpentData]
-        .filter(d => !d.isBaseline)
+        .filter(d => !d.isBaseline && timeChartAgentKeys.includes(d.agentKey))
         .sort((a, b) => b.hours - a.hours);
 
     // Set wrapper dimensions based on screen size
@@ -877,8 +894,8 @@ function createTimeSpentChart() {
                     labelX = scales.x.getPixelForValue(value) + (isMobile ? 4 : 8);
                 }
 
-                ctx.fillStyle = textPrimary;
-                ctx.font = `600 ${isMobile ? 9 : fontSizes.legend}px 'JetBrains Mono', monospace`;
+                ctx.fillStyle = textSecondary;
+                ctx.font = `500 ${isMobile ? 9 : fontSizes.axisTicks}px 'JetBrains Mono', monospace`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
@@ -1066,7 +1083,14 @@ document.getElementById('paper-btn').addEventListener('click', (e) => {
 });
 
 let resizeTimeout;
+let lastWindowWidth = window.innerWidth;
 window.addEventListener('resize', () => {
+    // Only recreate charts if width changed (ignore height changes from mobile address bar)
+    if (window.innerWidth === lastWindowWidth) {
+        return;
+    }
+    lastWindowWidth = window.innerWidth;
+
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
         if (performanceChart) {
@@ -1251,4 +1275,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     createDetailedChart();
     createTimeSpentChart();
     handleNavbarLogoVisibility(); // Check initial state
+
+    // Changelog expand/collapse animation
+    const changelog = document.querySelector('details.changelog');
+    if (changelog) {
+        const content = changelog.querySelector('.changelog-content');
+        changelog.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (changelog.open) {
+                // Closing: animate out, then remove open
+                content.classList.remove('open');
+                content.addEventListener('transitionend', () => {
+                    changelog.open = false;
+                }, { once: true });
+            } else {
+                // Opening: set open, then animate in
+                changelog.open = true;
+                requestAnimationFrame(() => content.classList.add('open'));
+            }
+        });
+    }
 });

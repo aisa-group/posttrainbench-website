@@ -16,6 +16,9 @@ AGGREGATED_NAME_TO_KEY = {
     "GPT-5.2-Codex": "gpt-5.2-codex",
     "Opus-4.5": "opus-4.5",
     "Gemini-3-Pro": "gemini-3-pro",
+    "GPT-5.3-Codex": "gpt-5.3-codex",
+    "Opus-4.6": "opus-4.6",
+    "Gemini-3.1-Pro": "gemini-3.1-pro",
 }
 
 CSV_TO_AGENT = {
@@ -24,6 +27,9 @@ CSV_TO_AGENT = {
     "aggregated_avg_GPT-5.2-Codex.csv": "gpt-5.2-codex",
     "aggregated_avg_Opus-4.5.csv": "opus-4.5",
     "aggregated_avg_Gemini-3-Pro.csv": "gemini-3-pro",
+    "aggregated_avg_GPT-5.3-Codex.csv": "gpt-5.3-codex",
+    "aggregated_avg_Opus-4.6.csv": "opus-4.6",
+    "aggregated_avg_Gemini-3.1-Pro.csv": "gemini-3.1-pro",
 }
 
 STD_CSV_TO_AGENT = {
@@ -32,6 +38,9 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_GPT-5.2-Codex.csv": "gpt-5.2-codex",
     "aggregated_std_Opus-4.5.csv": "opus-4.5",
     "aggregated_std_Gemini-3-Pro.csv": "gemini-3-pro",
+    "aggregated_std_GPT-5.3-Codex.csv": "gpt-5.3-codex",
+    "aggregated_std_Opus-4.6.csv": "opus-4.6",
+    "aggregated_std_Gemini-3.1-Pro.csv": "gemini-3.1-pro",
 }
 
 OPENCODE_CSV_TO_AGENT = {
@@ -41,10 +50,14 @@ OPENCODE_CSV_TO_AGENT = {
     "opencode_gemini-3-pro_10h": "gemini-3-pro-opencode",
     "opencode_gpt-5.1-codex-max_10h": "gpt-5.1-codex-max-opencode",
     "opencode_kimi-k2-thinking_10h": "kimi-k2",
+    "opencode_kimi-k2.5_10h_run2": "kimi-k2.5",
+    "opencode_minimax-m2.5-free_10h_run2": "minimax-m2.5",
+    "zai_glm-5_10h_run2": "glm-5",
 }
 
 QWEN3MAX_KEY = "qwen3-max"
 SONNET_KEY = "sonnet-4.5"
+SONNET46_KEY = "sonnet-4.6"
 
 BENCHMARKS = ["aime2025", "arenahardwriting", "bfcl", "gpqamain", "gsm8k", "healthbench", "humaneval"]
 
@@ -57,6 +70,11 @@ TIME_OVERVIEW_TO_KEY = {
     "opencode_opencode_kimi-k2-thinking_10h": "kimi-k2",
     "opencode_opencode_minimax-m2.1-free_10h": "minimax-m2.1",
     "qwen3max_qwen3-max-2026-01-23_10h": "qwen3-max",
+    "opencode_opencode_kimi-k2.5_10h_run2": "kimi-k2.5",
+    "opencode_opencode_minimax-m2.5-free_10h_run2": "minimax-m2.5",
+    "opencode_zai_glm-5_10h_run2": "glm-5",
+    "claude_non_api_claude-sonnet-4-6_10h": "sonnet-4.6",
+    "opencode_opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
 }
 
 TIME_AGGREGATED_TO_KEY = {
@@ -65,6 +83,9 @@ TIME_AGGREGATED_TO_KEY = {
     "GPT-5.2-Codex": "gpt-5.2-codex",
     "GPT-5.2": "gpt-5.2",
     "Gemini-3-Pro": "gemini-3-pro",
+    "GPT-5.3-Codex": "gpt-5.3-codex",
+    "Opus-4.6": "opus-4.6",
+    "Gemini-3.1-Pro": "gemini-3.1-pro",
 }
 
 
@@ -238,6 +259,27 @@ def generate_scores_json():
                     fallback_type = False
 
                 model_benchmark_data[QWEN3MAX_KEY][model][bm] = {"value": final_val, "fallbackType": fallback_type}
+
+    sonnet46_agg = DATA_DIR / "aggregated_claude_non_api_claude-sonnet-4-6_10h.csv"
+    sonnet46_final = DATA_DIR / "final_claude_non_api_claude-sonnet-4-6_10h.csv"
+    if sonnet46_agg.exists() and sonnet46_final.exists():
+        agg_data = read_csv(sonnet46_agg)
+        final_data = read_csv(sonnet46_final)
+        model_benchmark_data[SONNET46_KEY] = {}
+        for model in BASE_MODELS:
+            model_benchmark_data[SONNET46_KEY][model] = {}
+            for bm in BENCHMARKS:
+                agg_val = agg_data[model][bm]
+                final_val = to_percentage(final_data[model][bm])
+
+                if agg_val == "not stored":
+                    fallback_type = "not_stored"
+                elif agg_val == "ERR":
+                    fallback_type = "error"
+                else:
+                    fallback_type = False
+
+                model_benchmark_data[SONNET46_KEY][model][bm] = {"value": final_val, "fallbackType": fallback_type}
 
     aggregated_scores = {}
     aggregated_file = DATA_DIR / "single_metrics_aggregated.csv"
