@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import numpy as np
+from adjustText import adjust_text
 from pathlib import Path
 
 FONT_STYLE = "monospace"
@@ -20,7 +21,7 @@ FONT_SIZES = {
     "axis_label": 12,
     "axis_title": 14,
     "tick_label": 10,
-    "annotation": 12.5,
+    "annotation": 10.5,
 }
 
 BACKGROUND = "white"
@@ -60,7 +61,7 @@ def get_agent_family(agent_name: str) -> str:
         return "Anthropic"
     elif "gemini" in agent_lower:
         return "Google"
-    elif "glm" in agent_lower or "minimax" in agent_lower:
+    elif "glm" in agent_lower or "minimax" in agent_lower or "kimi" in agent_lower:
         return "OpenCode"
     return "Other"
 
@@ -120,6 +121,16 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
     fig.patch.set_facecolor(bg_color)
     ax.set_facecolor(bg_color)
 
+    # Manual nudges applied AFTER adjustText (in data coordinates: dx_hours, dy_percent)
+    # Edit these to fine-tune individual label positions
+    MANUAL_NUDGES = {
+        # "Agent Name": (dx, dy),
+        "MiniMax M2.5": (0.0, -1.0),
+        "Sonnet 4.6": (0.0, -1.5)
+    }
+
+    texts = []
+    text_names = []
     for _, row in df.iterrows():
         x = row["AvgTimeHours"]
         y = row["AvgPerf"]
@@ -137,28 +148,41 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
             zorder=3,
         )
 
-        offset_x = 0.12
-        offset_y = 0.5
-        ha = "left"
-
-        if "Codex Max" in row["Agent"]:
-            offset_y = -0.8
-        elif "GPT-5.2 Codex" in row["Agent"]:
-            offset_y = -0.8
-        elif "GPT-5.2" in row["Agent"] and "Codex" not in row["Agent"]:
-            offset_y = 0.6
-        elif "MiniMax" in row["Agent"]:
-            offset_y = -1.0
-
-        ax.annotate(
-            row["Agent"],
-            (x, y),
-            xytext=(x + offset_x, y + offset_y),
+        texts.append(ax.text(
+            x + 0.2, y + 0.4, row["Agent"],
             fontsize=FONT_SIZES["annotation"],
             color=COLORS["text_primary"],
-            ha=ha,
-            va="center",
-        )
+        ))
+        text_names.append(row["Agent"])
+
+    x_points = df["AvgTimeHours"].tolist()
+    y_points = df["AvgPerf"].tolist()
+
+    adjust_text(
+        texts, ax=ax,
+        x=x_points, y=y_points,
+        force_text=(0.8, 0.8),
+        force_points=(1.5, 1.5),
+        expand=(1.4, 1.4),
+        expand_points=(2.5, 2.5),
+        ensure_inside_axes=True,
+    )
+
+    # Print label positions for manual tweaking
+    print("\nLabel positions after adjustText:")
+    for text, name in zip(texts, text_names):
+        tx, ty = text.get_position()
+        # Find the original point
+        idx = text_names.index(name)
+        px, py = x_points[idx], y_points[idx]
+        print(f"  {name:20s}  point=({px:.1f}h, {py:.1f}%)  label=({tx:.2f}h, {ty:.2f}%)")
+
+    # Apply manual nudges after adjustText
+    for text, name in zip(texts, text_names):
+        if name in MANUAL_NUDGES:
+            dx, dy = MANUAL_NUDGES[name]
+            cur_x, cur_y = text.get_position()
+            text.set_position((cur_x + dx, cur_y + dy))
 
     # Pareto frontier
     points = df[["AvgTimeHours", "AvgPerf"]].values
