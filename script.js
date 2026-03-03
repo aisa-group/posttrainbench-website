@@ -253,7 +253,8 @@ function populateLeaderboard(modelName = "average") {
         // Format agent name - put scaffold name on separate line with smaller styling
         let agentNameHtml = entry.agent;
         if (entry.scaffold) {
-            agentNameHtml = `${entry.agent}<span class="scaffold-label">${entry.scaffold}</span>`;
+            const effortTag = entry.reasoningEffort ? `<span class="effort-tag">${entry.reasoningEffort}</span>` : '';
+            agentNameHtml = `${entry.agent}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
         }
 
         row.innerHTML = `
@@ -374,19 +375,19 @@ function createSimpleChart(modelName = "average") {
 
     // Update labels - use shorter names on mobile, split on desktop
     const chartLabels = reversedData.map(d => {
+        const displayName = d.reasoningEffort ? `${d.agent} (${d.reasoningEffort})` : d.agent;
         if (isMobile) {
             // Abbreviated labels for mobile
             if (d.agent === 'Base Model') return 'Base Model';
             if (d.agent === 'Instruction Tuned') return 'Instruct Tuned';
             if (d.agent === 'GPT 5.1 Codex Max') return 'GPT 5.1 Codex';
             if (d.agent === 'GPT 5.2 Codex') return 'GPT 5.2 Codex';
-            if (d.agent === 'GPT 5.3 Codex') return 'GPT 5.3 Codex';
             if (d.agent === 'GPT-5.2') return 'GPT-5.2';
             if (d.agent === 'Gemini 3 Pro') return 'Gemini 3';
             if (d.agent === 'Opus 4.5') return 'Opus 4.5';
             if (d.agent === 'Sonnet 4.5') return 'Sonnet 4.5';
             if (d.agent === 'MiniMax M2.1') return 'MiniMax';
-            return d.agent;
+            return displayName;
         }
         // Desktop: split long names into two lines
         if (d.agent === 'Base Model') {
@@ -394,6 +395,11 @@ function createSimpleChart(modelName = "average") {
         }
         if (d.agent === 'Instruction Tuned') {
             return ['Instruction', 'Tuned'];
+        }
+        if (d.reasoningEffort) {
+            const words = d.agent.split(' ');
+            const midpoint = Math.ceil(words.length / 2);
+            return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ') + ` (${d.reasoningEffort})`];
         }
         const words = d.agent.split(' ');
         if (words.length >= 3) {
@@ -621,19 +627,22 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
     }
 
     const agentColors = {
-        'Instruction Tuned': '#6b655a',
-        'Base Model': '#9a9590',
-        'GPT 5.1 Codex Max': '#6a7a5a',
-        'GPT-5.2': '#7a8a6a',
-        'GPT 5.2 Codex': '#8a9a7a',
-        'GPT 5.3 Codex': '#5a6a4a',
-        'Opus 4.5': '#c17d5a',
-        'Opus 4.6': '#d48a60',
-        'Sonnet 4.5': '#a66b4f',
-        'Gemini 3 Pro': '#6a7a85',
-        'GLM 4.7': '#6a8078',
-        'GLM 5': '#5a7068',
-        'MiniMax M2.1': '#8a7078'
+        'human': '#6b655a',
+        'base-model': '#9a9590',
+        'gpt-5.1-codex-max': '#6a7a5a',
+        'gpt-5.2': '#7a8a6a',
+        'gpt-5.2-codex': '#8a9a7a',
+        'gpt-5.3-codex-high': '#5a6a4a',
+        'gpt-5.3-codex-med': '#7a8a6a',
+        'opus-4.5': '#c17d5a',
+        'opus-4.6': '#d48a60',
+        'sonnet-4.5': '#a66b4f',
+        'sonnet-4.6': '#b8785a',
+        'gemini-3-pro': '#6a7a85',
+        'gemini-3.1-pro': '#5a6a75',
+        'glm-4.7': '#6a8078',
+        'glm-5': '#5a7068',
+        'minimax-m2.1': '#8a7078'
     };
 
     const allData = getLeaderboardDataForModel(modelName);
@@ -655,8 +664,8 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
         const scores = orderedData.map(entry => getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]));
         const labels = orderedData.map(d => d.agent);
         const colors = orderedData.map(d => {
-            if (d.agent === 'Base Model') return '#9a9590';
-            if (d.agent === 'Instruction Tuned') return '#6b655a';
+            if (d.agentKey === 'base-model') return '#9a9590';
+            if (d.agentKey === 'human') return '#6b655a';
             return accentPrimary;
         });
 
@@ -733,10 +742,10 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
         const orderedData = [...data].sort((a, b) => parseFloat(a.averageScore) - parseFloat(b.averageScore));
 
         const datasets = orderedData.map(entry => ({
-            label: entry.agent,
+            label: entry.reasoningEffort ? `${entry.agent} (${entry.reasoningEffort})` : entry.agent,
             data: benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key])),
-            backgroundColor: agentColors[entry.agent] || accentPrimary,
-            borderColor: agentColors[entry.agent] || accentPrimary,
+            backgroundColor: agentColors[entry.agentKey] || accentPrimary,
+            borderColor: agentColors[entry.agentKey] || accentPrimary,
             borderWidth: 1,
             borderRadius: 4,
             barPercentage: 0.8,
@@ -914,7 +923,8 @@ function createTimeSpentChart() {
 
     const labels = sortedData.map(d => {
         const scaffold = getScaffold(d.agentKey);
-        return d.agent.length > (scaffold?.length || 0) ? d.agent : scaffold;
+        const displayName = d.reasoningEffort ? `${d.agent} (${d.reasoningEffort})` : d.agent;
+        return displayName.length > (scaffold?.length || 0) ? displayName : scaffold;
     });
 
     // Adjust font sizes for mobile
@@ -935,18 +945,19 @@ function createTimeSpentChart() {
                 const bar = meta.data[index];
                 const yPos = bar.y;
                 const scaffold = getScaffold(dataItem.agentKey);
+                const displayName = dataItem.reasoningEffort ? `${dataItem.agent} (${dataItem.reasoningEffort})` : dataItem.agent;
 
                 if (isMobile) {
                     // On mobile: show only agent name, single line
                     ctx.fillStyle = textSecondary;
                     ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(dataItem.agent, xPos, yPos);
+                    ctx.fillText(displayName, xPos, yPos);
                 } else if (scaffold) {
                     ctx.fillStyle = textSecondary;
                     ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
                     ctx.textBaseline = 'bottom';
-                    ctx.fillText(dataItem.agent, xPos, yPos - 1);
+                    ctx.fillText(displayName, xPos, yPos - 1);
 
                     ctx.globalAlpha = 0.55;
                     ctx.font = `400 ${scaffoldFontSize}px 'JetBrains Mono', monospace`;
@@ -957,7 +968,7 @@ function createTimeSpentChart() {
                     ctx.fillStyle = textSecondary;
                     ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(dataItem.agent, xPos, yPos);
+                    ctx.fillText(displayName, xPos, yPos);
                 }
             });
 

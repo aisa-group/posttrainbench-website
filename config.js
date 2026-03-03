@@ -21,7 +21,7 @@ const chartAgentKeys = [
     "gemini-3-pro",
     "opus-4.5",
     "gpt-5.2-codex",
-    "gpt-5.3-codex",
+    "gpt-5.3-codex-high",
     "sonnet-4.5",
     "sonnet-4.6",
     "gemini-3.1-pro",
@@ -40,7 +40,8 @@ const timeChartAgentKeys = [
     "gpt-5.1-codex-max",
     "gpt-5.1-codex-max-opencode",
     "gpt-5.2-codex",
-    "gpt-5.3-codex",
+    "gpt-5.3-codex-high",
+    "gpt-5.3-codex-med",
     "glm-5",
     "kimi-k2.5",
     "minimax-m2.5",
@@ -59,7 +60,8 @@ const allAgentKeys = [
     "gemini-3-pro",
     "opus-4.5",
     "gpt-5.2-codex",
-    "gpt-5.3-codex",
+    "gpt-5.3-codex-high",
+    "gpt-5.3-codex-med",
     "sonnet-4.5",
     "sonnet-4.6",
     "minimax-m2.1",
@@ -100,7 +102,8 @@ const agentInfo = {
     "minimax-m2.5": { name: "MiniMax M2.5", description: "MiniMax M2.5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "glm-5": { name: "GLM 5", description: "GLM 5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "opus-4.6": { name: "Opus 4.6", description: "Claude Opus 4.6 agent", scaffold: "Claude Code" },
-    "gpt-5.3-codex": { name: "GPT 5.3 Codex", description: "GPT 5.3 Codex agent", scaffold: "Codex CLI" },
+    "gpt-5.3-codex-high": { name: "GPT 5.3 Codex", description: "GPT 5.3 Codex high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "High" },
+    "gpt-5.3-codex-med": { name: "GPT 5.3 Codex", description: "GPT 5.3 Codex medium reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Med" },
     "qwen3-max": { name: "Qwen3 Max", description: "Qwen3 Max agent", isOpenCode: true, scaffold: "Claude Code" }
 };
 

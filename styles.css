@@ -743,6 +743,19 @@ section {
     margin-top: 0.15rem;
 }
 
+.effort-tag {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    opacity: 1;
+    border: 1px solid var(--accent-primary);
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;

@@ -116,6 +116,7 @@ function buildLeaderboardData() {
             isBaseline: agentInfo[key].isBaseline || false,
             isOpenCode: agentInfo[key].isOpenCode || false,
             scaffold: agentInfo[key].scaffold || null,
+            reasoningEffort: agentInfo[key].reasoningEffort || null,
             showInChart: chartAgentKeys.includes(key)
         }));
 
@@ -155,7 +156,8 @@ function buildTimeSpentData() {
             stdHours: data.stdHours,
             stdTime: data.stdTime,
             n: data.n,
-            isBaseline: agentInfo[key].isBaseline || false
+            isBaseline: agentInfo[key].isBaseline || false,
+            reasoningEffort: agentInfo[key].reasoningEffort || null
         }));
 }
 
