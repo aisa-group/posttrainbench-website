@@ -101,16 +101,18 @@ function getLeaderboardDataForModel(modelName) {
             isBaseline: entry.isBaseline,
             isOpenCode: entry.isOpenCode,
             scaffold: entry.scaffold,
+            reasoningEffort: entry.reasoningEffort,
             showInChart: entry.showInChart
         };
     });
 
-    // Sort and rank
+    // Sort and rank (baselines get no rank)
+    let agentRank = 1;
     return modelData
         .sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore))
-        .map((entry, index) => ({
+        .map(entry => ({
             ...entry,
-            rank: index + 1
+            rank: entry.isBaseline ? null : agentRank++
         }));
 }
 
@@ -251,10 +253,14 @@ function populateLeaderboard(modelName = "average") {
         const showStd = !showMarkers;
 
         // Format agent name - put scaffold name on separate line with smaller styling
-        let agentNameHtml = entry.agent;
+        let displayAgent = entry.agent;
+        if (entry.agent === 'Official Instruct Models' && modelName !== 'average') {
+            displayAgent = 'Official Instruct Model';
+        }
+        let agentNameHtml = displayAgent;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? `<span class="effort-tag">${entry.reasoningEffort}</span>` : '';
-            agentNameHtml = `${entry.agent}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
+            agentNameHtml = `${displayAgent}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
         }
 
         row.innerHTML = `
@@ -378,8 +384,8 @@ function createSimpleChart(modelName = "average") {
         const displayName = d.reasoningEffort ? `${d.agent} (${d.reasoningEffort})` : d.agent;
         if (isMobile) {
             // Abbreviated labels for mobile
-            if (d.agent === 'Base Model') return 'Base Model';
-            if (d.agent === 'Instruction Tuned') return 'Instruct Tuned';
+            if (d.agent === 'Base Models') return 'Base Models';
+            if (d.agent === 'Official Instruct Models') return 'Official Instruct²';
             if (d.agent === 'GPT 5.1 Codex Max') return 'GPT 5.1 Codex';
             if (d.agent === 'GPT 5.2 Codex') return 'GPT 5.2 Codex';
             if (d.agent === 'GPT-5.2') return 'GPT-5.2';
@@ -390,11 +396,11 @@ function createSimpleChart(modelName = "average") {
             return displayName;
         }
         // Desktop: split long names into two lines
-        if (d.agent === 'Base Model') {
-            return ['Base Model', '(baseline)'];
+        if (d.agent === 'Base Models') {
+            return ['Base Models', '(baseline)'];
         }
-        if (d.agent === 'Instruction Tuned') {
-            return ['Instruction', 'Tuned'];
+        if (d.agent === 'Official Instruct Models') {
+            return ['Official', 'Instruct', 'Models²'];
         }
         if (d.reasoningEffort) {
             const words = d.agent.split(' ');
@@ -410,8 +416,8 @@ function createSimpleChart(modelName = "average") {
     });
 
     const chartColors = reversedData.map(d => {
-        if (d.agent === 'Base Model') return '#9a9590';
-        if (d.agent === 'Instruction Tuned') return '#6b655a';
+        if (d.agent === 'Base Models') return '#9a9590';
+        if (d.agent === 'Official Instruct Models') return '#6b655a';
         return accentPrimary;
     });
 
@@ -576,7 +582,7 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: "'JetBrains Mono', monospace",
-                            size: isMobile ? 9 : fontSizes.axisTicks
+                            size: isMobile ? 9 : Math.max(9, fontSizes.axisTicks - 1)
                         },
                         maxRotation: isMobile ? 55 : 0,
                         minRotation: isMobile ? 55 : 0,

@@ -81,9 +81,9 @@ const allAgentKeys = [
 
 // Agent display names and metadata
 const agentInfo = {
-    "human": { name: "Instruction Tuned", description: "Reference implementation", isBaseline: true },
-    "base-model": { name: "Base Model", description: "No post-training, zero-shot (baseline)", isBaseline: true, scaffold: "Zero Shot" },
-    "base-model-fewshot": { name: "Base Model", description: "No post-training, few-shot (baseline)", isBaseline: true, scaffold: "Few Shot" },
+    "human": { name: "Official Instruct Models", description: "Reference implementation", isBaseline: true },
+    "base-model": { name: "Base Models", description: "No post-training, zero-shot (baseline)", isBaseline: true, scaffold: "Zero Shot" },
+    "base-model-fewshot": { name: "Base Models", description: "No post-training, few-shot (baseline)", isBaseline: true, scaffold: "Few Shot" },
     "gpt-5.2": { name: "GPT-5.2", description: "GPT-5.2 agent", scaffold: "Codex CLI" },
     "gpt-5.1-codex-max": { name: "GPT 5.1 Codex Max", description: "GPT 5.1 Codex Max agent", scaffold: "Codex CLI" },
     "gpt-5.2-codex": { name: "GPT 5.2 Codex", description: "GPT 5.2 Codex agent", scaffold: "Codex CLI" },
