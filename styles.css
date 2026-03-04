@@ -552,6 +552,16 @@ section {
     width: 100%;
 }
 
+.chart-footnote a {
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.chart-footnote a:hover {
+    color: var(--accent-primary);
+}
+
 .leaderboard-controls {
     display: flex;
     align-items: center;
@@ -741,6 +751,19 @@ section {
     color: var(--text-secondary);
     opacity: 0.7;
     margin-top: 0.15rem;
+}
+
+.effort-tag {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    opacity: 1;
+    border: 1px solid var(--accent-primary);
+    border-radius: 3px;
+    padding: 0 0.3rem;
+    margin-left: 0.35rem;
+    vertical-align: middle;
 }
 
 table {

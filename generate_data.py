@@ -16,7 +16,8 @@ AGGREGATED_NAME_TO_KEY = {
     "GPT-5.2-Codex": "gpt-5.2-codex",
     "Opus-4.5": "opus-4.5",
     "Gemini-3-Pro": "gemini-3-pro",
-    "GPT-5.3-Codex": "gpt-5.3-codex",
+    "GPT-5.3-Codex_High": "gpt-5.3-codex-high",
+    "GPT-5.3-Codex_Med": "gpt-5.3-codex-med",
     "Opus-4.6": "opus-4.6",
     "Gemini-3.1-Pro": "gemini-3.1-pro",
 }
@@ -27,7 +28,8 @@ CSV_TO_AGENT = {
     "aggregated_avg_GPT-5.2-Codex.csv": "gpt-5.2-codex",
     "aggregated_avg_Opus-4.5.csv": "opus-4.5",
     "aggregated_avg_Gemini-3-Pro.csv": "gemini-3-pro",
-    "aggregated_avg_GPT-5.3-Codex.csv": "gpt-5.3-codex",
+    "aggregated_avg_GPT-5.3-Codex_High.csv": "gpt-5.3-codex-high",
+    "aggregated_avg_GPT-5.3-Codex_Med.csv": "gpt-5.3-codex-med",
     "aggregated_avg_Opus-4.6.csv": "opus-4.6",
     "aggregated_avg_Gemini-3.1-Pro.csv": "gemini-3.1-pro",
 }
@@ -38,7 +40,8 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_GPT-5.2-Codex.csv": "gpt-5.2-codex",
     "aggregated_std_Opus-4.5.csv": "opus-4.5",
     "aggregated_std_Gemini-3-Pro.csv": "gemini-3-pro",
-    "aggregated_std_GPT-5.3-Codex.csv": "gpt-5.3-codex",
+    "aggregated_std_GPT-5.3-Codex_High.csv": "gpt-5.3-codex-high",
+    "aggregated_std_GPT-5.3-Codex_Med.csv": "gpt-5.3-codex-med",
     "aggregated_std_Opus-4.6.csv": "opus-4.6",
     "aggregated_std_Gemini-3.1-Pro.csv": "gemini-3.1-pro",
 }
@@ -83,7 +86,8 @@ TIME_AGGREGATED_TO_KEY = {
     "GPT-5.2-Codex": "gpt-5.2-codex",
     "GPT-5.2": "gpt-5.2",
     "Gemini-3-Pro": "gemini-3-pro",
-    "GPT-5.3-Codex": "gpt-5.3-codex",
+    "GPT-5.3-Codex_High": "gpt-5.3-codex-high",
+    "GPT-5.3-Codex_Med": "gpt-5.3-codex-med",
     "Opus-4.6": "opus-4.6",
     "Gemini-3.1-Pro": "gemini-3.1-pro",
 }

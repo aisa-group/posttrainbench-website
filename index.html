@@ -90,11 +90,20 @@
                     <canvas id="performanceChart"></canvas>
                 </div>
                 <p class="chart-footnote"><sup>1</sup> The weighted average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
-                <p class="chart-footnote"><sup>2</sup> "Instruction Tuned" is not directly comparable to the rest since it usually exceeds the 10h + 1 GPU constraint.</p>
+                <p class="chart-footnote"><sup>2</sup> "Official Instruct Models" refers to the officially post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank">Gemma-3-4B-IT</a>. Not directly comparable to agents since their training usually exceeds the 10h + 1 GPU constraint.</p>
             </div>
             <details class="changelog" open>
                 <summary>Changelog</summary>
                 <div class="changelog-content open">
+                    <div class="changelog-entry">
+                        <div class="changelog-date">Mar 3, 2026</div>
+                        <ul class="changelog-list">
+                            <li>Added <strong>GPT 5.3 Codex (High)</strong> reasoning effort variant (Codex CLI)</li>
+                            <li>Split <strong>GPT 5.3 Codex</strong> into High and Med reasoning effort</li>
+                            <li>Re-ran affected runs for <strong>GPT 5.2</strong>, <strong>GPT 5.1 Codex Max</strong>, <strong>GPT 5.2 Codex</strong>, <strong>Gemini 3 Pro</strong>, and <strong>Opus 4.5</strong> (fixed runs where agents edited the chat template)</li>
+                            <li>Renamed "Instruction Tuned" to "Official Instruct Models" for clarity</li>
+                        </ul>
+                    </div>
                     <div class="changelog-entry">
                         <div class="changelog-date">Feb 24, 2026</div>
                         <ul class="changelog-list">
@@ -162,7 +171,6 @@
                 </table>
             </div>
             <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown</p>
-            <p class="leaderboard-footnote">More agents coming soon...</p>
 
             <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
             <div class="benchmark-select-container leaderboard-controls">
