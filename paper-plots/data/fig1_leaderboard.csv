@@ -2,12 +2,12 @@ Method,Avg,StdDev
 Official Instruct Models,51.1,
 Opus 4.6,23.2,1.8
 Gemini 3.1 Pro,21.6,1.1
-GPT-5.2,21.5,2.5
-GPT-5.1 Codex Max,20.2,3.4
-Gemini 3 Pro,18.3,1.9
+GPT-5.2,21.4,2.4
+GPT-5.1 Codex Max,19.7,2.5
+Gemini 3 Pro,18.1,2.4
 GPT 5.3 Codex (High),17.8,3.6
-Opus 4.5,17.1,4.6
-GPT-5.2 Codex,16.8,1.8
+GPT-5.2 Codex,17.2,1.6
+Opus 4.5,17.1,4.5
 Sonnet 4.6,16.4,
 GLM-5,13.9,
 Sonnet 4.5,9.9,
