@@ -21,7 +21,7 @@ FONT_SIZES = {
     "axis_label": 12,
     "axis_title": 14,
     "tick_label": 11,
-    "bar_label": 9,
+    "bar_label": 12,
 }
 
 BACKGROUND = "white"

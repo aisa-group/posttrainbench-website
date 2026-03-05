@@ -126,7 +126,10 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
     MANUAL_NUDGES = {
         # "Agent Name": (dx, dy),
         "MiniMax M2.5": (0.0, -1.0),
-        "Sonnet 4.6": (0.0, -1.5)
+        "Sonnet 4.6": (0.0, -1.5),
+        "GPT-5.1 Codex Max" : (0.0, -0.2),
+        "Opus 4.6": (0.0, 0.2),
+        "Gemini 3.1 Pro": (0.0, 0.2)
     }
 
     texts = []
@@ -140,7 +143,7 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
 
         ax.scatter(
             x, y,
-            s=100,
+            s=70,
             color=color,
             edgecolor=color,
             marker=marker,

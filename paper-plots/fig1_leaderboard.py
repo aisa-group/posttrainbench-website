@@ -87,17 +87,19 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
     labels = []
     for method in df_plot["Method"]:
         if method == "Base Model":
-            labels.append("Base Model\n(baseline)")
-        elif method == "Human Post-Trained":
-            labels.append("Instruction Tuned\n(baseline)")
-        elif method == "Qwen3 Max Thinking":
-            labels.append("Qwen3 Max\n(thinking)")
-        elif method == "Kimi K2 Thinking":
-            labels.append("Kimi K2\n(thinking)")
+            labels.append("Base Models\n(baseline)")
+        elif method == "Official Instruct Models":
+            labels.append("Official\nInstruct\nModels")
         elif method == "GPT-5.1 Codex Max":
-            labels.append("GPT-5.1\nCodex Max")
+            labels.append("GPT 5.1\nCodex Max")
         elif method == "GPT-5.2 Codex":
-            labels.append("GPT-5.2\nCodex")
+            labels.append("GPT 5.2\nCodex")
+        elif method == "GPT 5.3 Codex (High)":
+            labels.append("GPT 5.3\nCodex (High)")
+        elif method == "Gemini 3.1 Pro":
+            labels.append("Gemini 3.1\nPro")
+        elif method == "Gemini 3 Pro":
+            labels.append("Gemini 3\nPro")
         else:
             labels.append(method)
 
@@ -105,7 +107,7 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
     for method in df_plot["Method"]:
         if method == "Base Model":
             bar_colors.append(COLORS["baseline_color"])
-        elif method == "Human Post-Trained":
+        elif method == "Official Instruct Models":
             bar_colors.append("#6b655a")
         else:
             bar_colors.append(COLORS["accent_primary"])
@@ -165,6 +167,7 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
 
     ax.set_xticks(x_pos)
     ax.set_xticklabels(labels, color=COLORS["text_secondary"])
+    ax.tick_params(axis="x", pad=8)
 
     ax.set_ylabel("Average benchmark performance", color=COLORS["text_primary"], fontweight="medium")
     ax.set_xlabel("LLM powering the CLI agent", color=COLORS["text_primary"], fontweight="medium")
