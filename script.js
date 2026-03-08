@@ -404,6 +404,9 @@ function createSimpleChart(modelName = "average") {
         }
         if (d.reasoningEffort) {
             const words = d.agent.split(' ');
+            if (words.length <= 2) {
+                return [d.agent, `(${d.reasoningEffort})`];
+            }
             const midpoint = Math.ceil(words.length / 2);
             return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ') + ` (${d.reasoningEffort})`];
         }
@@ -640,6 +643,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
         'gpt-5.2-codex': '#8a9a7a',
         'gpt-5.3-codex-high': '#5a6a4a',
         'gpt-5.3-codex-med': '#7a8a6a',
+        'gpt-5.4-high': '#4a5a3a',
         'opus-4.5': '#c17d5a',
         'opus-4.6': '#d48a60',
         'sonnet-4.5': '#a66b4f',
