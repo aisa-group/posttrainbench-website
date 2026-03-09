@@ -992,48 +992,43 @@ tbody tr:last-child td {
     background-color: var(--bg-primary);
 }
 
-.team-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.team-member {
+.team-inline {
     text-align: center;
-    padding: 1.5rem;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    transition: var(--transition);
+    max-width: 800px;
+    margin: 0 auto 1rem;
+    font-size: 1.1rem;
+    line-height: 2.2;
 }
 
-.team-member:hover {
-    background-color: var(--bg-tertiary);
-    transform: translateY(-2px);
-}
-
-.team-member-name {
-    display: block;
+.team-inline a {
     color: var(--accent-primary);
     text-decoration: none;
-    font-size: 1.125rem;
     font-weight: 600;
-    margin-bottom: 0.75rem;
     transition: var(--transition);
-    border-bottom: 1px solid transparent;
 }
 
-.team-member-name:hover {
+.team-inline a:hover {
     color: var(--accent-secondary);
-    border-bottom: 1px solid var(--accent-secondary);
+    text-decoration: underline;
 }
 
-.team-member-affiliations {
+.team-inline sup {
     color: var(--text-secondary);
-    font-size: 0.75rem;
-    line-height: 1.5;
+    font-size: 0.6rem;
+    font-weight: 400;
+}
+
+.team-affiliations {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    line-height: 1.8;
+}
+
+.team-affiliations sup {
+    font-size: 0.6rem;
 }
 
 /* Citation Section */
@@ -2123,12 +2118,7 @@ tbody tr:last-child td {
         padding: 1rem;
     }
 
-    .team-grid {
-        grid-template-columns: 1fr;
-        gap: 1.25rem;
-    }
-
-    .team-member {
-        padding: 1.25rem;
+    .team-inline {
+        font-size: 1rem;
     }
 }

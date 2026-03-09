@@ -1,0 +1,24 @@
+% Add to preamble if not already defined:
+% \usepackage{hyperref}
+% \definecolor{linkterracotta}{HTML}{a66b4f}
+% \hypersetup{colorlinks=true, linkcolor=linkterracotta, urlcolor=linkterracotta, citecolor=linkterracotta}
+
+% Or define locally for this table:
+\definecolor{linkterracotta}{HTML}{a66b4f}
+
+\begin{table}[h]
+\centering
+\caption{HuggingFace model links for base models and their instruction-tuned counterparts.}
+\label{tab:model-links}
+\begin{tabular}{llll}
+\toprule
+\rowcolor{bgcream}
+\textsc{Model Family} & \textsc{Params} & \textsc{Base Model} & \textsc{Instruction-Tuned} \\
+\midrule
+Qwen3 & 1.7B & \href{https://huggingface.co/Qwen/Qwen3-1.7B-Base}{\textcolor{linkterracotta}{Qwen3-1.7B-Base}} & \href{https://huggingface.co/Qwen/Qwen3-1.7B}{\textcolor{linkterracotta}{Qwen3-1.7B}} \\
+Qwen3 & 4B & \href{https://huggingface.co/Qwen/Qwen3-4B-Base}{\textcolor{linkterracotta}{Qwen3-4B-Base}} & \href{https://huggingface.co/Qwen/Qwen3-4B}{\textcolor{linkterracotta}{Qwen3-4B}} \\
+SmolLM3 & 3B & \href{https://huggingface.co/HuggingFaceTB/SmolLM3-3B-Base}{\textcolor{linkterracotta}{SmolLM3-3B-Base}} & \href{https://huggingface.co/HuggingFaceTB/SmolLM3-3B}{\textcolor{linkterracotta}{SmolLM3-3B}} \\
+Gemma 3 & 4B & \href{https://huggingface.co/google/gemma-3-4b-pt}{\textcolor{linkterracotta}{Gemma-3-4B-PT}} & \href{https://huggingface.co/google/gemma-3-4b-it}{\textcolor{linkterracotta}{Gemma-3-4B-IT}} \\
+\bottomrule
+\end{tabular}
+\end{table}
