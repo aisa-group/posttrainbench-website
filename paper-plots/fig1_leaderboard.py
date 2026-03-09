@@ -96,6 +96,8 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
             labels.append("GPT 5.2\nCodex")
         elif method == "GPT 5.3 Codex (High)":
             labels.append("GPT 5.3\nCodex (High)")
+        elif method == "GPT 5.4 (High)":
+            labels.append("GPT 5.4\n(High)")
         elif method == "Gemini 3.1 Pro":
             labels.append("Gemini 3.1\nPro")
         elif method == "Gemini 3 Pro":
