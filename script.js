@@ -1098,10 +1098,6 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-document.getElementById('paper-btn').addEventListener('click', (e) => {
-    e.preventDefault();
-    e.target.blur();
-});
 
 let resizeTimeout;
 let lastWindowWidth = window.innerWidth;
