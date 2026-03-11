@@ -1007,6 +1007,11 @@ tbody tr:last-child td {
     transition: var(--transition);
 }
 
+.team-inline a.team-lead {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
 .team-inline a:hover {
     color: var(--accent-secondary);
     text-decoration: underline;
