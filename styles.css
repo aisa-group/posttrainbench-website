@@ -2056,6 +2056,55 @@ tbody tr:last-child td {
     font-size: 0.85rem;
 }
 
+.observation-block a {
+    color: var(--accent-primary);
+    text-decoration: underline;
+    transition: var(--transition);
+}
+
+.observation-block a:hover {
+    color: var(--accent-secondary);
+}
+
+.agent-quote {
+    border-left: 3px solid var(--accent-primary);
+    margin: 1rem 0;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-tertiary);
+    border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.agent-quote-desc {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.agent-quote-desc strong {
+    color: var(--text-primary);
+}
+
+.agent-quote-desc code {
+    font-size: 0.85em;
+    background: var(--bg-secondary);
+    padding: 0.15em 0.4em;
+    border-radius: 0.2rem;
+    color: var(--accent-primary);
+}
+
+.agent-quote-code {
+    margin-top: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
 .observation-block blockquote {
     border-left: 3px solid var(--accent-primary);
     margin: 1rem 0;
@@ -2064,6 +2113,80 @@ tbody tr:last-child td {
     border-radius: 0 0.25rem 0.25rem 0;
     font-style: italic;
     color: var(--text-secondary);
+}
+
+.observation-block blockquote code {
+    font-style: normal;
+    font-size: 0.85em;
+    background: var(--bg-secondary);
+    padding: 0.15em 0.4em;
+    border-radius: 0.2rem;
+}
+
+.observation-block blockquote strong {
+    color: var(--text-primary);
+    font-style: normal;
+}
+
+.trace-entry blockquote {
+    margin: 0.4rem 0 0;
+    border-left: none;
+    background: none;
+    padding: 0;
+}
+
+.agent-trace {
+    margin: 1rem 0;
+    border-left: 3px solid var(--border-color);
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.trace-entry {
+    background: var(--bg-tertiary);
+    border-radius: 0.25rem;
+    padding: 0.75rem 1rem;
+    position: relative;
+}
+
+.trace-entry.trace-violation {
+    border-left: 3px solid var(--danger);
+    background: color-mix(in srgb, var(--danger) 5%, var(--bg-tertiary));
+}
+
+.trace-time {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-right: 0.75rem;
+}
+
+.trace-hours {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.trace-text {
+    margin-top: 0.4rem;
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+.trace-action {
+    margin-top: 0.4rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.trace-gap {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: 0.25rem 0;
+    text-align: center;
 }
 
 .takeaways-list {

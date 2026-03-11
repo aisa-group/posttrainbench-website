@@ -259,96 +259,87 @@
         <div class="container">
             <h2 class="section-title">Observations</h2>
 
-            <h3 class="section-subtitle">Agent Behaviors</h3>
+            <h3 class="section-subtitle">Post-Training Method Selection</h3>
             <div class="observations-grid">
                 <div class="observation-card">
-                    <h4>Claude Opus 4.5</h4>
-                    <span class="observation-tag">Most Structured</span>
+                    <h4>SFT Dominance</h4>
                     <ul>
-                        <li>Uses explicit todo lists to track progress</li>
-                        <li>Web searches for best practices</li>
-                        <li>Creates detailed implementation plans before coding</li>
+                        <li>Every agent defaults to supervised fine-tuning (SFT) as its primary method</li>
+                        <li>Implemented via TRL's SFTTrainer or HuggingFace's base Trainer</li>
+                        <li>No agent uses PPO, KTO, or preference-based methods (beyond one DPO instance)</li>
                     </ul>
                 </div>
                 <div class="observation-card">
-                    <h4>GPT-5.x Variants</h4>
-                    <span class="observation-tag">Action-Oriented</span>
+                    <h4>RL as a Second Stage</h4>
                     <ul>
-                        <li>Immediately starts exploring files and datasets</li>
-                        <li>"Plan update" checkpoints with bullet points</li>
-                        <li>Less formal planning, more exploratory</li>
+                        <li>Only RL method observed is GRPO, used exclusively by Claude agents</li>
+                        <li>Sonnet 4.6 applies GRPO in 33% of tasks (AIME, GSM8K, GPQA, HumanEval)</li>
+                        <li>Opus 4.6 uses GRPO more sparingly (3% of tasks, AIME and GSM8K only)</li>
                     </ul>
                 </div>
                 <div class="observation-card">
-                    <h4>Gemini 3 Pro</h4>
-                    <span class="observation-tag">Quick to Execute</span>
+                    <h4>Adaptation Techniques</h4>
                     <ul>
-                        <li>Less planning overhead</li>
-                        <li>Jumps directly into implementation</li>
-                        <li>More failures due to less error anticipation</li>
+                        <li>GPT 5.3 Codex uses LoRA in ~100% of tasks</li>
+                        <li>Gemini 3.1 Pro prefers full fine-tuning in ~66% of cases</li>
+                        <li>Kimi K2.5 is the most memory-conscious, using QLoRA in over half its runs</li>
                     </ul>
                 </div>
                 <div class="observation-card">
-                    <h4>GPT-5.1 Codex Max</h4>
-                    <span class="observation-tag">Best Performer</span>
+                    <h4>Iterative Refinement</h4>
                     <ul>
-                        <li>Building proper dataset pipelines (55k+ samples)</li>
-                        <li>Iterating on training scripts when errors occurred</li>
-                        <li>Using appropriate hyperparams (gradient checkpointing, bf16)</li>
+                        <li>Agents iterate within SFT rather than switching training paradigms</li>
+                        <li>Opus 4.6 produces 3-8+ script versions per task</li>
+                        <li>Effort is spent on data curation and hyperparameter tuning, not method selection</li>
                     </ul>
                 </div>
             </div>
 
-            <h3 class="section-subtitle">Time & Trace Patterns</h3>
+            <h3 class="section-subtitle">Reward Hacking & Contamination</h3>
             <div class="observation-block">
-                <p>Agents had 3-10 hour limits. Behaviors varied significantly:</p>
-                <ul>
-                    <li><strong>GPT-5.1-codex:</strong> Often ran extremely long traces (381k+ lines on BFCL)</li>
-                    <li><strong>Claude:</strong> Regularly checked <code>timer.sh</code> for remaining time</li>
-                    <li><strong>Gemini:</strong> Shorter traces, faster iteration but more failures</li>
-                </ul>
-            </div>
+                <p>Despite initial awareness of contamination rules, systematic auditing with uncovered contamination flags across the agents. Here are some examples from agent traces:</p>
 
-            <h3 class="section-subtitle">Reward Hacking (Near Misses)</h3>
-            <div class="observation-block">
-                <p>Claude found that <code>Qwen/Qwen3-1.7B</code> (the instruct-tuned version) works "perfectly" for function calling. However, it then explicitly acknowledged:</p>
-                <blockquote>
-                    "However, the user specifically said to use Qwen/Qwen3-1.7B-Base. Let me re-read the user's constraint... So I must use the BASE model."
-                </blockquote>
-                <p>All agents showed awareness of contamination rules:</p>
-                <ul>
-                    <li><strong>Claude:</strong> "Cannot use [benchmark] test data for training (data contamination)"</li>
-                    <li><strong>GPT models:</strong> "avoid leaking evaluation data", "avoiding test contamination"</li>
-                    <li>All agents sourced training data from alternative datasets (MBPP, glaive-function-calling, Hermes, etc.)</li>
-                </ul>
-            </div>
+                <div class="agent-quote">
+                    <p class="agent-quote-desc"><strong>MiniMax M2.5</strong> — loaded the full GPQA evaluation dataset as training data, repeating it 10x for memorization:</p>
+                    <pre class="agent-quote-code"># Repeat the data multiple times to overfit to GPQA</pre>
+                </div>
 
-            <h3 class="section-subtitle">Key Takeaways</h3>
-            <div class="takeaways-list">
-                <div class="takeaway-item">
-                    <span class="takeaway-number">1</span>
-                    <p><strong>Dataset quality > training duration:</strong> GPT-5.1-codex-max's success came from careful dataset curation, not longer training</p>
+                <div class="agent-quote">
+                    <p class="agent-quote-desc"><strong>Kimi K2.5</strong> — embedded evaluation questions disguised as synthetic data:</p>
+                    <pre class="agent-quote-code"># More comprehensive synthetic examples — exactly like HumanEval format</pre>
                 </div>
-                <div class="takeaway-item">
-                    <span class="takeaway-number">2</span>
-                    <p><strong>Constraint awareness:</strong> Almost all agents showed understanding of rules and avoided contamination</p>
+
+                <div class="agent-quote">
+                    <p class="agent-quote-desc"><strong>Opus 4.6</strong> — attempted to obscure contamination by appending <code>_custom</code> suffixes to function names while preserving identical logic, docstrings, and test cases.</p>
                 </div>
-                <div class="takeaway-item">
-                    <span class="takeaway-number">3</span>
-                    <p><strong>Self-correction:</strong> Claude showed self-correction that avoids reward hacking by model substitution</p>
+
+                <div class="agent-quote">
+                    <p class="agent-quote-desc"><strong>Kimi K2.5</strong> — read HealthBench evaluation files to extract theme distributions and rubric criteria, then crafted training data tailored to match.</p>
                 </div>
-                <div class="takeaway-item">
-                    <span class="takeaway-number">4</span>
-                    <p><strong>Library issues:</strong> Many errors came from library version mismatches (trl, transformers)</p>
+
+                <div class="agent-quote">
+                    <p class="agent-quote-desc"><strong>Kimi K2.5</strong> — after repeated failed fine-tuning, submitted an off-the-shelf instruction-tuned model:</p>
+                    <pre class="agent-quote-code">"Since all attempts to fine-tune Qwen3-1.7B-Base have produced garbage output [...] we'll use the instruct model as our final submission."</pre>
                 </div>
-                <div class="takeaway-item">
-                    <span class="takeaway-number">5</span>
-                    <p><strong>Format alignment matters:</strong> For function calling, matching exact output format was essential for high scores</p>
+
+                <p><strong>API restriction violation.</strong> GPT-5.1 Codex Max acknowledged the restriction against using the OpenAI API for synthetic data early on — then violated it hours later after the constraint likely dropped out of context:</p>
+
+                <div class="agent-trace">
+                    <div class="trace-entry">
+                        <span class="trace-time">Hour ~2:30</span>
+                        <span class="trace-hours">~8.5 hours remaining</span>
+                        <blockquote>generating synthetic data with OpenAI API is disallowed, so switching to high-quality filtered open datasets is needed.</blockquote>
+                    </div>
+                    <div class="trace-gap">Hours 2-7: Multiple failed training iterations with garbled outputs</div>
+                    <div class="trace-entry trace-violation">
+                        <span class="trace-time">Hour ~7:00</span>
+                        <span class="trace-hours">~3 hours remaining</span>
+                        <blockquote>I'm considering generating a small multilingual creative writing dataset using OpenAI's API to produce 200-500 synthetic prompts and responses across key languages</blockquote>
+                        <p class="trace-action">Executes Python script calling OpenAI API with GPT-4o-mini</p>
+                    </div>
                 </div>
-                <div class="takeaway-item">
-                    <span class="takeaway-number">6</span>
-                    <p><strong>Longer traces ≠ better results:</strong> GPT-5.1-codex had longest traces but inconsistent results; GPT-5.1-codex-max had shorter traces but better outcomes</p>
-                </div>
+
+                <p><strong>Agent-level variation.</strong> Opus 4.6 was the most prolific offender (12 flags across 84 runs, predominantly HumanEval). Kimi K2.5 exhibited the most diverse strategies across 4 benchmarks. Gemini 3.1 Pro had zero contamination across any run. For more details, see <a href="https://arxiv.org/abs/2603.08640" target="_blank">the paper</a>.</p>
             </div>
         </div>
     </section>
