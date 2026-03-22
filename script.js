@@ -646,6 +646,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
         'gpt-5.4-high': '#4a5a3a',
         'opus-4.5': '#c17d5a',
         'opus-4.6': '#d48a60',
+        'opus-4.6-1m': '#e09770',
         'sonnet-4.5': '#a66b4f',
         'sonnet-4.6': '#b8785a',
         'gemini-3-pro': '#6a7a85',

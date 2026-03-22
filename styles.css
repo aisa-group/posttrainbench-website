@@ -1032,6 +1032,16 @@ tbody tr:last-child td {
     line-height: 1.8;
 }
 
+.team-equal-contrib {
+    font-style: italic;
+}
+
+.team-star {
+    color: var(--accent-primary);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
 .team-affiliations sup {
     font-size: 0.6rem;
 }
