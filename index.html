@@ -94,6 +94,12 @@
                 <summary>Changelog</summary>
                 <div class="changelog-content open">
                     <div class="changelog-entry">
+                        <div class="changelog-date">Apr 10, 2026</div>
+                        <ul class="changelog-list">
+                            <li>Added <strong>GPT 5.4 (High, Reprompted)</strong> — GPT 5.4 with manual reprompting when agent stopped early (Codex CLI)</li>
+                        </ul>
+                    </div>
+                    <div class="changelog-entry">
                         <div class="changelog-date">Mar 22, 2026</div>
                         <ul class="changelog-list">
                             <li>Added <strong>Opus 4.6 (1M)</strong> — Opus 4.6 with 1M context window (Claude Code)</li>
@@ -211,6 +217,9 @@
         <div class="container">
             <h2 class="section-title">Average Time Spent</h2>
             <p class="section-description">Time taken by each agent to complete post-training (out of 10 hours). <br> Different agents demonstrate varying levels of persistence - some give up well before the time limit expires.</p>
+            <div class="time-toggle-wrapper">
+                <button id="toggleTimeAgents" class="toggle-btn">Show all agents</button>
+            </div>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="timeSpentChart"></canvas>

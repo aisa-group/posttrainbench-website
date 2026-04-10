@@ -1454,6 +1454,28 @@ tbody tr:last-child td {
     padding: 4rem 0;
 }
 
+.time-toggle-wrapper {
+    text-align: right;
+    margin-bottom: 0.75rem;
+}
+
+.toggle-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent-primary);
+    background: transparent;
+    border: 1px solid var(--accent-primary);
+    border-radius: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.toggle-btn:hover {
+    background: var(--accent-primary);
+    color: white;
+}
+
 /* Process Flow Section */
 .process-flow {
     background-color: var(--bg-primary);

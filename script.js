@@ -870,6 +870,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
 
 // Create Time Spent Chart
 let timeSpentChart = null;
+let showAllTimeAgents = false;
 
 function createTimeSpentChart() {
     const ctx = document.getElementById('timeSpentChart');
@@ -885,20 +886,21 @@ function createTimeSpentChart() {
     const isMobile = window.innerWidth <= 768;
 
     // Sort by hours (descending), filter out baselines
+    const agentFilter = showAllTimeAgents ? timeChartAgentKeys : chartAgentKeys;
     const sortedData = [...timeSpentData]
-        .filter(d => !d.isBaseline && timeChartAgentKeys.includes(d.agentKey))
+        .filter(d => !d.isBaseline && agentFilter.includes(d.agentKey))
         .sort((a, b) => b.hours - a.hours);
 
-    // Set wrapper dimensions based on screen size
+    // Set wrapper dimensions based on screen size and agent count
     const wrapper = ctx.closest('.leaderboard-chart-wrapper');
     if (isMobile) {
-        // Fit on mobile, smaller height per agent
         const dynamicHeight = Math.max(250, sortedData.length * 38);
         wrapper.style.minWidth = '';
         wrapper.style.height = `${dynamicHeight}px`;
     } else {
+        const dynamicHeight = Math.max(400, sortedData.length * 45);
         wrapper.style.minWidth = '';
-        wrapper.style.height = '';
+        wrapper.style.height = `${dynamicHeight}px`;
     }
 
     // Calculate adaptive font sizes
@@ -963,7 +965,10 @@ function createTimeSpentChart() {
 
     const labels = sortedData.map(d => {
         const scaffold = getScaffold(d.agentKey);
-        const displayName = d.reasoningEffort ? `${d.agent} (${d.reasoningEffort})` : d.agent;
+        const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
+        const cleanEffort = isReprompted ? d.reasoningEffort.replace(', Reprompted', '').trim() : d.reasoningEffort;
+        const dagger = isReprompted ? '†' : '';
+        const displayName = cleanEffort ? `${d.agent} (${cleanEffort})${dagger}` : d.agent;
         return displayName.length > (scaffold?.length || 0) ? displayName : scaffold;
     });
 
@@ -985,7 +990,10 @@ function createTimeSpentChart() {
                 const bar = meta.data[index];
                 const yPos = bar.y;
                 const scaffold = getScaffold(dataItem.agentKey);
-                const displayName = dataItem.reasoningEffort ? `${dataItem.agent} (${dataItem.reasoningEffort})` : dataItem.agent;
+                const isReprompted = dataItem.reasoningEffort && dataItem.reasoningEffort.includes('Reprompted');
+                const cleanEffort = isReprompted ? dataItem.reasoningEffort.replace(', Reprompted', '').trim() : dataItem.reasoningEffort;
+                const dagger = isReprompted ? '†' : '';
+                const displayName = cleanEffort ? `${dataItem.agent} (${cleanEffort})${dagger}` : dataItem.agent;
 
                 if (isMobile) {
                     // On mobile: show only agent name, single line
@@ -1016,6 +1024,26 @@ function createTimeSpentChart() {
         }
     };
 
+    // Create stripe pattern for reprompted bars in time chart
+    const createTimeStripePattern = (color) => {
+        const pc = document.createElement('canvas');
+        pc.width = 10; pc.height = 10;
+        const p = pc.getContext('2d');
+        p.fillStyle = color;
+        p.fillRect(0, 0, 10, 10);
+        p.strokeStyle = 'rgba(255,255,255,0.35)';
+        p.lineWidth = 2;
+        p.beginPath(); p.moveTo(0, 10); p.lineTo(10, 0); p.stroke();
+        p.beginPath(); p.moveTo(-2, 2); p.lineTo(2, -2); p.stroke();
+        p.beginPath(); p.moveTo(8, 12); p.lineTo(12, 8); p.stroke();
+        return ctx.getContext('2d').createPattern(pc, 'repeat');
+    };
+
+    const timeBarColors = sortedData.map(d => {
+        if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createTimeStripePattern(accentPrimary);
+        return accentPrimary;
+    });
+
     timeSpentChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1023,7 +1051,7 @@ function createTimeSpentChart() {
             datasets: [{
                 label: 'Time Spent (hours)',
                 data: sortedData.map(d => d.hours),
-                backgroundColor: accentPrimary,
+                backgroundColor: timeBarColors,
                 borderColor: accentPrimary,
                 borderWidth: isMobile ? 1 : 2,
                 borderRadius: isMobile ? 2 : 4,
@@ -1036,7 +1064,7 @@ function createTimeSpentChart() {
         options: {
             indexAxis: 'y',
             responsive: true,
-            maintainAspectRatio: !isMobile,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: false
@@ -1322,6 +1350,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     createDetailedChart();
     createTimeSpentChart();
     handleNavbarLogoVisibility(); // Check initial state
+
+    // Toggle time chart between main agents and all agents
+    const toggleBtn = document.getElementById('toggleTimeAgents');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            showAllTimeAgents = !showAllTimeAgents;
+            toggleBtn.textContent = showAllTimeAgents ? 'Show main agents' : 'Show all agents';
+            if (timeSpentChart) {
+                timeSpentChart.destroy();
+            }
+            createTimeSpentChart();
+        });
+    }
 
     // Changelog expand/collapse animation
     const changelog = document.querySelector('details.changelog');
