@@ -259,7 +259,7 @@ function populateLeaderboard(modelName = "average") {
         }
         let agentNameHtml = displayAgent;
         if (entry.scaffold) {
-            const effortTag = entry.reasoningEffort ? `<span class="effort-tag">${entry.reasoningEffort}</span>` : '';
+            const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
             agentNameHtml = `${displayAgent}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
         }
 
@@ -381,7 +381,10 @@ function createSimpleChart(modelName = "average") {
 
     // Update labels - use shorter names on mobile, split on desktop
     const chartLabels = reversedData.map(d => {
-        const displayName = d.reasoningEffort ? `${d.agent} (${d.reasoningEffort})` : d.agent;
+        const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
+        const cleanEffort = isReprompted ? d.reasoningEffort.replace(', Reprompted', '').replace('Reprompted', '').trim() : d.reasoningEffort;
+        const dagger = isReprompted ? '†' : '';
+        const displayName = cleanEffort ? `${d.agent} (${cleanEffort})${dagger}` : d.agent;
         if (isMobile) {
             // Abbreviated labels for mobile
             if (d.agent === 'Base Models') return 'Base Models';
@@ -402,13 +405,13 @@ function createSimpleChart(modelName = "average") {
         if (d.agent === 'Official Instruct Models') {
             return ['Official', 'Instruct', 'Models²'];
         }
-        if (d.reasoningEffort) {
+        if (cleanEffort) {
             const words = d.agent.split(' ');
             if (words.length <= 2) {
-                return [d.agent, `(${d.reasoningEffort})`];
+                return [d.agent, `(${cleanEffort})${dagger}`];
             }
             const midpoint = Math.ceil(words.length / 2);
-            return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ') + ` (${d.reasoningEffort})`];
+            return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ') + ` (${cleanEffort})${dagger}`];
         }
         const words = d.agent.split(' ');
         if (words.length >= 3) {
@@ -418,9 +421,35 @@ function createSimpleChart(modelName = "average") {
         return d.agent;
     });
 
+    // Create stripe pattern for reprompted agents
+    const createStripePattern = (color) => {
+        const patternCanvas = document.createElement('canvas');
+        patternCanvas.width = 10;
+        patternCanvas.height = 10;
+        const pctx = patternCanvas.getContext('2d');
+        pctx.fillStyle = color;
+        pctx.fillRect(0, 0, 10, 10);
+        pctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        pctx.lineWidth = 2;
+        pctx.beginPath();
+        pctx.moveTo(0, 10);
+        pctx.lineTo(10, 0);
+        pctx.stroke();
+        pctx.beginPath();
+        pctx.moveTo(-2, 2);
+        pctx.lineTo(2, -2);
+        pctx.stroke();
+        pctx.beginPath();
+        pctx.moveTo(8, 12);
+        pctx.lineTo(12, 8);
+        pctx.stroke();
+        return ctx.getContext('2d').createPattern(patternCanvas, 'repeat');
+    };
+
     const chartColors = reversedData.map(d => {
         if (d.agent === 'Base Models') return '#9a9590';
         if (d.agent === 'Official Instruct Models') return '#6b655a';
+        if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createStripePattern(accentPrimary);
         return accentPrimary;
     });
 

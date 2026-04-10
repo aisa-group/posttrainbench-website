@@ -88,6 +88,7 @@
                 </div>
                 <p class="chart-footnote"><sup>1</sup> The weighted average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
                 <p class="chart-footnote"><sup>2</sup> "Official Instruct Models" refers to the officially post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank">Gemma-3-4B-IT</a>. Not directly comparable to agents since their training usually exceeds the 10h + 1 GPU constraint.</p>
+                <p class="chart-footnote"><sup>†</sup> Reprompted: the agent was manually prompted to continue each time it stopped before the time budget expired.</p>
             </div>
             <details class="changelog" open>
                 <summary>Changelog</summary>
