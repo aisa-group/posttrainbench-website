@@ -15,11 +15,11 @@ const modelDisplayNames = {
 // Agents to show in main chart (others appear in table only)
 const chartAgentKeys = [
     "human",
+    "opus-4.7",
     "opus-4.6",
     "opus-4.6-1m",
     "gpt-5.2",
     "gpt-5.1-codex-max",
-    "gemini-3-pro",
     "opus-4.5",
     "gpt-5.3-codex-high",
     "gpt-5.4-high",
@@ -32,6 +32,7 @@ const chartAgentKeys = [
 
 // Agents to show in time spent chart
 const timeChartAgentKeys = [
+    "opus-4.7",
     "opus-4.6",
     "opus-4.6-1m",
     "opus-4.5",
@@ -58,6 +59,7 @@ const timeChartAgentKeys = [
 // All agents (for table) - order determines display order before sorting by score
 const allAgentKeys = [
     "human",
+    "opus-4.7",
     "opus-4.6",
     "gpt-5.2",
     "gpt-5.1-codex-max",
@@ -110,6 +112,7 @@ const agentInfo = {
     "glm-5": { name: "GLM 5", description: "GLM 5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "opus-4.6": { name: "Opus 4.6", description: "Claude Opus 4.6 agent", scaffold: "Claude Code" },
     "opus-4.6-1m": { name: "Opus 4.6 (1M)", description: "Claude Opus 4.6 with 1M context window", scaffold: "Claude Code" },
+    "opus-4.7": { name: "Opus 4.7", description: "Claude Opus 4.7 extra-high reasoning agent", scaffold: "Claude Code", reasoningEffort: "xHigh" },
     "gpt-5.3-codex-high": { name: "GPT 5.3 Codex", description: "GPT 5.3 Codex high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "High" },
     "gpt-5.3-codex-med": { name: "GPT 5.3 Codex", description: "GPT 5.3 Codex medium reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Med" },
     "gpt-5.4-high": { name: "GPT 5.4", description: "GPT 5.4 high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "High" },

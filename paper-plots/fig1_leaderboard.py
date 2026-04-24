@@ -24,13 +24,14 @@ FONT_SIZES = {
     "bar_label": 10,
 }
 
-BACKGROUND = "white"
+BACKGROUND = "cream"  # Options: "white", "sepia", "cream"
 FIGURE_SIZE = (15, 5)
 OUTPUT_DPI = 300
 
 COLORS = {
     "bg_sepia": "#faf8f3",
     "bg_white": "#ffffff",
+    "bg_cream": "#f6f0e5",
     "text_primary": "#2d2a23",
     "text_secondary": "#6b655a",
     "accent_primary": "#a66b4f",
@@ -59,7 +60,11 @@ def get_available_font(font_style: str) -> str:
 
 
 def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") -> None:
-    bg_color = COLORS["bg_sepia"] if background == "sepia" else COLORS["bg_white"]
+    bg_color = {
+        "sepia": COLORS["bg_sepia"],
+        "cream": COLORS["bg_cream"],
+        "white": COLORS["bg_white"],
+    }.get(background, COLORS["bg_white"])
 
     font_name = get_available_font(FONT_STYLE)
     print(f"Using font: {font_name}")
@@ -98,6 +103,10 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
             labels.append("GPT 5.3\nCodex (High)")
         elif method == "GPT 5.4 (High)":
             labels.append("GPT 5.4\n(High)")
+        elif method == "GPT 5.4 (High, Reprompted)":
+            labels.append("GPT 5.4\n(High)$^\\dagger$")
+        elif method == "Opus 4.6 (1M)":
+            labels.append("Opus 4.6\n(1M)")
         elif method == "Gemini 3.1 Pro":
             labels.append("Gemini 3.1\nPro")
         elif method == "Gemini 3 Pro":
@@ -124,13 +133,15 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
         zorder=3,
     )
 
-    for bar in bars:
+    methods_list = df_plot["Method"].tolist()
+    for i, bar in enumerate(bars):
         bar.set_linewidth(0)
         x = bar.get_x()
         y = bar.get_y()
         w = bar.get_width()
         h = bar.get_height()
         radius = min(w * 0.15, 0.08)
+        is_reprompted = "Reprompted" in methods_list[i]
 
         rounded_bar = mpatches.FancyBboxPatch(
             (x, y), w, h,
@@ -141,6 +152,21 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
             zorder=3,
         )
         ax.add_patch(rounded_bar)
+
+        if is_reprompted:
+            # Overlay a hatched rectangle on top of the rounded bar to show stripes
+            import matplotlib.patches as mp
+            hatch_overlay = mp.Rectangle(
+                (x, y), w, h,
+                facecolor="none",
+                edgecolor="#ffffff",
+                linewidth=0,
+                hatch="//////",
+                alpha=0.55,
+                zorder=4,
+            )
+            ax.add_patch(hatch_overlay)
+
         bar.set_visible(False)
 
     for x, y in zip(x_pos, df_plot["Avg"]):

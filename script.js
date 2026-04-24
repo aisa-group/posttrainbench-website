@@ -380,11 +380,11 @@ function createSimpleChart(modelName = "average") {
     const reversedData = [...data].reverse();
 
     // Update labels - use shorter names on mobile, split on desktop
+    // Reasoning effort is not shown in the main bar chart (only the dagger for reprompted)
     const chartLabels = reversedData.map(d => {
         const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
-        const cleanEffort = isReprompted ? d.reasoningEffort.replace(', Reprompted', '').replace('Reprompted', '').trim() : d.reasoningEffort;
         const dagger = isReprompted ? '†' : '';
-        const displayName = cleanEffort ? `${d.agent} (${cleanEffort})${dagger}` : d.agent;
+        const displayName = `${d.agent}${dagger}`;
         if (isMobile) {
             // Abbreviated labels for mobile
             if (d.agent === 'Base Models') return 'Base Models';
@@ -405,20 +405,14 @@ function createSimpleChart(modelName = "average") {
         if (d.agent === 'Official Instruct Models') {
             return ['Official', 'Instruct', 'Models²'];
         }
-        if (cleanEffort) {
-            const words = d.agent.split(' ');
-            if (words.length <= 2) {
-                return [d.agent, `(${cleanEffort})${dagger}`];
-            }
-            const midpoint = Math.ceil(words.length / 2);
-            return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ') + ` (${cleanEffort})${dagger}`];
-        }
         const words = d.agent.split(' ');
         if (words.length >= 3) {
             const midpoint = Math.ceil(words.length / 2);
-            return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ')];
+            const first = words.slice(0, midpoint).join(' ');
+            const second = words.slice(midpoint).join(' ') + dagger;
+            return [first, second];
         }
-        return d.agent;
+        return displayName;
     });
 
     // Create stripe pattern for reprompted agents
