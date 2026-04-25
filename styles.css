@@ -20,6 +20,16 @@
     --danger: #ef4444;
     --transition: all 0.3s ease;
 
+    /* Chart bar colors - darker/more muted in dark mode */
+    --chart-bar: #95593f;
+    --chart-bar-baseline-1: #6b655a;
+    --chart-bar-baseline-2: #4a463c;
+
+    /* Effort tag (dark mode) - soft filled pill */
+    --tag-bg: rgba(193, 125, 90, 0.14);
+    --tag-border: rgba(193, 125, 90, 0.4);
+    --tag-color: #d99a7c;
+
     /* Rank badge colors - Dark theme (muted gold, silver, bronze) */
     --rank-1-bg: linear-gradient(135deg, #e6c068, #d4af5a);
     --rank-1-text: #1a1612;
@@ -39,6 +49,16 @@
     --border-color: #d9d4c8;
     --accent-primary: #a66b4f;
     --accent-secondary: #8d5d45;
+
+    /* Chart bar colors - light mode (existing values) */
+    --chart-bar: #a66b4f;
+    --chart-bar-baseline-1: #9a9590;
+    --chart-bar-baseline-2: #6b655a;
+
+    /* Effort tag (light mode) - outline only */
+    --tag-bg: transparent;
+    --tag-border: var(--accent-primary);
+    --tag-color: var(--accent-primary);
 
     /* Rank badge colors - Light theme (muted gold, silver, bronze) */
     --rank-1-bg: linear-gradient(135deg, #e6c068, #d4af5a);
@@ -757,9 +777,9 @@ section {
     display: inline-block;
     font-size: 0.6rem;
     font-weight: 600;
-    color: var(--accent-primary);
-    opacity: 1;
-    border: 1px solid var(--accent-primary);
+    color: var(--tag-color);
+    background: var(--tag-bg);
+    border: 1px solid var(--tag-border);
     border-radius: 3px;
     padding: 0 0.3rem;
     margin-left: 0.35rem;

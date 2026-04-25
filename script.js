@@ -440,11 +440,15 @@ function createSimpleChart(modelName = "average") {
         return ctx.getContext('2d').createPattern(patternCanvas, 'repeat');
     };
 
+    const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
+    const chartBarBaseline1 = style.getPropertyValue('--chart-bar-baseline-1').trim() || '#9a9590';
+    const chartBarBaseline2 = style.getPropertyValue('--chart-bar-baseline-2').trim() || '#6b655a';
+
     const chartColors = reversedData.map(d => {
-        if (d.agent === 'Base Models') return '#9a9590';
-        if (d.agent === 'Official Instruct Models') return '#6b655a';
-        if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createStripePattern(accentPrimary);
-        return accentPrimary;
+        if (d.agent === 'Base Models') return chartBarBaseline1;
+        if (d.agent === 'Official Instruct Models') return chartBarBaseline2;
+        if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createStripePattern(chartBar);
+        return chartBar;
     });
 
     // Get error bar data (std deviations)
@@ -697,10 +701,14 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
 
         const scores = orderedData.map(entry => getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]));
         const labels = orderedData.map(d => d.agent);
+        const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
+        const chartBarBaseline1 = style.getPropertyValue('--chart-bar-baseline-1').trim() || '#9a9590';
+        const chartBarBaseline2 = style.getPropertyValue('--chart-bar-baseline-2').trim() || '#6b655a';
+
         const colors = orderedData.map(d => {
-            if (d.agentKey === 'base-model') return '#9a9590';
-            if (d.agentKey === 'human') return '#6b655a';
-            return accentPrimary;
+            if (d.agentKey === 'base-model') return chartBarBaseline1;
+            if (d.agentKey === 'human') return chartBarBaseline2;
+            return chartBar;
         });
 
         const maxScore = Math.max(...scores);
@@ -1033,9 +1041,11 @@ function createTimeSpentChart() {
         return ctx.getContext('2d').createPattern(pc, 'repeat');
     };
 
+    const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
+
     const timeBarColors = sortedData.map(d => {
-        if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createTimeStripePattern(accentPrimary);
-        return accentPrimary;
+        if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createTimeStripePattern(chartBar);
+        return chartBar;
     });
 
     timeSpentChart = new Chart(ctx, {
@@ -1046,7 +1056,7 @@ function createTimeSpentChart() {
                 label: 'Time Spent (hours)',
                 data: sortedData.map(d => d.hours),
                 backgroundColor: timeBarColors,
-                borderColor: accentPrimary,
+                borderColor: chartBar,
                 borderWidth: isMobile ? 1 : 2,
                 borderRadius: isMobile ? 2 : 4,
                 barPercentage: isMobile ? 0.6 : 0.8,
