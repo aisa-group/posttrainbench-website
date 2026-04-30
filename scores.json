@@ -1717,6 +1717,250 @@
         }
       }
     },
+    "opus-4.7": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 6.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 33.84,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 91.33,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 29.32,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 50.47,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 16.23,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 42.28,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 7.78,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 21.9,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 62.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 24.03,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 63.76,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 21.72,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 62.6,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 10.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 10.21,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 62.33,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 27.83,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 66.11,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 6.69,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 35.57,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 1.11,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 30.86,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 91.33,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 28.72,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 55.7,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 21.49,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 27.85,
+          "fallbackType": false
+        }
+      }
+    },
+    "gpt-5.5-xhigh": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 3.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 12.64,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 46.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 28.01,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 51.18,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 11.94,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 50.0,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 6.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 13.05,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 46.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 34.04,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 60.77,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 30.29,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 71.04,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 1.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 0.9,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 46.5,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 19.53,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 36.69,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 8.48,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 29.57,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 6.57,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 96.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 27.46,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 50.83,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 22.98,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 39.63,
+          "fallbackType": false
+        }
+      }
+    },
     "sonnet-4.5": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
@@ -3059,128 +3303,6 @@
         }
       }
     },
-    "sonnet-4.6": {
-      "Qwen3-1.7B-Base": {
-        "aime2025": {
-          "value": 3.33,
-          "fallbackType": false
-        },
-        "arenahardwriting": {
-          "value": 0.14,
-          "fallbackType": false
-        },
-        "bfcl": {
-          "value": 0.0,
-          "fallbackType": false
-        },
-        "gpqamain": {
-          "value": 17.63,
-          "fallbackType": false
-        },
-        "gsm8k": {
-          "value": 12.66,
-          "fallbackType": "not_stored"
-        },
-        "healthbench": {
-          "value": 12.62,
-          "fallbackType": false
-        },
-        "humaneval": {
-          "value": 36.59,
-          "fallbackType": false
-        }
-      },
-      "Qwen3-4B-Base": {
-        "aime2025": {
-          "value": 3.33,
-          "fallbackType": "not_stored"
-        },
-        "arenahardwriting": {
-          "value": 17.5,
-          "fallbackType": false
-        },
-        "bfcl": {
-          "value": 89.0,
-          "fallbackType": false
-        },
-        "gpqamain": {
-          "value": 31.03,
-          "fallbackType": false
-        },
-        "gsm8k": {
-          "value": 41.85,
-          "fallbackType": "not_stored"
-        },
-        "healthbench": {
-          "value": 15.39,
-          "fallbackType": false
-        },
-        "humaneval": {
-          "value": 53.05,
-          "fallbackType": false
-        }
-      },
-      "SmolLM3-3B-Base": {
-        "aime2025": {
-          "value": 6.67,
-          "fallbackType": false
-        },
-        "arenahardwriting": {
-          "value": 5.85,
-          "fallbackType": false
-        },
-        "bfcl": {
-          "value": 0.0,
-          "fallbackType": false
-        },
-        "gpqamain": {
-          "value": 4.91,
-          "fallbackType": "not_stored"
-        },
-        "gsm8k": {
-          "value": 42.15,
-          "fallbackType": false
-        },
-        "healthbench": {
-          "value": 19.58,
-          "fallbackType": false
-        },
-        "humaneval": {
-          "value": 37.2,
-          "fallbackType": false
-        }
-      },
-      "gemma-3-4b-pt": {
-        "aime2025": {
-          "value": 0.0,
-          "fallbackType": false
-        },
-        "arenahardwriting": {
-          "value": 17.18,
-          "fallbackType": false
-        },
-        "bfcl": {
-          "value": 6.0,
-          "fallbackType": false
-        },
-        "gpqamain": {
-          "value": 1.56,
-          "fallbackType": "not_stored"
-        },
-        "gsm8k": {
-          "value": 6.14,
-          "fallbackType": "error"
-        },
-        "healthbench": {
-          "value": 17.04,
-          "fallbackType": "not_stored"
-        },
-        "humaneval": {
-          "value": 42.68,
-          "fallbackType": false
-        }
-      }
-    },
     "gpt-5.4-high-reprompted": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
@@ -3303,64 +3425,64 @@
         }
       }
     },
-    "opus-4.7": {
+    "gpt-5.5-xhigh-reprompted": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
-          "value": 6.67,
+          "value": 0.0,
           "fallbackType": false
         },
         "arenahardwriting": {
-          "value": 33.84,
+          "value": 0.91,
           "fallbackType": false
         },
         "bfcl": {
-          "value": 91.33,
+          "value": 100.0,
           "fallbackType": false
         },
         "gpqamain": {
-          "value": 29.32,
+          "value": 29.46,
           "fallbackType": false
         },
         "gsm8k": {
-          "value": 50.47,
+          "value": 69.9,
           "fallbackType": false
         },
         "healthbench": {
-          "value": 16.23,
+          "value": 0.0,
           "fallbackType": false
         },
         "humaneval": {
-          "value": 42.28,
+          "value": 60.98,
           "fallbackType": false
         }
       },
       "Qwen3-4B-Base": {
         "aime2025": {
-          "value": 7.78,
+          "value": 0.0,
           "fallbackType": false
         },
         "arenahardwriting": {
-          "value": 21.9,
+          "value": 4.98,
           "fallbackType": false
         },
         "bfcl": {
-          "value": 62.0,
+          "value": 97.0,
           "fallbackType": false
         },
         "gpqamain": {
-          "value": 24.03,
+          "value": 33.93,
           "fallbackType": false
         },
         "gsm8k": {
-          "value": 63.76,
+          "value": 79.15,
           "fallbackType": false
         },
         "healthbench": {
-          "value": 21.72,
+          "value": 33.7,
           "fallbackType": false
         },
         "humaneval": {
-          "value": 62.6,
+          "value": 58.54,
           "fallbackType": false
         }
       },
@@ -3370,57 +3492,179 @@
           "fallbackType": false
         },
         "arenahardwriting": {
-          "value": 10.21,
+          "value": 0.42,
           "fallbackType": false
         },
         "bfcl": {
-          "value": 62.33,
+          "value": 100.0,
           "fallbackType": false
         },
         "gpqamain": {
-          "value": 27.83,
+          "value": 30.58,
           "fallbackType": false
         },
         "gsm8k": {
-          "value": 66.11,
+          "value": 72.4,
           "fallbackType": false
         },
         "healthbench": {
-          "value": 6.69,
+          "value": 0.0,
           "fallbackType": false
         },
         "humaneval": {
-          "value": 35.57,
+          "value": 43.9,
           "fallbackType": false
         }
       },
       "gemma-3-4b-pt": {
         "aime2025": {
-          "value": 1.11,
+          "value": 0.0,
           "fallbackType": false
         },
         "arenahardwriting": {
-          "value": 30.86,
+          "value": 27.91,
           "fallbackType": false
         },
         "bfcl": {
-          "value": 91.33,
+          "value": 100.0,
           "fallbackType": false
         },
         "gpqamain": {
-          "value": 28.72,
+          "value": 27.9,
           "fallbackType": false
         },
         "gsm8k": {
-          "value": 55.7,
+          "value": 39.04,
           "fallbackType": false
         },
         "healthbench": {
-          "value": 21.49,
+          "value": 0.69,
           "fallbackType": false
         },
         "humaneval": {
-          "value": 27.85,
+          "value": 28.05,
+          "fallbackType": false
+        }
+      }
+    },
+    "sonnet-4.6": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 3.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 0.14,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 17.63,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 12.66,
+          "fallbackType": "not_stored"
+        },
+        "healthbench": {
+          "value": 12.62,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 36.59,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 3.33,
+          "fallbackType": "not_stored"
+        },
+        "arenahardwriting": {
+          "value": 17.5,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 89.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 31.03,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 41.85,
+          "fallbackType": "not_stored"
+        },
+        "healthbench": {
+          "value": 15.39,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 53.05,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 6.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 5.85,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 4.91,
+          "fallbackType": "not_stored"
+        },
+        "gsm8k": {
+          "value": 42.15,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 19.58,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 37.2,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 17.18,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 6.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 1.56,
+          "fallbackType": "not_stored"
+        },
+        "gsm8k": {
+          "value": 6.14,
+          "fallbackType": "error"
+        },
+        "healthbench": {
+          "value": 17.04,
+          "fallbackType": "not_stored"
+        },
+        "humaneval": {
+          "value": 42.68,
           "fallbackType": false
         }
       }
@@ -3486,6 +3730,11 @@
       "avg": 28.56,
       "std": 2.04,
       "n": 3
+    },
+    "gpt-5.5-xhigh": {
+      "avg": 25.02,
+      "std": 4.8,
+      "n": 2
     }
   },
   "stdData": {
@@ -3944,6 +4193,44 @@
         "healthbench": 8.84,
         "humaneval": 24.22
       }
+    },
+    "gpt-5.5-xhigh": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 4.71,
+        "arenahardwriting": 16.58,
+        "bfcl": 65.05,
+        "gpqamain": 2.68,
+        "gsm8k": 2.68,
+        "healthbench": 6.23,
+        "humaneval": 12.93
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 4.71,
+        "arenahardwriting": 13.62,
+        "bfcl": 65.05,
+        "gpqamain": 3.63,
+        "gsm8k": 26.75,
+        "healthbench": 3.56,
+        "humaneval": 1.29
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 2.36,
+        "arenahardwriting": 0.68,
+        "bfcl": 65.76,
+        "gpqamain": 20.68,
+        "gsm8k": 22.09,
+        "healthbench": 12.0,
+        "humaneval": 33.2
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 0.0,
+        "arenahardwriting": 8.89,
+        "bfcl": 1.41,
+        "gpqamain": 0.95,
+        "gsm8k": 7.45,
+        "healthbench": 1.45,
+        "humaneval": 16.38
+      }
     }
   },
   "timeData": {
@@ -4023,6 +4310,20 @@
       "stdHours": 0.941,
       "stdTime": "0:56",
       "n": 3
+    },
+    "opus-4.7": {
+      "hours": 7.57,
+      "time": "7:34",
+      "stdHours": 0.567,
+      "stdTime": "0:34",
+      "n": 3
+    },
+    "gpt-5.5-xhigh": {
+      "hours": 4.979,
+      "time": "4:58",
+      "stdHours": 0.124,
+      "stdTime": "0:07",
+      "n": 2
     },
     "human": {
       "hours": 4.473,
@@ -4115,12 +4416,12 @@
       "stdTime": null,
       "n": 1
     },
-    "opus-4.7": {
-      "hours": 7.57,
-      "time": "7:34",
-      "stdHours": 0.567,
-      "stdTime": "0:34",
-      "n": 3
+    "gpt-5.5-xhigh-reprompted": {
+      "hours": 9.242,
+      "time": "9:14",
+      "stdHours": null,
+      "stdTime": null,
+      "n": 1
     }
   }
 }
