@@ -101,7 +101,7 @@ function hidePageLoading() {
 function computeTraceStart() {
   for (const ev of RECORD.events) {
     if (ev.ts) {
-      const t = Date.parse(ev.ts);
+      const t = parseTraceTs(ev.ts);
       if (!isNaN(t)) { TRACE_START_MS = t; return; }
     }
   }
@@ -176,8 +176,14 @@ function renderSummary() {
     ? '$' + Number(ix.total_cost_usd).toFixed(2)
     : `<span class="cost-missing" data-tip="${escapeHtml(COST_MISSING_TITLE)}">—</span>`;
 
+  const agentPretty = escapeHtml(prettyAgentFromMeta((s.agent_models || [])[0], m) || '—');
+  const harness = prettyHarness(m.trace_format);
+  const agentHtml = harness
+    ? `${agentPretty}<span class="stat-sub"> via ${escapeHtml(harness)}</span>`
+    : agentPretty;
+
   const stats = [
-    ['agent',       escapeHtml(prettyAgent((s.agent_models || [])[0]) || '—')],
+    ['agent',       agentHtml],
     ['time budget', escapeHtml(ix.time_budget_h ? ix.time_budget_h + 'h' : '—')],
     ['duration',    escapeHtml(humanDuration(ix.time_taken, ix.duration_ms))],
     ['turns',       escapeHtml((ix.num_turns != null && ix.num_turns > 0) ? String(ix.num_turns) : '—')],
@@ -262,6 +268,33 @@ function prettyAgent(name) {
   return s + annotation;
 }
 function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+// Map trace_format to the autonomous-agent harness that produced it.
+function prettyHarness(fmt) {
+  if (!fmt) return '';
+  const map = {
+    claude_code: 'Claude Code',
+    'claude-code': 'Claude Code',
+    claude: 'Claude Code',
+    codex: 'Codex',
+    opencode: 'opencode',
+  };
+  return map[String(fmt).toLowerCase()] || fmt;
+}
+
+// Variant annotations derived from the experiment name. "reprompted" =
+// sessions were continued after the agent gave up. Surfaced alongside
+// the [1m]-style annotation so the agent label tells the full story.
+function prettyAgentFromMeta(name, meta) {
+  const base = prettyAgent(name);
+  const extras = [];
+  const exp = ((meta && meta.experiment) || '').toLowerCase();
+  if (/(?:^|[_/-])reprompt(?:ed)?(?:[_/-]|$)/.test(exp)) extras.push('reprompted');
+  if (!extras.length) return base;
+  const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(base);
+  if (m) return `${m[1]} (${m[2]}, ${extras.join(', ')})`;
+  return `${base} (${extras.join(', ')})`;
+}
 
 // Re-render the trace when the expand-outputs toggle changes, and wire up
 // the jump-to-turn input + click-on-marker permalink behavior.
@@ -457,16 +490,16 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum) {
   const anchorId = turnNum != null
     ? `turn-${turnNum}`
     : `ev-${ev.session_idx ?? 0}-${ev.type}-${(ev.uuid || ev.ts || '').replace(/[^A-Za-z0-9_-]/g, '').slice(-8) || Math.random().toString(36).slice(2, 8)}`;
-  // Marker: turn # (or role label) → time → elapsed. Date moved to the
-  // hover tooltip; session is conveyed by the colored thread node already.
-  // Clicking the marker copies a permalink to this event. The "+0s"
-  // elapsed badge is suppressed on the first event (where it's redundant
-  // by definition) and on non-timestamped events.
-  const elapsedShown = tsParts && tsParts.elapsed && tsParts.elapsed !== '0s';
+  // Marker: turn # (or role label) → relative time. The displayed time is
+  // already trace-relative (first event = 00:00:00) so the redundant
+  // "+elapsed" badge is gone. Wall-clock + date move to the hover tooltip.
+  // Clicking the marker copies a permalink to this event.
+  const tsTitle = tsParts
+    ? `${tsParts.wall || ''}${tsParts.date ? ' · ' + tsParts.date : ''} (wall-clock)`
+    : '';
   const marker = `<aside class="event-marker" data-anchor="${anchorId}" title="Copy link to this event">
     ${markerNum}${markerLabel}
-    ${tsParts ? `<div class="ev-time" title="${escapeHtml(ev.ts || '')} · ${escapeHtml(tsParts.date || '')}">${escapeHtml(tsParts.time || '')}</div>` : ''}
-    ${elapsedShown ? `<div class="ev-elapsed">+${escapeHtml(tsParts.elapsed)}</div>` : ''}
+    ${tsParts ? `<div class="ev-time" title="${escapeHtml(tsTitle)}">${escapeHtml(tsParts.time || '')}</div>` : ''}
     ${ev.parent_tool_use_id ? `<div class="ev-sub-tag">sub-agent</div>` : ''}
   </aside>`;
 
@@ -658,8 +691,25 @@ function renderTodos(todos) {
 // both the rail card and the matching larger modal card, so we keep them in
 // sync without code duplication.
 function getMetricDefs() {
-  const snaps = RECORD.system_monitor || [];
-  const labels = snaps.map(s => s.ts);
+  // Filter out pre-trace samples so the x-axis can run from 00:00 (first
+  // event) to the trace's end without a flat compressed lead-in.
+  const allSnaps = RECORD.system_monitor || [];
+  const snaps = TRACE_START_MS == null
+    ? allSnaps
+    : allSnaps.filter(s => {
+        if (!s.ts) return true;
+        const t = parseTraceTs(s.ts);
+        return isNaN(t) || t >= TRACE_START_MS - 1000;
+      });
+  // Pre-compute relative-time labels (HH:MM:SS from trace start) so the
+  // chart's tickTime + tooltip pick them up directly.
+  const labels = snaps.map(s => {
+    if (!s.ts) return '';
+    const t = parseTraceTs(s.ts);
+    if (isNaN(t)) return s.ts;
+    if (TRACE_START_MS == null) return s.ts;
+    return fmtRelTime(Math.max(0, t - TRACE_START_MS));
+  });
   const gpu = (k) => snaps.map(s => s.gpu ? s.gpu[k] : null);
   return [
     {
@@ -764,11 +814,12 @@ function buildChart(canvasId, def) {
   const color = paletteColor(def.palette);
   const muted = css.getPropertyValue('--text-secondary').trim() || '#6b655a';
   const border = css.getPropertyValue('--border-color').trim() || '#d9d4c8';
+  // Labels are already HH:MM:SS strings (relative to trace start) —
+  // strip the trailing :SS so the axis ticks show HH:MM.
   const tickTime = (_v, i) => {
     const ts = def.labels[i];
     if (!ts) return '';
-    const m = /\d{2}:\d{2}/.exec(ts);
-    return m ? m[0] : ts;
+    return /^\d{2}:\d{2}:\d{2}$/.test(ts) ? ts.slice(0, 5) : ts;
   };
   return new Chart(ctx, {
     type: 'line',
@@ -1127,29 +1178,52 @@ function humanDuration(timeTakenStr, durationMs) {
 }
 
 // Convert ISO timestamp like "2026-04-30T23:24:24Z" into a compact split:
-//   { date: "Apr 30", time: "23:24:24", elapsed: "3m 12s" }
+//   { date: "Apr 30", time: "01:23:45" (relative HH:MM:SS from trace start),
+//     wall: "23:24:24" (original wall-clock) }
+// The PRIMARY display value is `time` — relative to the first event in
+// the trace — so the timeline reads "what the agent did at 5h in" rather
+// than the absolute clock time. Wall-clock + date survive in `wall` /
+// `date` for tooltip context.
 const _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function formatEventTime(iso) {
-  const t = Date.parse(iso);
-  if (isNaN(t)) return { date: '', time: iso, elapsed: null };
+  const t = parseTraceTs(iso);
+  if (isNaN(t)) return { date: '', time: iso, wall: iso };
   const d = new Date(t);
   const pad = n => String(n).padStart(2, '0');
   const date = `${_MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
-  const time = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
-  let elapsed = null;
+  const wall = `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+  let time = wall;
   if (TRACE_START_MS != null) {
-    const delta = Math.max(0, t - TRACE_START_MS);
-    elapsed = msToShort(delta);
+    time = fmtRelTime(Math.max(0, t - TRACE_START_MS));
   }
-  return { date, time, elapsed };
+  return { date, time, wall };
 }
-function msToShort(ms) {
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return s + 's';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ${s % 60}s`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
+
+// Parse a trace-source timestamp robustly. The agent traces use proper
+// ISO ("2026-04-22T14:09:35Z") but the system_monitor logs a naive
+// "YYYY-MM-DD HH:MM:SS" form — those need to be treated as UTC, not
+// local, because the launcher runs in UTC. Without this normalization
+// the browser's local offset bakes in (e.g. -7200s on UTC+2) and the
+// sample timestamps drift hours away from the event timestamps.
+function parseTraceTs(ts) {
+  if (!ts) return NaN;
+  const s = String(ts);
+  if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}/.test(s) && !/[Zz]$|[+-]\d{2}:?\d{2}$/.test(s)) {
+    return Date.parse(s.replace(' ', 'T') + 'Z');
+  }
+  return Date.parse(s);
+}
+
+// Render a millisecond offset as HH:MM:SS — zero-padded so column widths
+// stay stable. Used for event timestamps and chart x-axis labels.
+function fmtRelTime(deltaMs) {
+  if (deltaMs == null || isNaN(deltaMs)) return '';
+  const s = Math.max(0, Math.floor(deltaMs / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(sec)}`;
 }
 
 load();

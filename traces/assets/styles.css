@@ -786,6 +786,15 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   font-variant-numeric: tabular-nums;
   word-break: break-word;
 }
+/* Inline muted suffix inside a summary-stats dd — e.g. "GPT 5.4 via Codex". */
+.summary-stats .stat-sub {
+  color: var(--text-secondary);
+  font-weight: 400;
+  font-size: 0.85em;
+  letter-spacing: 0.01em;
+  margin-left: 0.2rem;
+  opacity: 0.85;
+}
 /* Per-theme accuracy — collapsible. Only HealthBench-style benchmarks
    emit by_theme; closed by default keeps the rail compact for everyone
    else. The summary row stays a single line and the bars only mount
@@ -949,9 +958,10 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   padding: 1.5rem 2rem 4rem;
 }
 
-/* ---------- Page hero — tight, single-column orientation. The runs
-   count is inlined into the h1 so the hero stays a single block of
-   text rather than a stat-grid that takes vertical real estate. */
+/* ---------- Page hero — title + corpus-stat strip, then a
+   (benchmark × base-model) matrix that doubles as primary navigation.
+   The matrix replaces the old marketing paragraph and orients
+   visitors to the corpus shape in one glance. */
 .page-head {
   border-bottom: 1px solid var(--border-color);
   background: linear-gradient(
@@ -961,59 +971,231 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   );
 }
 .page-head-inner {
-  padding-top: 1.85rem;
-  padding-bottom: 1.4rem;
+  padding-top: 1.7rem;
+  padding-bottom: 1.6rem;
+  /* Title at the top alone. Below: matrix (left) + vertical stats
+     column (right). The stats fill the formerly-empty right side and
+     visually balance the matrix's heatmap weight. */
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
 }
 .page-head h1 {
-  font-size: 1.7rem;
+  font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.15;
-  margin: 0 0 0.35rem;
+  margin: 0;
   color: var(--text-primary);
+}
+.hero-body {
+  display: grid;
+  grid-template-columns: minmax(0, 720px) auto;
+  gap: 2.5rem;
+  align-items: start;
+}
+.hero-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 140px;
+  padding-top: 0.2rem;
+}
+.stat-tile {
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  gap: 0.45rem;
 }
-.page-head-count {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  letter-spacing: 0;
+.stat-num {
+  font-size: 1.05rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  letter-spacing: -0.012em;
+  line-height: 1;
 }
-.page-sub {
-  font-size: 0.88rem;
-  line-height: 1.55;
+.stat-label {
+  font-size: 0.76rem;
   color: var(--text-secondary);
-  max-width: 62ch;
-  margin: 0;
+  letter-spacing: 0.01em;
+}
+.stat-meta {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  opacity: 0.72;
+  margin-top: 0.5rem;
+  letter-spacing: 0.01em;
+}
+@media (max-width: 880px) {
+  .page-head h1 { font-size: 1.4rem; }
+  .hero-body {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .hero-stats {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+  }
+}
+
+/* ---------- Matrix --------------------------------------------------- */
+/* Compact grid: 1 label column on the left + N base-model columns.
+   Each cell shows run count + best accuracy. Shade is normalized
+   per-row so cells in the same row can be compared (different benchmarks
+   have different accuracy ranges). Cells are buttons; clicking sets
+   the (benchmark, base-model) filter pair. */
+.matrix-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  /* Cap the matrix so cells stay near-square instead of sprawling
+     across the full container — at 1380px the cells became 11:1 bars,
+     which read as four side-by-side bar charts rather than a heatmap. */
+  max-width: 720px;
+}
+.matrix-grid {
+  display: grid;
+  gap: 2px;
+  /* grid-template-columns set inline */
+}
+.matrix-corner { /* top-left blank cell */ }
+.matrix-colhead {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: none;
+  letter-spacing: 0.005em;
+  padding: 0 0.5rem 0.4rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.matrix-rowhead {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0 0.85rem 0 0;
+  text-align: right;
+  align-self: center;
+  white-space: nowrap;
+  letter-spacing: -0.005em;
+}
+.matrix-cell {
+  --cell-intensity: 0;
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.4rem;
+  min-height: 34px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+  border-radius: 3px;
+  /* Stronger ramp — 52% high end gives terracotta saturation enough to
+     read the heatmap; low end stays close to bg-secondary. */
+  background: color-mix(in srgb,
+                        var(--accent-primary) calc(var(--cell-intensity) * 52%),
+                        var(--bg-secondary));
+  color: var(--text-primary);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+.matrix-cell:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary), 0 6px 16px rgba(20, 16, 11, 0.12);
+  z-index: 1;
+}
+.matrix-cell:focus-visible {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 35%, transparent);
+}
+.matrix-cell:active:not(:disabled) { transform: translateY(1px); }
+.matrix-acc {
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+  line-height: 1;
+  color: var(--text-primary);
+}
+.matrix-cell-empty {
+  cursor: default;
+  background: transparent;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--border-color) 60%, transparent);
+}
+.matrix-empty {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  font-size: 0.9rem;
+}
+
+.matrix-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  padding: 0.1rem 0.1rem 0;
+  align-self: flex-end;
+}
+.legend-label { white-space: nowrap; }
+.legend-label-right { letter-spacing: 0.02em; }
+.legend-scale {
+  display: inline-flex;
+  gap: 2px;
+}
+.legend-step {
+  --cell-intensity: 0;
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+  background: color-mix(in srgb,
+                        var(--accent-primary) calc(var(--cell-intensity) * 52%),
+                        var(--bg-secondary));
+}
+
+@media (max-width: 760px) {
+  .matrix-colhead { font-size: 0.64rem; }
+  .matrix-rowhead { font-size: 0.72rem; padding-right: 0.4rem; }
+  .matrix-cell { min-height: 24px; padding: 0.25rem 0.2rem; }
+  .matrix-acc { font-size: 0.68rem; }
 }
 
 /* ---------- Filter dock ---------------------------------------------- */
+/* Chips lead, search trails. Filters are the primary action for this
+   audience; search is the fallback for when you know a substring. */
 .filter-dock {
-  display: grid;
-  grid-template-columns: minmax(280px, 1.4fr) auto;
-  gap: 0.75rem;
+  display: flex;
   align-items: center;
-  margin: 1.4rem 0 0.4rem;
+  gap: 0.75rem;
+  margin: 1.4rem 0 0.6rem;
+  flex-wrap: wrap;
 }
 .filter-search {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 0.375rem;
-  padding: 0 0.85rem;
+  padding: 0 0.7rem;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  margin-left: auto;
+  min-width: 200px;
+  max-width: 260px;
+  flex: 0 1 240px;
 }
 .filter-search:focus-within {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
-.filter-search .filter-icon { color: var(--text-secondary); flex: none; }
+.filter-search .filter-icon { color: var(--text-secondary); flex: none; opacity: 0.85; }
 .filter-search input[type="search"] {
   flex: 1;
   background: transparent;
@@ -1021,17 +1203,47 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   outline: none;
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 0.88rem;
-  padding: 0.55rem 0;
+  font-size: 0.8rem;
+  padding: 0.48rem 0;
   min-width: 0;
 }
 .filter-search input::placeholder { color: var(--text-secondary); opacity: 0.7; }
 
 .filter-group {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
+}
+
+/* When a filter is engaged, give its trigger a terracotta tint so the
+   user can see at a glance which filters are active. */
+.cs-active .cs-trigger {
+  border-color: color-mix(in srgb, var(--accent-primary) 55%, var(--border-color));
+  background-color: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-secondary));
+  color: var(--accent-primary);
+}
+.cs-active .cs-caret { color: var(--accent-primary); }
+
+/* View controls — group + sort + result count + clear. Sits between
+   the filter dock and the run table. */
+.view-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.1rem 0 0.9rem;
+  flex-wrap: wrap;
+}
+.view-controls-left {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.view-controls-right {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  font-size: 0.78rem;
 }
 
 /* ---------- Custom dropdown (built on top of <select>) -------------- */
@@ -1119,14 +1331,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   border-left-color: var(--accent-primary);
 }
 
-/* Results count + clear-filters link, below the dock. */
-.results-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.8rem;
-  padding: 0.2rem 0.1rem 1rem;
-  font-size: 0.78rem;
-}
+/* Result count + clear-filters link live in .view-controls-right. */
 .results-count { font-variant-numeric: tabular-nums; }
 .link-btn {
   background: transparent;
@@ -1149,25 +1354,43 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 .empty-state .btn { margin-top: 0.8rem; }
 
 /* ---------- Run table ------------------------------------------------ */
-.exp-group { margin-bottom: 1.5rem; }
+.exp-group { margin-bottom: 1.7rem; }
 .exp-group .exp-head {
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
-  padding: 0 0.25rem 0.45rem;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.1rem 0.25rem 0.5rem;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 0;
+  flex-wrap: wrap;
 }
-.exp-group .exp-name {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.005em;
+.exp-head-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
-.exp-group .exp-meta {
-  font-size: 0.7rem;
+.exp-head-meta {
+  font-size: 0.72rem;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.005em;
+}
+.exp-group .exp-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.exp-name-sep {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  font-weight: 400;
+}
+.exp-name-model {
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 .runtable {
@@ -1269,11 +1492,26 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   color: var(--text-primary);
   font-weight: 500;
 }
+.agent-harness {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.agent-harness::before {
+  content: '·';
+  margin-right: 0.4rem;
+  opacity: 0.7;
+}
 .agent-tag {
   display: inline-block;
   font-size: 0.62rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--accent-primary);
   background: var(--tag-bg);
   border: 1px solid var(--tag-border);
@@ -1281,6 +1519,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   border-radius: 3px;
   margin-left: 0.2rem;
   vertical-align: 1px;
+  white-space: nowrap;
 }
 
 /* ---------- Accuracy cell (inline bar + number) ---------------------- */
@@ -1320,56 +1559,68 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
    glyph + the axis short-label (contam / model). Big visual delta means
    the eye lands on flags from the other side of the table — and the
    label tells you which axis tripped without needing the tooltip. */
-.col-verdict { min-width: 5rem; }
+.col-verdict { min-width: 9rem; }
 
-.vdot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  margin-left: 0.55rem;
-  vertical-align: middle;
-}
-.vdot:first-child { margin-left: 0; }
-.vdot.ok {
-  background: var(--text-secondary);
-  opacity: 0.28;
-}
-.vdot.unknown {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  width: 7px; height: 7px;  /* hollow ring reads as slightly larger */
-}
-
-.vflag {
+/* One combined badge per row collapses the (contamination,
+   disallowed_model) judge axes into a single scannable read:
+     ok      → subtle olive pill with a check     ("clean")
+     flag    → terracotta pill with warning glyph ("flagged: contam, model")
+     pending → muted em-dash + label              ("pending")
+   The per-axis raw verdict text lives in the data-tip tooltip. */
+.vbadge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  margin-left: 0.45rem;
-  padding: 0.12rem 0.45rem 0.12rem 0.4rem;
+  gap: 0.3rem;
+  padding: 0.18rem 0.55rem 0.18rem 0.5rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--session-4) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--session-4) 55%, transparent);
-  color: var(--session-4);
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
   vertical-align: middle;
   line-height: 1;
-  white-space: nowrap;
+  border: 1px solid transparent;
+  cursor: help;
 }
-.vflag:first-child { margin-left: 0; }
-.vflag svg { flex: none; opacity: 0.95; }
-[data-theme="light"] .vflag {
+.vbadge svg { flex: none; }
+/* Clean and pending recede — only flagged carries the full pill chrome.
+   That asymmetry is intentional: the eye scans down the column looking
+   for problems, and the cost of false positives (loud clean rows) is
+   higher than missed positives. */
+.vbadge-ok {
+  color: var(--session-2);
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+}
+.vbadge-ok svg { width: 14px; height: 14px; opacity: 0.85; }
+[data-theme="light"] .vbadge-ok { color: #5a6b3d; }
+
+.vbadge-flag {
+  color: var(--session-4);
+  background: color-mix(in srgb, var(--session-4) 18%, transparent);
+  border-color: color-mix(in srgb, var(--session-4) 55%, transparent);
+}
+[data-theme="light"] .vbadge-flag {
   color: #8b3f23;
   background: color-mix(in srgb, var(--session-4) 12%, transparent);
 }
-/* Hovered row: pull the pill a touch warmer so it doesn't fade against
-   the bg-tertiary hover background. */
-.runtable tbody tr:hover .vflag {
+.vbadge-pending {
+  color: var(--text-secondary);
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.55;
+}
+.runtable tbody tr:hover .vbadge-flag {
   background: color-mix(in srgb, var(--session-4) 22%, transparent);
 }
+.runtable tbody tr:hover .vbadge-ok svg { opacity: 1; }
 
 /* ---------- Trace events ------------------------------------------- */
 /* The trace renders as a connected chain: a thin vertical "thread" runs
@@ -1502,17 +1753,12 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   white-space: nowrap;
 }
 .ev-time {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
   white-space: nowrap;
-}
-.ev-elapsed {
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  opacity: 0.7;
-  white-space: nowrap;
+  cursor: help;
 }
 .ev-sub-tag {
   font-size: 0.58rem;

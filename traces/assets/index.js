@@ -1,5 +1,6 @@
-// Landing page: fetch the corpus index, render aggregate stats, render
-// a filterable + sortable run table that doubles as a leaderboard.
+// Landing page: fetch the corpus index, render a (benchmark × base-model)
+// matrix that doubles as primary navigation, plus a filterable +
+// groupable run table.
 
 const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './data/';
 
@@ -7,7 +8,9 @@ const els = {
   q: document.getElementById('q'),
   expFilter: document.getElementById('experiment-filter'),
   benchFilter: document.getElementById('benchmark-filter'),
+  modelFilter: document.getElementById('trained-model-filter'),
   agentFilter: document.getElementById('agent-filter'),
+  groupBy: document.getElementById('group-by'),
   sort: document.getElementById('sort'),
   runs: document.getElementById('runs'),
   empty: document.getElementById('empty'),
@@ -15,9 +18,45 @@ const els = {
   resultCount: document.getElementById('result-count'),
   resetFilters: document.getElementById('reset-filters'),
   emptyReset: document.getElementById('empty-reset'),
+  heroStats: document.getElementById('hero-stats'),
+  matrix: document.getElementById('matrix'),
+  matrixLegend: document.getElementById('matrix-legend'),
 };
 
 let DATA = { runs: [], experiments: [], benchmarks: [], build_ts: null };
+
+// Canonical display order for benchmarks and base models. Used to order
+// matrix rows/columns and to sort groups so the page doesn't open on
+// saturated cells. Benchmarks roughly: hard reasoning first → coding →
+// writing/math → general → tool-calling (BFCL last because it saturates
+// near 100% and reads as a flat block).
+const BENCHMARK_ORDER = [
+  'aime2025', 'aime2024',
+  'gpqamain', 'gpqa_main', 'gpqa',
+  'healthbench',
+  'humaneval', 'mbpp', 'livecodebench', 'swebench',
+  'arena_hard', 'arenahard', 'arenahardwriting',
+  'gsm8k', 'math500', 'minervamath',
+  'mmlu', 'ifeval',
+  'bfcl',
+];
+// Base models ordered by parameter count descending — largest first so
+// the matrix's left-most column carries the model the eye anchors on.
+const MODEL_ORDER = [
+  'Qwen_Qwen3-4B-Base',
+  'google_gemma-3-4b-pt',
+  'HuggingFaceTB_SmolLM3-3B-Base',
+  'Qwen_Qwen3-1.7B-Base',
+];
+
+function orderIndex(orderList, value) {
+  if (!value) return Infinity;
+  const v = String(value).toLowerCase();
+  for (let i = 0; i < orderList.length; i++) {
+    if (orderList[i].toLowerCase() === v) return i;
+  }
+  return Infinity;
+}
 
 async function load() {
   let resp;
@@ -32,7 +71,8 @@ async function load() {
   DATA = await resp.json();
 
   populateFilters();
-  renderPageStats();
+  renderHeroStats();
+  renderMatrix();
   els.loading.classList.add('hidden');
   render();
 }
@@ -42,47 +82,235 @@ function showFatal(msg) {
   els.runs.innerHTML = `<p class="muted" style="padding:1rem 0">${msg}</p>`;
 }
 
-// ---------- Aggregate stats (hero) -------------------------------------
+// ---------- Hero stats line --------------------------------------------
 
-function renderPageStats() {
-  const n = DATA.runs.length;
-  const countEl = document.getElementById('page-head-count');
-  if (countEl) countEl.textContent = `${n.toLocaleString()} ${n === 1 ? 'run' : 'runs'}`;
+function renderHeroStats() {
+  const nRuns = DATA.runs.length;
+  const benchmarks = new Set(DATA.runs.map(r => r.benchmark).filter(Boolean));
+  const models = new Set(DATA.runs.map(r => r.trained_model).filter(Boolean));
+  const agents = new Set(DATA.runs.map(r => r.agent_model).filter(Boolean));
+  const updated = relTime(DATA.build_ts);
+
+  // Vertical stat tiles next to the matrix. Big number + small label.
+  // The runs tile is the headline so it gets a primary modifier class.
+  const tiles = [
+    { n: nRuns.toLocaleString(), label: `run${nRuns === 1 ? '' : 's'}`, primary: true },
+    { n: benchmarks.size,        label: `task${benchmarks.size === 1 ? '' : 's'}` },
+    { n: models.size,            label: `base model${models.size === 1 ? '' : 's'}` },
+    { n: agents.size,            label: `agent${agents.size === 1 ? '' : 's'}` },
+  ];
+  let html = tiles.map(t => `
+    <div class="stat-tile${t.primary ? ' stat-tile-primary' : ''}">
+      <span class="stat-num">${escapeHtml(String(t.n))}</span>
+      <span class="stat-label">${escapeHtml(t.label)}</span>
+    </div>`).join('');
+  if (updated) {
+    html += `<div class="stat-meta">updated ${escapeHtml(updated)}</div>`;
+  }
+  els.heroStats.innerHTML = html;
+}
+
+function relTime(ts) {
+  if (!ts) return '';
+  const t = typeof ts === 'number' ? ts * (ts < 1e12 ? 1000 : 1) : Date.parse(ts);
+  if (!isFinite(t)) return '';
+  const dt = (Date.now() - t) / 1000;
+  if (dt < 60) return 'just now';
+  if (dt < 3600) return `${Math.round(dt / 60)}m ago`;
+  if (dt < 86400) return `${Math.round(dt / 3600)}h ago`;
+  if (dt < 86400 * 30) return `${Math.round(dt / 86400)}d ago`;
+  if (dt < 86400 * 365) return `${Math.round(dt / (86400 * 30))}mo ago`;
+  return `${Math.round(dt / (86400 * 365))}y ago`;
+}
+
+// ---------- Matrix -----------------------------------------------------
+// A (benchmark × base-model) grid. Each cell shows run count + best
+// accuracy. Shade is normalized per row (per benchmark) since different
+// benchmarks have wildly different accuracy ranges — what matters is
+// "for THIS task, which base model got the best result." Cells are
+// clickable; clicking sets the (benchmark, base-model) filter pair.
+
+function renderMatrix() {
+  const rows = uniqValuesOrdered(DATA.runs, 'benchmark', BENCHMARK_ORDER);
+  const cols = uniqValuesOrdered(DATA.runs, 'trained_model', MODEL_ORDER);
+  if (!rows.length || !cols.length) {
+    els.matrix.innerHTML = '';
+    return;
+  }
+
+  // Aggregate per cell.
+  const cell = new Map();   // `${bench}|${model}` -> { count, bestAcc, bestRun }
+  for (const r of DATA.runs) {
+    if (!r.benchmark || !r.trained_model) continue;
+    const key = `${r.benchmark}|${r.trained_model}`;
+    let c = cell.get(key);
+    if (!c) { c = { count: 0, bestAcc: null, bestRun: null }; cell.set(key, c); }
+    c.count += 1;
+    if (r.accuracy != null && (c.bestAcc == null || r.accuracy > c.bestAcc)) {
+      c.bestAcc = r.accuracy;
+      c.bestRun = r;
+    }
+  }
+
+  // Per-row max accuracy (for shading within row).
+  const rowMax = new Map();
+  for (const b of rows) {
+    let m = 0;
+    for (const tm of cols) {
+      const c = cell.get(`${b}|${tm}`);
+      if (c && c.bestAcc != null) m = Math.max(m, c.bestAcc);
+    }
+    rowMax.set(b, m);
+  }
+
+  // Build grid. CSS grid: 1 header col + N model cols; 1 header row + M
+  // benchmark rows. We render flat children with grid-area declarations.
+  const grid = document.createElement('div');
+  grid.className = 'matrix-grid';
+  grid.style.gridTemplateColumns = `auto repeat(${cols.length}, minmax(0, 1fr))`;
+
+  // Top-left blank.
+  const corner = document.createElement('div');
+  corner.className = 'matrix-corner';
+  grid.appendChild(corner);
+
+  // Column headers (base models).
+  for (const tm of cols) {
+    const h = document.createElement('div');
+    h.className = 'matrix-colhead';
+    h.textContent = prettyTrainedModel(tm);
+    h.title = tm;
+    grid.appendChild(h);
+  }
+
+  // Body rows.
+  for (const b of rows) {
+    const rh = document.createElement('div');
+    rh.className = 'matrix-rowhead';
+    rh.textContent = prettyBenchmark(b);
+    rh.title = b;
+    grid.appendChild(rh);
+
+    const max = rowMax.get(b) || 0;
+    for (const tm of cols) {
+      const c = cell.get(`${b}|${tm}`);
+      const cellEl = document.createElement('button');
+      cellEl.type = 'button';
+      cellEl.className = 'matrix-cell';
+      if (!c) {
+        cellEl.classList.add('matrix-cell-empty');
+        cellEl.innerHTML = `<span class="matrix-empty">—</span>`;
+        cellEl.disabled = true;
+        cellEl.setAttribute('aria-label', `${prettyBenchmark(b)} · ${prettyTrainedModel(tm)}: no runs`);
+      } else {
+        const intensity = max > 0 && c.bestAcc != null ? c.bestAcc / max : 0;
+        cellEl.style.setProperty('--cell-intensity', intensity.toFixed(3));
+        const accLabel = c.bestAcc != null
+          ? `${(c.bestAcc * 100).toFixed(1)}%`
+          : '—';
+        // Cell face shows only the best accuracy + shade — keeps a clean
+        // heatmap read. Best agent name lives in the tooltip.
+        cellEl.innerHTML = `<span class="matrix-acc">${accLabel}</span>`;
+        const tip = c.bestAcc != null
+          ? `best ${accLabel}${c.bestRun ? ' (' + prettyAgentForRun(c.bestRun) + ')' : ''}`
+          : 'no accuracy data';
+        cellEl.setAttribute('data-tip', tip);
+        cellEl.setAttribute('aria-label',
+          `${prettyBenchmark(b)} · ${prettyTrainedModel(tm)}: ${tip}`);
+        cellEl.addEventListener('click', () => filterToCell(b, tm));
+      }
+      grid.appendChild(cellEl);
+    }
+  }
+
+  els.matrix.innerHTML = '';
+  els.matrix.appendChild(grid);
+
+  // Legend.
+  els.matrixLegend.innerHTML = `
+    <span class="legend-label">shade = best accuracy (within task)</span>
+    <span class="legend-scale" aria-hidden="true">
+      <span class="legend-step" style="--cell-intensity:0.15"></span>
+      <span class="legend-step" style="--cell-intensity:0.40"></span>
+      <span class="legend-step" style="--cell-intensity:0.65"></span>
+      <span class="legend-step" style="--cell-intensity:0.90"></span>
+      <span class="legend-step" style="--cell-intensity:1"></span>
+    </span>
+    <span class="legend-label legend-label-right">low → high</span>`;
+}
+
+function filterToCell(benchmark, model) {
+  els.benchFilter.value = benchmark;
+  els.modelFilter.value = model;
+  // Sync custom-select triggers.
+  els.benchFilter.dispatchEvent(new Event('change', { bubbles: true }));
+  els.modelFilter.dispatchEvent(new Event('change', { bubbles: true }));
+  render();
+  document.querySelector('.filter-dock').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function uniqValuesSortedByCount(rows, key) {
+  const counts = new Map();
+  for (const r of rows) {
+    const v = r[key];
+    if (!v) continue;
+    counts.set(v, (counts.get(v) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([v]) => v);
+}
+
+// Like uniqValuesSortedByCount, but ordered by an explicit list first
+// (values not in the list fall back to alpha after the list ends).
+function uniqValuesOrdered(rows, key, orderList) {
+  const seen = new Set();
+  for (const r of rows) {
+    const v = r[key];
+    if (v) seen.add(v);
+  }
+  return [...seen].sort((a, b) => {
+    const ai = orderIndex(orderList, a);
+    const bi = orderIndex(orderList, b);
+    if (ai !== bi) return ai - bi;
+    return a.localeCompare(b);
+  });
 }
 
 // ---------- Filter dropdowns -------------------------------------------
 
 function populateFilters() {
-  for (const exp of DATA.experiments) {
-    const opt = document.createElement('option');
-    opt.value = exp; opt.textContent = exp;
-    els.expFilter.appendChild(opt);
+  for (const exp of (DATA.experiments || [])) {
+    addOpt(els.expFilter, exp, exp);
   }
-  for (const b of DATA.benchmarks) {
-    const opt = document.createElement('option');
-    opt.value = b; opt.textContent = prettyBenchmark(b);
-    els.benchFilter.appendChild(opt);
+  for (const b of (DATA.benchmarks || [])) {
+    addOpt(els.benchFilter, b, prettyBenchmark(b));
   }
   const agents = [...new Set(DATA.runs.map(r => r.agent_model).filter(Boolean))].sort();
-  for (const a of agents) {
-    const opt = document.createElement('option');
-    opt.value = a; opt.textContent = prettyAgent(a);
-    els.agentFilter.appendChild(opt);
-  }
+  for (const a of agents) addOpt(els.agentFilter, a, prettyAgent(a));
+  const models = [...new Set(DATA.runs.map(r => r.trained_model).filter(Boolean))].sort();
+  for (const m of models) addOpt(els.modelFilter, m, prettyTrainedModel(m));
+}
+
+function addOpt(select, value, label) {
+  const opt = document.createElement('option');
+  opt.value = value; opt.textContent = label;
+  select.appendChild(opt);
 }
 
 // ---------- Main render ------------------------------------------------
 
-function filterAndSort() {
+function filterRows() {
   const q = els.q.value.trim().toLowerCase();
   const expF = els.expFilter.value;
   const benchF = els.benchFilter.value;
+  const modelF = els.modelFilter.value;
   const agentF = els.agentFilter.value;
-  const sort = els.sort.value;
 
-  let rows = DATA.runs.filter(r => {
+  return DATA.runs.filter(r => {
     if (expF && r.experiment !== expF) return false;
     if (benchF && r.benchmark !== benchF) return false;
+    if (modelF && r.trained_model !== modelF) return false;
     if (agentF && r.agent_model !== agentF) return false;
     if (q) {
       const hay = [r.run_id, r.experiment, r.benchmark, r.trained_model,
@@ -94,17 +322,14 @@ function filterAndSort() {
     }
     return true;
   });
-
-  rows.sort(sorter(sort));
-  return { rows, sort };
 }
 
 function render() {
-  const { rows, sort } = filterAndSort();
-
+  let rows = filterRows();
   const total = DATA.runs.length;
   const filtered = rows.length;
-  const anyFilter = els.q.value || els.expFilter.value || els.benchFilter.value || els.agentFilter.value;
+  const anyFilter = els.q.value || els.expFilter.value || els.benchFilter.value
+                    || els.modelFilter.value || els.agentFilter.value;
   els.resultCount.textContent =
     anyFilter ? `${filtered.toLocaleString()} of ${total.toLocaleString()} runs` :
                 `${total.toLocaleString()} runs`;
@@ -117,31 +342,120 @@ function render() {
   }
   els.empty.classList.add('hidden');
 
-  // Compute a corpus-wide accuracy max so accuracy bars share a scale.
+  rows.sort(sorter(els.sort.value));
+
+  // Corpus-wide accuracy max so bars share a scale.
   const accMax = Math.max(0.01, ...DATA.runs.map(r => r.accuracy ?? 0));
 
-  if (sort === 'experiment') {
-    const groups = new Map();
-    for (const r of rows) {
-      if (!groups.has(r.experiment)) groups.set(r.experiment, []);
-      groups.get(r.experiment).push(r);
-    }
-    els.runs.innerHTML = '';
-    for (const [exp, list] of groups) {
-      const section = document.createElement('section');
-      section.className = 'exp-group';
-      section.innerHTML = `
-        <header class="exp-head">
-          <span class="exp-name">${escapeHtml(exp)}</span>
-          <span class="exp-meta">${list.length} run${list.length === 1 ? '' : 's'}</span>
-        </header>`;
-      section.appendChild(buildTable(list, accMax));
-      els.runs.appendChild(section);
-    }
-  } else {
-    els.runs.innerHTML = '';
+  const groupMode = els.groupBy.value;
+  els.runs.innerHTML = '';
+  if (groupMode === 'none') {
     els.runs.appendChild(buildTable(rows, accMax));
+    return;
   }
+
+  const groups = buildGroups(rows, groupMode);
+  for (const g of groups) {
+    const section = document.createElement('section');
+    section.className = 'exp-group';
+    section.appendChild(buildGroupHeader(g, groupMode));
+    section.appendChild(buildTable(g.rows, accMax));
+    els.runs.appendChild(section);
+  }
+}
+
+// ---------- Grouping ---------------------------------------------------
+
+function buildGroups(rows, mode) {
+  const map = new Map();
+  for (const r of rows) {
+    const key = groupKey(r, mode);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(r);
+  }
+  // Sort groups. For task and task-model groupings, use the canonical
+  // BENCHMARK_ORDER + MODEL_ORDER so the first group is informative
+  // (hard, discriminating) rather than saturated (BFCL all-100%). For
+  // the "experiment" mode, fall back to best-accuracy desc since there's
+  // no canonical order over arbitrary experiment names.
+  return [...map.entries()]
+    .map(([key, list]) => {
+      let best = null;
+      for (const r of list) if (r.accuracy != null && (best == null || r.accuracy > best)) best = r.accuracy;
+      return { key, rows: list, best };
+    })
+    .sort((a, b) => groupSorter(mode, a, b));
+}
+
+function groupSorter(mode, a, b) {
+  if (mode === 'task' || mode === 'task-model') {
+    const [aBench, aModel] = a.key.split('|');
+    const [bBench, bModel] = b.key.split('|');
+    const benchCmp = orderIndex(BENCHMARK_ORDER, aBench) - orderIndex(BENCHMARK_ORDER, bBench);
+    if (benchCmp !== 0) return benchCmp;
+    if (mode === 'task-model') {
+      const modelCmp = orderIndex(MODEL_ORDER, aModel) - orderIndex(MODEL_ORDER, bModel);
+      if (modelCmp !== 0) return modelCmp;
+    }
+    return a.key.localeCompare(b.key);
+  }
+  // 'experiment' or any other mode — best accuracy desc, then size, then alpha.
+  const ab = a.best ?? -1, bb = b.best ?? -1;
+  if (ab !== bb) return bb - ab;
+  if (a.rows.length !== b.rows.length) return b.rows.length - a.rows.length;
+  return a.key.localeCompare(b.key);
+}
+
+function groupKey(r, mode) {
+  switch (mode) {
+    case 'task-model':
+      return `${r.benchmark || '?'}|${r.trained_model || '?'}`;
+    case 'task':
+      return r.benchmark || '?';
+    case 'experiment':
+      return r.experiment || '?';
+    default:
+      return '';
+  }
+}
+
+function buildGroupHeader(g, mode) {
+  const head = document.createElement('header');
+  head.className = 'exp-head';
+
+  // Title: depends on mode.
+  let title = '';
+  if (mode === 'task-model') {
+    const [b, m] = g.key.split('|');
+    title = `<span class="exp-name">${escapeHtml(prettyBenchmark(b))}</span>
+             <span class="exp-name-sep">·</span>
+             <span class="exp-name exp-name-model">${escapeHtml(prettyTrainedModel(m))}</span>`;
+  } else if (mode === 'task') {
+    title = `<span class="exp-name">${escapeHtml(prettyBenchmark(g.key))}</span>`;
+  } else {
+    title = `<span class="exp-name">${escapeHtml(g.key)}</span>`;
+  }
+
+  // Headline stats: best accuracy + which agent, plus run count.
+  let bestRun = null;
+  const agents = new Set();
+  for (const r of g.rows) {
+    agents.add(r.agent_model);
+    if (r.accuracy != null && (!bestRun || r.accuracy > bestRun.accuracy)) bestRun = r;
+  }
+  const parts = [`${g.rows.length} run${g.rows.length === 1 ? '' : 's'}`];
+  if (bestRun) {
+    const agent = bestRun.agent_model ? ` (${prettyAgentForRun(bestRun)})` : '';
+    parts.push(`best ${(bestRun.accuracy * 100).toFixed(1)}%${agent}`);
+  }
+  if (mode !== 'task-model' && agents.size > 1) {
+    parts.push(`${agents.size} agents`);
+  }
+
+  head.innerHTML = `
+    <div class="exp-head-title">${title}</div>
+    <div class="exp-head-meta">${escapeHtml(parts.join(' · '))}</div>`;
+  return head;
 }
 
 function buildTable(rows, accMax) {
@@ -197,19 +511,36 @@ function taskCell(r) {
 
 function agentCell(r) {
   if (!r.agent_model) return '<span class="muted">—</span>';
-  const pretty = prettyAgent(r.agent_model);
-  // Pull out a trailing "(1M)" annotation so it can render as a small pill.
+  const pretty = prettyAgentForRun(r);
   const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(pretty);
-  if (m) {
-    return `<span class="agent-name">${escapeHtml(m[1])}</span> <span class="agent-tag">${escapeHtml(m[2])}</span>`;
-  }
-  return `<span class="agent-name">${escapeHtml(pretty)}</span>`;
+  const nameHtml = m
+    ? `<span class="agent-name">${escapeHtml(m[1])}</span> <span class="agent-tag">${escapeHtml(m[2])}</span>`
+    : `<span class="agent-name">${escapeHtml(pretty)}</span>`;
+  const harness = prettyHarness(r.trace_format);
+  const harnessHtml = harness
+    ? `<span class="agent-harness">${escapeHtml(harness)}</span>`
+    : '';
+  return `${nameHtml}${harnessHtml}`;
+}
+
+// Map a run's trace_format to the harness that produced it. The harness
+// is the autonomous-agent shell that the LLM ran inside (claude-code CLI,
+// codex CLI, opencode CLI). It's secondary to the model identity but
+// useful when comparing strategies across runs.
+function prettyHarness(fmt) {
+  if (!fmt) return '';
+  const map = {
+    claude_code: 'Claude Code',
+    'claude-code': 'Claude Code',
+    claude: 'Claude Code',
+    codex: 'Codex',
+    opencode: 'opencode',
+  };
+  return map[String(fmt).toLowerCase()] || fmt;
 }
 
 // Accuracy missing → no metrics.json → in practice, the agent didn't
-// produce a `final_model/` so the eval harness never ran. Render an
-// explicit "not evaluated" marker (with tooltip) rather than `—`, which
-// would read as a generic missing value.
+// produce a `final_model/` so the eval harness never ran.
 const NO_EVAL_TITLE =
   "Agent didn't produce a final_model — the evaluation harness never " +
   "ran, so this run has no metrics.json.";
@@ -228,8 +559,6 @@ function accCell(r, accMax) {
 }
 
 function durationCell(r) {
-  // The build script stores duration_ms (per-run sum) and time_taken (string).
-  // Prefer time_taken (it's already formatted like "04:45:01"); fall back to ms.
   if (r.time_taken && /^\d+:\d{1,2}:\d{1,2}$/.test(r.time_taken.trim())) {
     const [h, m] = r.time_taken.trim().split(':').map(Number);
     if (h) return `${h}h ${m}m`;
@@ -246,10 +575,6 @@ function durationCell(r) {
   return '<span class="muted">—</span>';
 }
 
-// Cost is missing whenever a trace doesn't emit `result` events (older
-// Claude Code container versions, runs killed mid-stream, Codex/opencode
-// traces — they never include cost). Render as a help-cursor em-dash with
-// a tooltip so the reader doesn't assume "$0 means free".
 const COST_MISSING_TITLE =
   "Cost unknown — the trace doesn't include result events with token cost. " +
   "Common for runs killed early, older Claude Code containers, or Codex/opencode traces.";
@@ -261,24 +586,41 @@ function fmtCost(c) {
   return '$' + Number(c).toFixed(2);
 }
 
-// Verdict rendering — designed for "scan for problems". Clean runs render
-// as a near-invisible muted dot per axis; flagged runs render as a clay
-// pill with a warning glyph + the axis name, so they jump out across a
-// long table and you immediately see WHICH axis tripped (contam vs model).
 const WARN_SVG = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`;
+const CHECK_SVG = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
 
+// Verdict — single combined badge collapsing both judge axes
+// (contamination, disallowed-model use) into one read. PASS = clean,
+// FAIL = flagged with which axis tripped, otherwise pending.
 function verdictDots(r) {
-  return `${verdictItem(r.contamination, /no contamination/i, 'contam', 'contamination')}${verdictItem(r.disallowed_model, /only allowed/i, 'model', 'disallowed model use')}`;
+  const cState = axisState(r.contamination, /no contamination/i);
+  const mState = axisState(r.disallowed_model, /only allowed/i);
+
+  const flags = [];
+  if (cState === 'flag') flags.push('contam');
+  if (mState === 'flag') flags.push('model');
+
+  const tipParts = [
+    `contamination: ${r.contamination || 'no judgement'}`,
+    `disallowed model: ${r.disallowed_model || 'no judgement'}`,
+  ];
+  const tip = escapeHtml(tipParts.join(' · '));
+
+  if (flags.length) {
+    return `<span class="vbadge vbadge-flag" data-tip="${tip}">${WARN_SVG}<span>flagged: ${flags.join(', ')}</span></span>`;
+  }
+  // Most rows are "clean" — render as a quiet glyph (no pill) so the
+  // column scans for problems. Pending stays as a muted em-dash.
+  if (cState === 'pending' || mState === 'pending') {
+    return `<span class="vbadge vbadge-pending" data-tip="${tip}" aria-label="judge pending">—</span>`;
+  }
+  return `<span class="vbadge vbadge-ok" data-tip="${tip}" aria-label="judge clean">${CHECK_SVG}</span>`;
 }
 
-function verdictItem(text, okPattern, shortLabel, longLabel) {
-  if (!text) {
-    return `<span class="vdot unknown" title="${escapeHtml(longLabel)}: no judgement"></span>`;
-  }
-  if (okPattern.test(text)) {
-    return `<span class="vdot ok" title="${escapeHtml(longLabel)}: ${escapeHtml(text)}"></span>`;
-  }
-  return `<span class="vflag" title="${escapeHtml(longLabel)}: ${escapeHtml(text)}">${WARN_SVG}<span>${shortLabel}</span></span>`;
+function axisState(text, okPattern) {
+  if (!text) return 'pending';
+  if (okPattern.test(text)) return 'ok';
+  return 'flag';
 }
 
 // ---------- Sorting ----------------------------------------------------
@@ -290,9 +632,7 @@ function sorter(s) {
     case 'cost-desc':     return (a, b) => (b.total_cost_usd ?? 0) - (a.total_cost_usd ?? 0);
     case 'turns-desc':    return (a, b) => (b.num_turns ?? 0) - (a.num_turns ?? 0);
     case 'duration-desc': return (a, b) => (b.duration_ms ?? 0) - (a.duration_ms ?? 0);
-    default: return (a, b) =>
-      (a.experiment ?? '').localeCompare(b.experiment ?? '') ||
-      (a.run_name ?? '').localeCompare(b.run_name ?? '');
+    default: return (a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1);
   }
 }
 
@@ -307,7 +647,8 @@ function prettyBenchmark(b) {
     math500: 'MATH-500', mmlu: 'MMLU', mbpp: 'MBPP',
     swebench: 'SWE-bench', arena_hard: 'Arena Hard', arenahard: 'Arena Hard',
     arenahardwriting: 'Arena Hard (writing)',
-    ifeval: 'IFEval', gpqa: 'GPQA', livecodebench: 'LiveCodeBench',
+    ifeval: 'IFEval', gpqa: 'GPQA', gpqamain: 'GPQA', gpqa_main: 'GPQA',
+    livecodebench: 'LiveCodeBench',
     minervamath: 'Minerva Math',
   };
   return map[b.toLowerCase()] || b;
@@ -339,6 +680,32 @@ function prettyAgent(name) {
 }
 function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
+// Variant annotations derived from the run's experiment string. The
+// agent_model alone doesn't tell you whether a run was reprompted (i.e.
+// sessions continued after the agent gave up) — that signal lives in
+// the experiment name. We surface it alongside the existing "(1M)"-style
+// annotation so the cell tells the full story.
+function agentVariantsFromRun(r) {
+  const out = [];
+  const exp = (r && r.experiment || '').toLowerCase();
+  if (/(?:^|[_/-])reprompt(?:ed)?(?:[_/-]|$)/.test(exp)) out.push('reprompted');
+  return out;
+}
+
+// Pretty agent name including run-derived variant annotations.
+// Falls back to prettyAgent when no run context is available.
+function prettyAgentForRun(r) {
+  if (!r) return '';
+  const base = prettyAgent(r.agent_model);
+  const extras = agentVariantsFromRun(r);
+  if (!extras.length) return base;
+  // If prettyAgent already attached a "(X)" annotation (e.g. "(1M)"),
+  // merge the extras into the same parens so we don't render double parens.
+  const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(base);
+  if (m) return `${m[1]} (${m[2]}, ${extras.join(', ')})`;
+  return `${base} (${extras.join(', ')})`;
+}
+
 // ---------- Misc -------------------------------------------------------
 
 function escapeHtml(s) {
@@ -351,11 +718,15 @@ function clearFilters() {
   els.q.value = '';
   els.expFilter.value = '';
   els.benchFilter.value = '';
+  els.modelFilter.value = '';
   els.agentFilter.value = '';
+  [els.expFilter, els.benchFilter, els.modelFilter, els.agentFilter]
+    .forEach(s => s.dispatchEvent(new Event('change', { bubbles: true })));
   render();
 }
 
-[els.q, els.expFilter, els.benchFilter, els.agentFilter, els.sort]
+[els.q, els.expFilter, els.benchFilter, els.modelFilter,
+ els.agentFilter, els.groupBy, els.sort]
   .forEach(el => el.addEventListener('input', render));
 els.resetFilters.addEventListener('click', clearFilters);
 els.emptyReset.addEventListener('click', clearFilters);
@@ -371,7 +742,7 @@ function makeCustomSelect(selectEl) {
   wrap.className = 'cs';
   selectEl.parentNode.insertBefore(wrap, selectEl);
   wrap.appendChild(selectEl);
-  selectEl.classList.add('cs-native');     // visually hidden, focusable
+  selectEl.classList.add('cs-native');
 
   const trigger = document.createElement('button');
   trigger.type = 'button';
@@ -394,6 +765,10 @@ function makeCustomSelect(selectEl) {
   const syncTrigger = () => {
     const opt = selectEl.selectedOptions[0];
     valueEl.textContent = opt ? opt.textContent : '';
+    // Mark the trigger as "active" when a non-default value is selected,
+    // so the user can see which filters are engaged at a glance.
+    const isActive = !!selectEl.value && selectEl.value !== '';
+    wrap.classList.toggle('cs-active', isActive);
   };
   const rebuildMenu = () => {
     menu.innerHTML = '';
@@ -460,14 +835,13 @@ function makeCustomSelect(selectEl) {
     if (li) selectValue(li.dataset.value);
   });
 
-  // Refresh whenever options are appended (filters populate after load).
   new MutationObserver(syncTrigger).observe(selectEl, { childList: true });
-  // Keep the trigger in sync with programmatic value changes (clearFilters).
   selectEl.addEventListener('change', syncTrigger);
 
   syncTrigger();
 }
 
-[els.expFilter, els.benchFilter, els.agentFilter, els.sort].forEach(makeCustomSelect);
+[els.benchFilter, els.modelFilter, els.agentFilter, els.expFilter,
+ els.groupBy, els.sort].forEach(makeCustomSelect);
 
 load();
