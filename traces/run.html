@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PostTrainBench · trace</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js" defer></script>
+  <script>
+    (function () {
+      var t = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+</head>
+<body>
+  <!-- Page-level loading shield. Covers the empty scaffolding until load()
+       has populated the DOM, then fades out. Lives first in body so it's
+       on screen the instant the browser starts painting. -->
+  <div id="page-loading" class="page-loading">
+    <div class="page-loading-content">
+      <div class="page-loading-spinner" aria-hidden="true"></div>
+      <div class="page-loading-label">Loading trace…</div>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="https://posttrainbench.com" class="logo">PostTrain<span class="logo-accent">Bench</span></a>
+      <span class="logo-sub">/ traces</span>
+      <div class="topbar-meta" id="topbar-meta"></div>
+      <button id="theme-toggle" class="theme-toggle topbar-action" aria-label="Toggle theme">
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT RAIL -------------------------------------------------------- -->
+    <aside class="rail rail-left">
+      <a href="index.html" class="back-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to all runs
+      </a>
+
+      <div class="card summary-card">
+        <!-- Context: what this run is. -->
+        <div class="summary-meta">
+          <h2 class="summary-title" id="summary-title"></h2>
+          <div class="summary-sub" id="summary-sub"></div>
+        </div>
+
+        <!-- Headline: the score. Big number + small bar so the magnitude
+             has visual anchor (14% reads very differently from 70%). -->
+        <div class="summary-score">
+          <div class="score-big" id="score-big">—</div>
+          <div class="score-bar" id="score-bar" aria-hidden="true">
+            <div class="score-bar-fill" id="score-bar-fill"></div>
+          </div>
+          <div class="score-sub" id="score-sub"></div>
+        </div>
+
+        <!-- Supporting stats. -->
+        <dl class="summary-stats" id="summary-stats"></dl>
+
+        <!-- Drill-down (conditional). Per-theme is collapsed by default
+             because (a) it's only emitted by HealthBench and (b) the
+             7-bar list otherwise pushes the rail into a scroll. -->
+        <details id="summary-themes" class="summary-themes hidden">
+          <summary class="summary-disclosure">
+            <span class="summary-label">Per-theme accuracy</span>
+            <span id="summary-themes-count" class="summary-disclosure-meta"></span>
+          </summary>
+          <div id="summary-themes-body" class="summary-themes-body"></div>
+        </details>
+        <div id="summary-tokens-block" class="summary-tokens-block hidden">
+          <span class="summary-label">Token usage</span>
+          <dl id="summary-tokens" class="summary-tokens"></dl>
+        </div>
+
+        <!-- Footer: utilities (download, copyable id). -->
+        <div class="summary-footer">
+          <a id="link-raw" href="#" class="btn btn-secondary btn-small">Download trace</a>
+          <div class="run-id-block" id="run-id-box" title="Click to copy the run ID">
+            <code id="run-id-text"></code>
+            <button class="copy-btn" id="copy-id-btn" aria-label="Copy run ID">
+              <svg class="icon-copy" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <svg class="icon-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
+            <span id="copy-feedback" class="copy-feedback">copied</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER ----------------------------------------------------------- -->
+    <main class="content">
+      <!-- Tabs live at the top of the center column so they're visibly
+           attached to the section they switch — not floating in the navbar
+           like global chrome. -->
+      <nav class="tab-nav" id="tab-nav" role="tablist">
+        <button class="tab-btn active" data-tab="trace" role="tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="5" cy="6" r="1.5"></circle>
+            <line x1="5" y1="9" x2="5" y2="14"></line>
+            <circle cx="5" cy="17" r="1.5"></circle>
+            <line x1="10" y1="6" x2="20" y2="6"></line>
+            <line x1="10" y1="12" x2="17" y2="12"></line>
+            <line x1="10" y1="17" x2="20" y2="17"></line>
+          </svg>
+          <span>Run trace</span>
+        </button>
+        <button class="tab-btn" data-tab="judge" role="tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="3" x2="12" y2="20"></line>
+            <line x1="6" y1="6" x2="18" y2="6"></line>
+            <path d="M6 6l-2 7a4 4 0 0 0 8 0z"></path>
+            <path d="M18 6l-2 7a4 4 0 0 0 8 0z"></path>
+            <line x1="8" y1="20" x2="16" y2="20"></line>
+          </svg>
+          <span>Judge</span>
+        </button>
+        <button class="tab-btn" data-tab="workspace" role="tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Workspace</span>
+        </button>
+      </nav>
+
+      <section id="section-trace" class="section active">
+        <header class="trace-toolbar">
+          <!-- Left: trace summary (replaces dead air the right-aligned
+               cluster used to leave behind). Live event count + session
+               count, in plain prose so the toolbar has a left anchor. -->
+          <div class="trace-toolbar-summary">
+            <span id="event-count" class="trace-toolbar-count"></span>
+          </div>
+          <!-- Right cluster: nav + display controls. -->
+          <div class="trace-toolbar-controls">
+            <label class="trace-jump" title="Jump to a turn number (1-based)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+              <input type="number" id="jump-turn" min="1" inputmode="numeric"
+                     placeholder="turn #" aria-label="Jump to turn number" />
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="expand-outputs" /> expand outputs
+            </label>
+            <button type="button" id="open-metrics-btn" class="metrics-btn"
+                    aria-label="Open system metrics">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 17 9 11 13 15 21 7"></polyline>
+                <polyline points="14 7 21 7 21 14"></polyline>
+              </svg>
+              <span>Metrics</span>
+            </button>
+          </div>
+        </header>
+        <div id="trace"></div>
+      </section>
+
+      <section id="section-judge" class="section">
+        <header class="section-header">
+          <p class="muted section-desc">An independent judge agent reviews the workspace for data contamination and disallowed model use.</p>
+        </header>
+        <div id="judge-verdicts"></div>
+        <div id="judge"></div>
+      </section>
+
+      <section id="section-workspace" class="section">
+        <header class="section-header">
+          <p class="muted section-desc">Final state of <code>task/</code>. Small text files are inlined; weights and large binaries are listed only.</p>
+        </header>
+        <div class="workspace-layout">
+          <aside id="ws-tree"></aside>
+          <div id="ws-file"><p class="muted">Pick a file from the list to view its contents.</p></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- RIGHT RAIL ------------------------------------------------------- -->
+    <aside class="rail rail-right">
+      <header class="rail-header">
+        <h3>System metrics</h3>
+        <button id="show-all-metrics" class="btn btn-secondary btn-small">Show all</button>
+      </header>
+      <div id="metric-grid-rail" class="metric-card-grid"></div>
+      <p id="rail-empty" class="muted hidden">No system monitor log for this run.</p>
+    </aside>
+  </div>
+
+  <!-- Show-all-metrics modal ------------------------------------------- -->
+  <div id="metrics-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="metrics-modal-title">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-panel">
+      <header class="modal-head">
+        <h3 id="metrics-modal-title">System metrics</h3>
+        <button class="modal-close" data-modal-close aria-label="Close">×</button>
+      </header>
+      <div id="metric-grid-modal" class="metric-card-grid metric-card-grid-modal"></div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="assets/theme.js"></script>
+  <script src="assets/tooltip.js"></script>
+  <script src="assets/run.js"></script>
+</body>
+</html>
