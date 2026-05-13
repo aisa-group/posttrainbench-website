@@ -280,29 +280,29 @@ function populateLeaderboard(modelName = "average") {
     });
 }
 
-// Populate Task Grid
+// Populate benchmark table — one row per benchmark with category, weight
+// (its share of the weighted average), and a short description.
 function populateTasks() {
-    const grid = document.getElementById('task-grid');
+    const tbody = document.getElementById('benchmark-table-body');
+    if (!tbody) return;
 
     taskData.forEach(task => {
-        const card = document.createElement('div');
-        card.className = 'task-card';
-
+        const tr = document.createElement('tr');
         const versionBadge = task.version
-            ? `<span class="task-version">${task.version}</span>`
+            ? ` <span class="task-version">${task.version}</span>`
             : '';
+        const weightPct = (typeof task.weight === 'number')
+            ? `${(task.weight * 100).toFixed(1)}%`
+            : '<span class="findings-empty">—</span>';
 
-        card.innerHTML = `
-            <div class="task-header">
-                <h3 class="task-title">${task.title}${versionBadge}</h3>
-            </div>
-            <p class="task-description">${task.description}</p>
-            <div class="task-meta">
-                <span class="task-tag">${task.category}</span>
-            </div>
+        tr.innerHTML = `
+            <td>${task.title}${versionBadge}</td>
+            <td>${task.category}</td>
+            <td>${weightPct}</td>
+            <td>${task.description}</td>
         `;
 
-        grid.appendChild(card);
+        tbody.appendChild(tr);
     });
 }
 
@@ -567,7 +567,7 @@ function createSimpleChart(modelName = "average") {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 65,
+                    max: yAxisMax,
                     title: {
                         display: !isMobile,
                         text: 'Average benchmark performance¹',
@@ -1048,6 +1048,35 @@ function createTimeSpentChart() {
         return chartBar;
     });
 
+    // Vertical dashed line at x=10 to mark the budget. The chart's
+    // x-axis goes to 11 (not 10) so error bars on the top agents
+    // (Opus 4.6 at ~9h with ±std) and their text labels have room
+    // past the budget line. Label sits ABOVE chartArea.top in the
+    // layout's top padding, so it never collides with the top bar's
+    // right-side data label.
+    const budgetLinePlugin = {
+        id: 'budgetLine',
+        afterDatasetsDraw(chart) {
+            const { ctx: c, scales, chartArea } = chart;
+            const xPos = scales.x.getPixelForValue(10);
+            c.save();
+            c.strokeStyle = accentPrimary;
+            c.lineWidth = 1.5;
+            c.setLineDash([4, 4]);
+            c.beginPath();
+            c.moveTo(xPos, chartArea.top);
+            c.lineTo(xPos, chartArea.bottom);
+            c.stroke();
+            c.setLineDash([]);
+            c.fillStyle = accentPrimary;
+            c.font = `600 ${isMobile ? 9 : 10}px 'JetBrains Mono', monospace`;
+            c.textAlign = 'center';
+            c.textBaseline = 'bottom';
+            c.fillText('10h budget', xPos, chartArea.top - 4);
+            c.restore();
+        }
+    };
+
     timeSpentChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1064,11 +1093,20 @@ function createTimeSpentChart() {
                 datalabels: { display: false }
             }]
         },
-        plugins: [timeErrorBarPlugin, customLabelsPlugin],
+        plugins: [timeErrorBarPlugin, customLabelsPlugin, budgetLinePlugin],
         options: {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            // Padding gives the budget label (top) and right-side data
+            // labels (e.g. "9:39 ± 0:53") room without colliding with
+            // the chart's own canvas edges.
+            layout: {
+                padding: {
+                    top: isMobile ? 14 : 18,
+                    right: isMobile ? 55 : 80
+                }
+            },
             plugins: {
                 legend: {
                     display: false
@@ -1104,7 +1142,7 @@ function createTimeSpentChart() {
             scales: {
                 x: {
                     beginAtZero: true,
-                    max: 10,
+                    max: 11,
                     title: {
                         display: !isMobile,
                         text: 'Time (hours)',
@@ -1313,18 +1351,17 @@ if (toggleTableBtn && leaderboardTable && mobileTableNotice) {
     });
 }
 
-// Navbar logo visibility based on hero section
-const navbar = document.querySelector('.navbar');
+// Navbar logo visibility based on hero section.
+// While the hero is on screen, the giant "PostTrainBench" title IS the
+// brand mark — repeating it in the navbar would be visual duplication.
+// We fade the nav logo in only after the hero scrolls off, so it picks
+// up where the hero left off.
 const logo = document.querySelector('.logo');
 const heroSection = document.querySelector('.hero');
 
 function handleNavbarLogoVisibility() {
     if (!heroSection || !logo) return;
-
-    const heroRect = heroSection.getBoundingClientRect();
-    const heroBottom = heroRect.bottom;
-
-    // If hero section is still visible in viewport, hide logo
+    const heroBottom = heroSection.getBoundingClientRect().bottom;
     if (heroBottom > 0) {
         logo.style.opacity = '0';
         logo.style.visibility = 'hidden';
@@ -1334,7 +1371,6 @@ function handleNavbarLogoVisibility() {
     }
 }
 
-// Add scroll listener for navbar logo visibility
 window.addEventListener('scroll', handleNavbarLogoVisibility);
 
 // Initialize everything when DOM is loaded
@@ -1353,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     createSimpleChart();
     createDetailedChart();
     createTimeSpentChart();
-    handleNavbarLogoVisibility(); // Check initial state
+    handleNavbarLogoVisibility(); // Set initial state based on scroll position
 
     // Toggle time chart between main agents and all agents
     const toggleBtn = document.getElementById('toggleTimeAgents');

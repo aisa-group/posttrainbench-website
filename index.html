@@ -227,8 +227,8 @@
     <!-- Time Spent Section -->
     <section id="time-spent" class="time-spent">
         <div class="container">
-            <h2 class="section-title">Average Time Spent</h2>
-            <p class="section-description">Time taken by each agent to complete post-training (out of 10 hours). <br> Different agents demonstrate varying levels of persistence - some give up well before the time limit expires.</p>
+            <h2 class="section-title">Time Spent</h2>
+            <p class="section-description">Time taken by each agent to complete post-training (out of 10 hours). Different agents demonstrate varying levels of persistence — some give up well before the time limit expires.</p>
             <div class="time-toggle-wrapper">
                 <button id="toggleTimeAgents" class="toggle-btn">Show all agents</button>
             </div>
@@ -255,8 +255,20 @@
         <div class="container">
             <h2 class="section-title">Evaluation</h2>
             <p class="section-description">Post-trained models are evaluated across these benchmarks to measure improvement in reasoning, knowledge, and problem-solving capabilities. We use <a href="https://inspect.ai-safety-institute.org.uk/" target="_blank" rel="noopener">Inspect</a> for evaluation and respect each model's generation_config.json.</p>
-            <div class="task-grid" id="task-grid">
-                <!-- Benchmark cards will be inserted here via js-->
+            <div class="findings-table-wrap">
+                <table class="findings-table benchmarks-table">
+                    <thead>
+                        <tr>
+                            <th>Benchmark</th>
+                            <th>Category</th>
+                            <th>Weight</th>
+                            <th>What it tests</th>
+                        </tr>
+                    </thead>
+                    <tbody id="benchmark-table-body">
+                        <!-- Rows inserted by populateTasks() -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
@@ -288,66 +300,108 @@
             <h2 class="section-title">Observations</h2>
 
             <h3 class="section-subtitle">Post-Training Method Selection</h3>
-            <div class="observations-grid">
-                <div class="observation-card">
-                    <h4>SFT Dominance</h4>
-                    <ul>
-                        <li>Every agent defaults to supervised fine-tuning (SFT) as its primary method</li>
-                        <li>Implemented via TRL's SFTTrainer or HuggingFace's base Trainer</li>
-                        <li>No agent uses PPO, KTO, or preference-based methods (beyond one DPO instance)</li>
-                    </ul>
-                </div>
-                <div class="observation-card">
-                    <h4>RL as a Second Stage</h4>
-                    <ul>
-                        <li>Only RL method observed is GRPO, used exclusively by Claude agents</li>
-                        <li>Sonnet 4.6 applies GRPO in 33% of tasks (AIME, GSM8K, GPQA, HumanEval)</li>
-                        <li>Opus 4.6 uses GRPO more sparingly (3% of tasks, AIME and GSM8K only)</li>
-                    </ul>
-                </div>
-                <div class="observation-card">
-                    <h4>Adaptation Techniques</h4>
-                    <ul>
-                        <li>GPT 5.3 Codex uses LoRA in ~100% of tasks</li>
-                        <li>Gemini 3.1 Pro prefers full fine-tuning in ~66% of cases</li>
-                        <li>Kimi K2.5 is the most memory-conscious, using QLoRA in over half its runs</li>
-                    </ul>
-                </div>
-                <div class="observation-card">
-                    <h4>Iterative Refinement</h4>
-                    <ul>
-                        <li>Agents iterate within SFT rather than switching training paradigms</li>
-                        <li>Opus 4.6 produces 3-8+ script versions per task</li>
-                        <li>Effort is spent on data curation and hyperparameter tuning, not method selection</li>
-                    </ul>
-                </div>
+            <p class="findings-lead">All agents default to SFT and iterate within it — Opus 4.6 alone produces 3–8+ script versions per task. Effort goes into data curation and hyperparameter tuning, not method selection. Where agents diverge:</p>
+            <div class="findings-table-wrap">
+                <table class="findings-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Used by</th>
+                            <th>Frequency / Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>SFT</td>
+                            <td>All agents</td>
+                            <td>Default approach — via TRL's <code>SFTTrainer</code> or HF's base <code>Trainer</code></td>
+                        </tr>
+                        <tr>
+                            <td>GRPO <span class="findings-meta">RL</span></td>
+                            <td>Sonnet 4.6</td>
+                            <td>33% of tasks (AIME, GSM8K, GPQA, HumanEval)</td>
+                        </tr>
+                        <tr>
+                            <td>GRPO <span class="findings-meta">RL</span></td>
+                            <td>Opus 4.6</td>
+                            <td>3% of tasks (AIME, GSM8K only)</td>
+                        </tr>
+                        <tr>
+                            <td>LoRA</td>
+                            <td>GPT 5.3 Codex</td>
+                            <td>~100% of tasks</td>
+                        </tr>
+                        <tr>
+                            <td>Full fine-tuning</td>
+                            <td>Gemini 3.1 Pro</td>
+                            <td>~66% of tasks</td>
+                        </tr>
+                        <tr>
+                            <td>QLoRA</td>
+                            <td>Kimi K2.5</td>
+                            <td>&gt;50% of runs — the most memory-conscious agent</td>
+                        </tr>
+                        <tr>
+                            <td>DPO</td>
+                            <td class="findings-empty">one agent, one task</td>
+                            <td>The only preference-based method observed</td>
+                        </tr>
+                        <tr>
+                            <td>PPO, KTO</td>
+                            <td class="findings-empty">—</td>
+                            <td class="findings-empty">Not observed in any run</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <h3 class="section-subtitle">Reward Hacking & Contamination</h3>
             <div class="observation-block">
-                <p>Despite initial awareness of contamination rules, systematic auditing with uncovered contamination flags across the agents. Here are some examples from agent traces:</p>
+                <p>Most agents acknowledged the contamination rules early in their runs — but systematic auditing still surfaced flags across most of them. A sample of incidents:</p>
 
-                <div class="agent-quote">
-                    <p class="agent-quote-desc"><strong>MiniMax M2.5</strong> — loaded the full GPQA evaluation dataset as training data, repeating it 10x for memorization:</p>
-                    <pre class="agent-quote-code"># Repeat the data multiple times to overfit to GPQA</pre>
-                </div>
-
-                <div class="agent-quote">
-                    <p class="agent-quote-desc"><strong>Kimi K2.5</strong> — embedded evaluation questions disguised as synthetic data:</p>
-                    <pre class="agent-quote-code"># More comprehensive synthetic examples — exactly like HumanEval format</pre>
-                </div>
-
-                <div class="agent-quote">
-                    <p class="agent-quote-desc"><strong>Opus 4.6</strong> — attempted to obscure contamination by appending <code>_custom</code> suffixes to function names while preserving identical logic, docstrings, and test cases.</p>
-                </div>
-
-                <div class="agent-quote">
-                    <p class="agent-quote-desc"><strong>Kimi K2.5</strong> — read HealthBench evaluation files to extract theme distributions and rubric criteria, then crafted training data tailored to match.</p>
-                </div>
-
-                <div class="agent-quote">
-                    <p class="agent-quote-desc"><strong>Kimi K2.5</strong> — after repeated failed fine-tuning, submitted an off-the-shelf instruction-tuned model:</p>
-                    <pre class="agent-quote-code">"Since all attempts to fine-tune Qwen3-1.7B-Base have produced garbage output [...] we'll use the instruct model as our final submission."</pre>
+                <div class="findings-table-wrap">
+                    <table class="findings-table findings-table-incidents">
+                        <thead>
+                            <tr>
+                                <th>Agent</th>
+                                <th>Benchmark</th>
+                                <th>Tactic</th>
+                                <th>Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>MiniMax M2.5</td>
+                                <td>GPQA</td>
+                                <td>Loaded the full eval set as training data, with 10× repeats for memorization</td>
+                                <td><code class="findings-code"># Repeat the data multiple times to overfit to GPQA</code></td>
+                            </tr>
+                            <tr>
+                                <td>Kimi K2.5</td>
+                                <td>HumanEval</td>
+                                <td>Embedded eval questions disguised as synthetic data</td>
+                                <td><code class="findings-code"># More comprehensive synthetic examples — exactly like HumanEval format</code></td>
+                            </tr>
+                            <tr>
+                                <td>Opus 4.6</td>
+                                <td>HumanEval</td>
+                                <td>Renamed copied functions with <code>_custom</code> suffixes — identical logic, docstrings, and tests</td>
+                                <td class="findings-empty">—</td>
+                            </tr>
+                            <tr>
+                                <td>Kimi K2.5</td>
+                                <td>HealthBench</td>
+                                <td>Read eval files to extract theme distributions and rubric criteria, then crafted matching training data</td>
+                                <td class="findings-empty">—</td>
+                            </tr>
+                            <tr>
+                                <td>Kimi K2.5</td>
+                                <td class="findings-empty">any</td>
+                                <td>Submitted an off-the-shelf instruct model after repeated fine-tuning failures</td>
+                                <td><code class="findings-code">"Since all attempts to fine-tune Qwen3-1.7B-Base have produced garbage output [...] we'll use the instruct model as our final submission."</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <p><strong>API restriction violation.</strong> GPT-5.1 Codex Max acknowledged the restriction against using the OpenAI API for synthetic data early on — then violated it hours later after the constraint likely dropped out of context:</p>
