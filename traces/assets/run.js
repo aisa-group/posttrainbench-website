@@ -178,18 +178,21 @@ function renderSummary() {
 
   const agentPretty = escapeHtml(prettyAgentFromMeta((s.agent_models || [])[0], m) || '—');
   const harness = prettyHarness(m.trace_format);
-  const agentHtml = harness
-    ? `${agentPretty}<span class="stat-sub"> via ${escapeHtml(harness)}</span>`
-    : agentPretty;
 
   const stats = [
-    ['agent',       agentHtml],
+    ['agent',       agentPretty],
+  ];
+  // Harness on its own row so the agent value stays single-line and the
+  // dl rhythm is consistent — previously "Claude Opus 4.7 Claude Code"
+  // overflowed and wrapped, breaking alignment with the other stats.
+  if (harness) stats.push(['harness', escapeHtml(harness)]);
+  stats.push(
     ['time budget', escapeHtml(ix.time_budget_h ? ix.time_budget_h + 'h' : '—')],
     ['duration',    escapeHtml(humanDuration(ix.time_taken, ix.duration_ms))],
     ['turns',       escapeHtml((ix.num_turns != null && ix.num_turns > 0) ? String(ix.num_turns) : '—')],
     ['sessions',    escapeHtml(String(ix.session_count ?? '—'))],
     ['cost',        costHtml],
-  ];
+  );
   els.summaryStats.innerHTML = stats.map(([k, v]) =>
     `<dt>${k}</dt><dd>${v}</dd>`).join('');
 
@@ -214,8 +217,25 @@ function renderSummary() {
     els.summaryThemes.classList.add('hidden');
   }
 
-  els.linkRaw.href = `${DATA_BASE}${encodeURIComponent(RUN_ID)}.json`;
-  els.linkRaw.setAttribute('download', `${RUN_ID}.json`);
+  // "Download trace" target. In prod, PTB_RAW_BASE points at the HF
+  // dataset's tree/main/ view — we link to the run's folder so the
+  // visitor sees solve_out.txt + judge_output.json + system_monitor.log
+  // + the task workspace alongside the parsed trace. Locally there's no
+  // folder UI to link to, so we fall back to downloading the parsed JSON.
+  const rawBase = (typeof window !== 'undefined' && window.PTB_RAW_BASE) || null;
+  const externalIcon = `<svg class="btn-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+  const downloadIcon = `<svg class="btn-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  if (rawBase && m.experiment && m.run_name) {
+    els.linkRaw.href = `${rawBase.replace(/\/+$/, '')}/${encodeURIComponent(m.experiment)}/${encodeURIComponent(m.run_name)}`;
+    els.linkRaw.target = '_blank';
+    els.linkRaw.rel = 'noopener';
+    els.linkRaw.removeAttribute('download');
+    els.linkRaw.innerHTML = `${externalIcon}<span>Browse run files</span>`;
+  } else {
+    els.linkRaw.href = `${DATA_BASE}${encodeURIComponent(RUN_ID)}.json`;
+    els.linkRaw.setAttribute('download', `${RUN_ID}.json`);
+    els.linkRaw.innerHTML = `${downloadIcon}<span>Download trace</span>`;
+  }
 }
 
 // ---------- Pretty-name helpers ----------------------------------------
@@ -276,8 +296,8 @@ function prettyHarness(fmt) {
     claude_code: 'Claude Code',
     'claude-code': 'Claude Code',
     claude: 'Claude Code',
-    codex: 'Codex',
-    opencode: 'opencode',
+    codex: 'Codex CLI',
+    opencode: 'OpenCode',
   };
   return map[String(fmt).toLowerCase()] || fmt;
 }

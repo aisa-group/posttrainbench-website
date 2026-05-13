@@ -533,8 +533,8 @@ function prettyHarness(fmt) {
     claude_code: 'Claude Code',
     'claude-code': 'Claude Code',
     claude: 'Claude Code',
-    codex: 'Codex',
-    opencode: 'opencode',
+    codex: 'Codex CLI',
+    opencode: 'OpenCode',
   };
   return map[String(fmt).toLowerCase()] || fmt;
 }

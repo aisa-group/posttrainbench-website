@@ -204,7 +204,10 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   font-size: 0.92rem;
   letter-spacing: 0;
   margin-left: 0.25rem;
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
+.topbar .logo-sub:hover { color: var(--accent-primary); text-decoration: none; }
 .topbar .logo-accent {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   -webkit-background-clip: text;
@@ -253,6 +256,14 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   border-bottom: 1px solid var(--border-color);
   padding: 0 0.15rem;
   align-items: stretch;
+  /* Pin to the top under the navbar so a user 800px deep in a long
+     trace can still switch to Judge or Workspace without scrolling
+     back. Background needs to be solid so trace content scrolling
+     behind doesn't show through. z-index sits below the topbar's 100. */
+  position: sticky;
+  top: 48px;
+  background: var(--bg-primary);
+  z-index: 30;
 }
 .tab-btn {
   background: transparent;
@@ -304,6 +315,11 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   align-self: center;
   height: 28px;
   width: 28px;
+  /* Pin the toggle to the right of the navbar regardless of what's
+     between it and the logo. On the run page .topbar-meta already has
+     margin-left: auto and consumes the slack first; this line is a no-op
+     there but ensures the landing page (no meta) still right-aligns. */
+  margin-left: auto;
 }
 .theme-toggle:hover { background-color: var(--bg-tertiary); }
 .theme-icon { width: 16px; height: 16px; display: none; }
@@ -2178,6 +2194,15 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   font-weight: 700;
 }
 .btn-small { font-size: 0.68rem; padding: 0.25rem 0.55rem; }
+.btn .btn-icon {
+  flex: none;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.btn:hover .btn-icon { opacity: 1; }
+/* The external-link icon's arrow naturally points up-right; give it a
+   tiny nudge on hover to reinforce "this opens elsewhere." */
+.btn:hover .btn-icon { transform: translate(0.5px, -0.5px); }
 
 .metric-card-grid {
   display: grid;
