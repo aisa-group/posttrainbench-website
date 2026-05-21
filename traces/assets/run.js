@@ -799,7 +799,7 @@ function updateShowAllVisibility() {
 
 function setChartDefaults() {
   const css = getComputedStyle(document.documentElement);
-  Chart.defaults.font.family = "'JetBrains Mono', 'SF Mono', monospace";
+  Chart.defaults.font.family = "'Die Grotesk', sans-serif";
   Chart.defaults.font.size = 11;
   Chart.defaults.color = css.getPropertyValue('--text-secondary').trim() || '#6b655a';
   Chart.defaults.borderColor = css.getPropertyValue('--border-color').trim() || '#d9d4c8';

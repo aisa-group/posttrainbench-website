@@ -1,43 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 660">
   <defs>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap');
+      @font-face {
+        font-family: 'Die Grotesk';
+        src: url('/fonts/die-grotesk-vf-roman.woff2') format('woff2');
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: swap;
+      }
 
-      .box1 { fill: #f8f0e8; stroke: #c0a890; stroke-width: 2; }
-      .box2 { fill: #f5f0e5; stroke: #c0a890; stroke-width: 2; }
-      .box-judge { fill: #f5f0e5; stroke: #b0a090; stroke-width: 2; }
-      .box-fail { fill: #f5f0e5; stroke: #c09080; stroke-width: 2; }
-      .box-eval { fill: #f5f0e5; stroke: #7a9868; stroke-width: 2; }
-      .box-score { fill: #f5f0e5; stroke: #c8b888; stroke-width: 2; }
+      .box1, .box2, .box-judge, .box-fail, .box-eval, .box-score {
+        fill: transparent;
+        stroke: #d6d2c8;
+        stroke-width: 1.5;
+      }
+      .box-fail { stroke: #E55F3F; }
+      .box-eval { stroke: #00A889; }
+      .box-score { stroke: #F5C710; }
 
-      .text { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 11px; fill: #2d2a23; }
-      .text-small { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 10px; fill: #4a453c; }
-      .title1 { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; font-weight: 600; fill: #8a5038; }
-      .title2 { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; font-weight: 600; fill: #704028; }
-      .title-judge { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 11px; font-weight: 600; fill: #5a4828; }
-      .title-fail { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 11px; font-weight: 600; fill: #8a4840; }
-      .title-eval { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; font-weight: 600; fill: #3a6030; }
-      .title-score { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; font-weight: 600; fill: #6a5820; }
-      .subtitle { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 10px; fill: #3d3830; font-weight: 800; }
+      .text, .text-small, .title1, .title2, .title-judge, .title-fail,
+      .title-eval, .title-score, .subtitle, .label-text, .label-text-pass,
+      .diamond-text, .subtitle-plain, .annotation {
+        font-family: 'Die Grotesk', sans-serif;
+      }
+      .text { font-size: 11px; fill: #57544f; }
+      .text-small { font-size: 10px; fill: #68645e; }
+      .title1, .title2, .title-judge { font-size: 12px; font-weight: 600; fill: #57544f; }
+      .title-fail { font-size: 11px; font-weight: 600; fill: #E55F3F; }
+      .title-eval { font-size: 12px; font-weight: 600; fill: #00866e; }
+      .title-score { font-size: 12px; font-weight: 600; fill: #766000; }
+      .subtitle { font-size: 10px; fill: #57544f; font-weight: 700; }
 
-      .arrow { stroke: #8a7860; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
-      .arrow-fail { stroke: #c09080; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-fail); }
-      .arrow-pass { stroke: #7a9868; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-pass); }
+      .arrow { stroke: #9e9a91; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+      .arrow-fail { stroke: #E55F3F; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-fail); }
+      .arrow-pass { stroke: #00A889; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-pass); }
 
-      .label-text { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 9px; fill: #8a5048; font-style: italic; font-weight: 600; }
-      .label-text-pass { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 9px; fill: #406838; font-style: italic; font-weight: 600; }
-      .diamond-text { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 8px; fill: #4a4238; }
-      .subtitle-plain { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 10px; fill: #4a453c; font-weight: 500; }
-      .annotation { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 7px; fill: #4a453c; font-style: italic; }
+      .label-text { font-size: 9px; fill: #E55F3F; font-style: italic; font-weight: 600; }
+      .label-text-pass { font-size: 9px; fill: #00866e; font-style: italic; font-weight: 600; }
+      .diamond-text { font-size: 8px; fill: #68645e; }
+      .subtitle-plain { font-size: 10px; fill: #68645e; font-weight: 500; }
+      .annotation { font-size: 7px; fill: #68645e; font-style: italic; }
     </style>
     <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#8a7860" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#9e9a91" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
     <marker id="arrowhead-fail" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#c09080" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#E55F3F" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
     <marker id="arrowhead-pass" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#7a9868" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#00A889" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
 

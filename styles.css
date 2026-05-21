@@ -1,4 +1,20 @@
 /* CSS Reset and Base Styles */
+@font-face {
+    font-family: 'Die Grotesk';
+    src: url('/fonts/die-grotesk-vf-roman.woff2') format('woff2');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Die Grotesk';
+    src: url('/fonts/die-grotesk-vf-italic.woff2') format('woff2');
+    font-weight: 100 900;
+    font-style: italic;
+    font-display: swap;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -70,7 +86,7 @@
 }
 
 body {
-    font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    font-family: 'Die Grotesk', sans-serif;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
@@ -115,9 +131,6 @@ body {
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .logo-accent {
@@ -408,7 +421,7 @@ section {
 }
 
 .changelog summary {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Die Grotesk', sans-serif;
     font-size: 0.8rem;
     color: var(--accent-primary);
     cursor: pointer;
@@ -471,7 +484,7 @@ section {
 }
 
 .changelog-date {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Die Grotesk', sans-serif;
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--accent-primary);
@@ -1015,7 +1028,7 @@ tbody tr:last-child td {
 }
 
 .citation-text {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Die Grotesk', sans-serif;
     font-size: 0.875rem;
     color: var(--text-primary);
     margin: 0;
@@ -1374,7 +1387,7 @@ tbody tr:last-child td {
 }
 
 .toggle-btn {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Die Grotesk', sans-serif;
     font-size: 0.8rem;
     color: var(--accent-primary);
     background: transparent;
@@ -1521,7 +1534,7 @@ tbody tr:last-child td {
 
 .findings-code {
     display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Die Grotesk', sans-serif;
     font-size: 0.78rem;
     color: var(--accent-primary);
     background: var(--bg-tertiary);
@@ -1684,7 +1697,7 @@ tbody tr:last-child td {
 
 .trace-action {
     margin-top: 0.4rem;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Die Grotesk', sans-serif;
     font-size: 0.85rem;
     color: var(--danger);
     font-weight: 600;
@@ -1770,4 +1783,900 @@ tbody tr:last-child td {
 .dropdown-option:focus-visible {
     outline: 2px solid var(--accent-primary);
     outline-offset: -2px;
+}
+
+/* AttuneBench visual system overrides
+   Ported from the light-only Thoughtful token layer in attunebench-website.
+   These overrides deliberately sit last so the existing site structure and
+   behavior stay intact while the surface, type, controls, and data colors
+   move to the same visual language. */
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
+    color-scheme: light;
+
+    --neutral-0: oklch(100% 0 0);
+    --neutral-50: oklch(98% 0.004 95);
+    --neutral-100: oklch(95% 0.005 95);
+    --neutral-200: oklch(90% 0.006 95);
+    --neutral-300: oklch(84% 0.007 95);
+    --neutral-400: oklch(76% 0.007 95);
+    --neutral-500: oklch(67% 0.006 95);
+    --neutral-600: oklch(57% 0.005 95);
+    --neutral-700: oklch(46% 0.004 95);
+    --neutral-800: oklch(35% 0.003 95);
+    --neutral-900: oklch(24% 0.002 95);
+    --neutral-950: oklch(14% 0.001 95);
+
+    --color-dataviz-1: #E69F00;
+    --color-dataviz-2: #56B4E9;
+    --color-dataviz-3: #00A889;
+    --color-dataviz-4: #F5C710;
+    --color-dataviz-5: #0072B2;
+    --color-dataviz-6: #E55F3F;
+    --color-dataviz-7: #CC79A7;
+    --color-dataviz-8: var(--neutral-600);
+
+    --font-serif: 'Edgar', Georgia, 'Times New Roman', serif;
+    --font-sans: 'Die Grotesk', sans-serif;
+    --font-mono: var(--font-sans);
+
+    --radius-sm: 0.5rem;
+    --radius-md: 0.625rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+    --control-height-lg: 2.75rem;
+
+    --bg-primary: var(--neutral-50);
+    --bg-secondary: var(--neutral-100);
+    --bg-tertiary: var(--neutral-200);
+    --text-primary: var(--neutral-800);
+    --text-secondary: oklch(40.5% 0.0035 95);
+    --border-color: var(--neutral-300);
+    --border-subtle: var(--neutral-200);
+    --accent-primary: oklch(37% 0.1252 255);
+    --accent-secondary: var(--neutral-800);
+    --success: oklch(37% 0.0712 175);
+    --warning: oklch(37% 0.0807 105);
+    --danger: oklch(37% 0.1337 35);
+    --transition: all 0.18s ease;
+
+    --chart-bar: #0072B2;
+    --chart-bar-baseline-1: #9E9B94;
+    --chart-bar-baseline-2: #5F5C56;
+    --chart-error: #5F5C56;
+    --chart-tooltip-bg: rgba(31, 30, 28, 0.88);
+    --chart-label-on-bar: #ffffff;
+
+    --tag-bg: color-mix(in oklab, var(--accent-primary) 10%, transparent);
+    --tag-border: color-mix(in oklab, var(--accent-primary) 28%, transparent);
+    --tag-color: var(--accent-primary);
+
+    --rank-1-bg: transparent;
+    --rank-1-text: var(--color-dataviz-4);
+    --rank-2-bg: transparent;
+    --rank-2-text: var(--neutral-500);
+    --rank-3-bg: transparent;
+    --rank-3-text: var(--color-dataviz-1);
+}
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-kerning: normal;
+    font-variant-ligatures: common-ligatures contextual;
+    font-synthesis: none;
+}
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+}
+
+p, li, blockquote {
+    text-wrap: pretty;
+}
+
+.container {
+    max-width: 1280px;
+}
+
+.navbar {
+    background: color-mix(in oklab, var(--bg-primary) 92%, transparent);
+    border-bottom: 1px solid var(--border-subtle);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    padding: 1.25rem 0;
+}
+
+.logo,
+.hero-title,
+.hero-subtitle,
+.section-title {
+    font-family: var(--font-serif);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+}
+
+.logo {
+    font-size: 1.35rem;
+}
+
+.logo-accent,
+.title-accent {
+    color: var(--neutral-600);
+}
+
+.nav-links {
+    gap: 0.25rem;
+}
+
+.nav-links a,
+.team-inline a,
+.section-description a,
+.chart-footnote a,
+.observation-block a {
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+.nav-links a {
+    padding: 0.375rem 0.875rem;
+    border-radius: var(--radius-lg);
+    font-weight: 500;
+}
+
+.nav-links a:hover,
+.team-inline a:hover,
+.section-description a:hover,
+.chart-footnote a:hover,
+.observation-block a:hover {
+    color: var(--text-primary);
+    text-decoration-color: var(--neutral-600);
+}
+
+.nav-github,
+.theme-toggle {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    border-color: transparent;
+    color: var(--text-secondary);
+}
+
+.nav-github:hover,
+.theme-toggle:hover {
+    background: color-mix(in oklab, var(--text-primary) 4%, transparent);
+}
+
+.theme-toggle {
+    display: none;
+}
+
+.hero {
+    min-height: calc(100vh - 9rem);
+    display: flex;
+    align-items: center;
+    padding: 5rem 0;
+}
+
+.hero-title {
+    font-size: clamp(2.75rem, 6vw, 4.75rem);
+    margin-bottom: 1.25rem;
+}
+
+.hero-subtitle {
+    font-family: var(--font-serif);
+    color: var(--neutral-700);
+    font-size: clamp(1.125rem, 2.2vw, 1.5rem);
+    line-height: 1.45;
+    letter-spacing: 0;
+}
+
+.hero-description p,
+.section-description,
+.about-content > p,
+.observation-block p,
+.findings-lead {
+    color: var(--text-secondary);
+}
+
+.hero-description {
+    max-width: 720px;
+}
+
+.hero-description p {
+    font-size: 1rem;
+    line-height: 1.75;
+}
+
+.btn,
+.copy-btn,
+.toggle-btn,
+.toggle-table-btn {
+    min-height: var(--control-height-lg);
+    border-radius: var(--radius-xl);
+    font-family: var(--font-sans);
+    font-weight: 500;
+}
+
+.btn-primary,
+.copy-btn,
+.toggle-table-btn {
+    background: var(--neutral-900);
+    color: var(--neutral-0);
+}
+
+.btn-primary:hover,
+.copy-btn:hover,
+.toggle-table-btn:hover {
+    background: color-mix(in oklab, var(--neutral-900) 88%, var(--neutral-0));
+}
+
+.btn-secondary,
+.toggle-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover,
+.toggle-btn:hover {
+    background: transparent;
+    border-color: var(--neutral-500);
+    color: var(--text-primary);
+}
+
+section,
+.citation,
+.time-spent,
+.observations {
+    background: var(--bg-primary);
+}
+
+.leaderboard,
+.about,
+.team,
+.process-flow {
+    background: var(--bg-secondary);
+}
+
+.section-title {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    line-height: 1.08;
+    margin-bottom: 2rem;
+}
+
+.hero-subtitle {
+    color: var(--text-primary);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    line-height: 1.08;
+    margin-bottom: 2rem;
+    text-align: center;
+    white-space: normal;
+}
+
+.section-subtitle {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+}
+
+.leaderboard-chart,
+.setup-info,
+.citation-box,
+.observation-block,
+.pipeline-diagram,
+.changelog,
+.mobile-table-notice {
+    background: color-mix(in oklab, var(--neutral-50) 88%, transparent);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow:
+        inset 0 1px 0 oklch(100% 0 0 / 0.7),
+        0 22px 46px -34px color-mix(in oklab, var(--neutral-950) 28%, transparent);
+}
+
+.leaderboard-chart {
+    padding: clamp(1rem, 2.5vw, 2rem);
+}
+
+.chart-footnote,
+.leaderboard-footnote {
+    color: var(--neutral-700);
+}
+
+.dropdown-selected {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    border-radius: var(--radius-xl);
+    font-family: var(--font-sans);
+}
+
+.dropdown-options {
+    background: color-mix(in oklab, var(--bg-primary) 92%, transparent);
+    border-color: var(--border-subtle);
+    border-radius: var(--radius-lg);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    box-shadow:
+        0 22px 46px -26px color-mix(in oklab, var(--neutral-950) 34%, transparent),
+        0 10px 22px -18px color-mix(in oklab, var(--neutral-950) 26%, transparent);
+}
+
+.dropdown-option.active {
+    background: color-mix(in oklab, var(--accent-primary) 10%, transparent);
+}
+
+table {
+    border-collapse: separate;
+    border-spacing: 0 7px;
+    background: transparent;
+    border: none;
+}
+
+thead {
+    background: transparent;
+}
+
+th {
+    border-bottom: none;
+    color: var(--neutral-700);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+td {
+    border-bottom: none;
+    font-size: 0.875rem;
+}
+
+tbody tr {
+    background: var(--bg-primary);
+}
+
+tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.leaderboard-table {
+    border-radius: var(--radius-lg);
+}
+
+.leaderboard-table table {
+    min-width: 1040px;
+}
+
+.leaderboard-table td:first-child,
+.leaderboard-table th:first-child {
+    border-top-left-radius: var(--radius-md);
+    border-bottom-left-radius: var(--radius-md);
+}
+
+.leaderboard-table td:last-child,
+.leaderboard-table th:last-child {
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+}
+
+.rank-badge {
+    width: auto;
+    height: auto;
+    min-width: 1.5rem;
+    border-radius: 0;
+    background: transparent;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.rank-other {
+    background: transparent;
+    color: var(--neutral-600);
+}
+
+.scaffold-label,
+.std-value,
+.team-affiliations,
+.findings-meta,
+.findings-empty {
+    color: var(--neutral-700);
+}
+
+.findings-table {
+    background: transparent;
+    border: none;
+}
+
+.findings-table thead {
+    background: transparent;
+}
+
+.findings-table tbody tr {
+    background: var(--bg-primary);
+}
+
+.findings-code,
+.observation-block code {
+    background: var(--bg-tertiary);
+    border-color: var(--border-subtle);
+    color: var(--accent-primary);
+    font-family: var(--font-mono);
+}
+
+.citation-text,
+.changelog summary,
+.changelog-date,
+.toggle-btn,
+.trace-action {
+    font-family: var(--font-mono);
+}
+
+.trace-entry {
+    background: var(--bg-tertiary);
+}
+
+.trace-entry.trace-violation {
+    background: color-mix(in oklab, var(--danger) 8%, var(--bg-tertiary));
+}
+
+::selection {
+    background: color-mix(in oklab, var(--accent-primary) 20%, transparent);
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .hero {
+        min-height: auto;
+        padding: 4rem 0 3rem;
+    }
+
+    .nav-links {
+        background: color-mix(in oklab, var(--bg-primary) 96%, transparent);
+        border-bottom-color: var(--border-subtle);
+        box-shadow: 0 28px 48px -12px color-mix(in oklab, var(--neutral-950) 12%, transparent);
+    }
+
+    .hero-title {
+        font-size: 2.75rem;
+    }
+}
+
+/* Minimal AttuneBench pass
+   Collapse the remaining nested cards and section color changes into a
+   smaller set of primitives: one page surface, hairline dividers, row-level
+   table structure, and data color only where it carries meaning. */
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
+    --bg-primary: var(--neutral-50);
+    --bg-secondary: var(--neutral-50);
+    --bg-tertiary: var(--neutral-100);
+    --surface-row: color-mix(in oklab, var(--neutral-0) 58%, var(--neutral-50));
+    --surface-row-hover: color-mix(in oklab, var(--neutral-900) 3%, transparent);
+    --border-subtle: color-mix(in oklab, var(--neutral-300) 62%, transparent);
+}
+
+body {
+    line-height: 1.55;
+}
+
+.container {
+    max-width: 1180px;
+}
+
+.navbar {
+    background: var(--bg-primary);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+section,
+.leaderboard,
+.about,
+.team,
+.process-flow,
+.citation,
+.time-spent,
+.observations {
+    background: var(--bg-primary);
+}
+
+section {
+    padding: 5.25rem 0;
+}
+
+section + section {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.hero {
+    border-top: 0;
+    min-height: calc(100vh - 5rem);
+    padding: 4rem 0;
+}
+
+.section-title {
+    margin-bottom: 2.75rem;
+}
+
+.section-description,
+.hero-description,
+.about-content,
+.observation-block,
+.citation-box {
+    max-width: 42rem;
+}
+
+.section-description {
+    margin-bottom: 3rem;
+}
+
+.leaderboard-chart,
+.pipeline-diagram,
+.setup-info,
+.citation-box,
+.observation-block,
+.changelog,
+.mobile-table-notice {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.leaderboard-chart {
+    padding: 0;
+    margin: 0 0 4rem;
+    overflow-x: auto;
+}
+
+.leaderboard-chart-wrapper {
+    background: transparent;
+}
+
+.chart-footnote {
+    max-width: 48rem;
+    margin: 0.875rem auto 0;
+    text-align: center;
+}
+
+.changelog {
+    max-width: 42rem;
+    margin: -1.75rem auto 3rem;
+    padding: 0;
+    text-align: center;
+}
+
+.changelog-content.open {
+    max-height: 180px;
+}
+
+.leaderboard-controls,
+.time-toggle-wrapper {
+    justify-content: center;
+}
+
+.dropdown-selected,
+.dropdown-options {
+    background: var(--bg-primary);
+    box-shadow: none;
+}
+
+.dropdown-options {
+    border-color: var(--border-subtle);
+}
+
+.leaderboard-table,
+.findings-table-wrap {
+    border-radius: 0;
+}
+
+table {
+    border-spacing: 0 5px;
+}
+
+th {
+    padding-top: 0;
+}
+
+td {
+    background: var(--surface-row);
+}
+
+tbody tr,
+.findings-table tbody tr {
+    background: transparent;
+}
+
+tbody tr:hover,
+.findings-table tbody tr:hover {
+    background: transparent;
+}
+
+tbody tr:hover td,
+.findings-table tbody tr:hover td {
+    background-color: var(--surface-row-hover);
+}
+
+tbody tr:hover td[style*="background-color"] {
+    filter: none;
+}
+
+.rank-badge {
+    color: var(--neutral-600);
+}
+
+.rank-1,
+.rank-2,
+.rank-3 {
+    background: transparent;
+}
+
+.pipeline-diagram {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0;
+    overflow-x: auto;
+}
+
+.pipeline-svg {
+    opacity: 0.96;
+}
+
+.setup-info {
+    max-width: 42rem;
+    margin: 3rem auto 0;
+    padding: 2rem 0 0;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.setup-info h3 {
+    text-align: center;
+}
+
+.setup-info li {
+    padding: 0.35rem 0;
+}
+
+.observation-block {
+    max-width: 56rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0;
+}
+
+.findings-table,
+.benchmarks-table {
+    border-spacing: 0 5px;
+}
+
+.findings-table td,
+.findings-table th {
+    border: 0;
+}
+
+.findings-code,
+.observation-block code {
+    display: inline;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: var(--text-primary);
+}
+
+.agent-trace {
+    max-width: 42rem;
+    margin: 2rem auto;
+    border-left-color: var(--border-subtle);
+}
+
+.trace-entry {
+    background: transparent;
+    border-top: 1px solid var(--border-subtle);
+    border-radius: 0;
+    padding: 1rem 0;
+}
+
+.trace-entry.trace-violation {
+    background: transparent;
+    border-left: 0;
+}
+
+.citation-box {
+    margin: 0 auto;
+    padding: 2rem 0 0;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.citation-text {
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+}
+
+.copy-btn {
+    top: 2rem;
+    right: 0;
+}
+
+.team-inline,
+.team-affiliations {
+    max-width: 42rem;
+}
+
+.task-version,
+.effort-tag {
+    background: transparent;
+}
+
+@media (max-width: 768px) {
+    section {
+        padding: 4rem 0;
+    }
+
+    .hero {
+        padding: 4rem 0;
+    }
+
+    .leaderboard-chart {
+        margin-bottom: 3rem;
+    }
+
+    .mobile-table-notice {
+        padding: 0.75rem 0;
+        border-top: 1px solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .changelog {
+        margin-top: -1.5rem;
+    }
+}
+
+/* Specificity cleanup for older component chrome. */
+body section,
+body .leaderboard,
+body .about,
+body .team,
+body .process-flow,
+body .citation,
+body .time-spent,
+body .observations {
+    background: var(--bg-primary) !important;
+    background-color: var(--bg-primary) !important;
+}
+
+body .leaderboard-chart,
+body .pipeline-diagram,
+body .setup-info,
+body .citation-box,
+body .observation-block,
+body .changelog,
+body .mobile-table-notice {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+body .leaderboard-chart,
+body .pipeline-diagram {
+    border-radius: 0 !important;
+}
+
+/* 12-column layout system
+   Every section uses the same grid. Wide data displays occupy columns 2-11;
+   editorial text and controls sit on columns 4-9. This removes the ad hoc
+   width variance between sections while keeping tables and charts readable. */
+:root {
+    --grid-gutter: clamp(1rem, 2vw, 1.5rem);
+    --grid-page-margin: clamp(1.25rem, 4vw, 3rem);
+    --grid-max: 1280px;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--grid-gutter);
+    width: min(calc(100% - (2 * var(--grid-page-margin))), var(--grid-max));
+    max-width: none;
+    margin-inline: auto;
+    padding-inline: 0;
+}
+
+.container > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+
+.nav-content {
+    grid-column: 1 / -1;
+}
+
+.hero .container > * {
+    grid-column: 4 / span 6;
+}
+
+.section-title,
+.section-description,
+.leaderboard-controls,
+.benchmark-select-container,
+.mobile-table-notice,
+.leaderboard-footnote,
+.section-subtitle,
+.findings-lead,
+.about-content,
+.setup-info,
+.observation-block,
+.team-inline,
+.team-affiliations,
+.citation-box,
+.time-toggle-wrapper,
+.changelog {
+    grid-column: 4 / span 6;
+}
+
+.leaderboard-chart,
+.leaderboard-table,
+.findings-table-wrap,
+.pipeline-diagram {
+    grid-column: 2 / span 10;
+}
+
+.leaderboard-chart {
+    width: 100%;
+}
+
+.chart-footnote {
+    margin-inline: auto;
+}
+
+.leaderboard-controls,
+.benchmark-select-container,
+.time-toggle-wrapper {
+    justify-self: stretch;
+}
+
+.leaderboard-table,
+.findings-table-wrap {
+    overflow-x: auto;
+}
+
+.leaderboard-table table {
+    width: 100%;
+}
+
+@media (max-width: 968px) {
+    .hero .container > *,
+    .section-title,
+    .section-description,
+    .leaderboard-controls,
+    .benchmark-select-container,
+    .mobile-table-notice,
+    .leaderboard-footnote,
+    .section-subtitle,
+    .findings-lead,
+    .about-content,
+    .setup-info,
+    .observation-block,
+    .team-inline,
+    .team-affiliations,
+    .citation-box,
+    .time-toggle-wrapper,
+    .changelog,
+    .leaderboard-chart,
+    .leaderboard-table,
+    .findings-table-wrap,
+    .pipeline-diagram {
+        grid-column: 1 / -1;
+    }
 }

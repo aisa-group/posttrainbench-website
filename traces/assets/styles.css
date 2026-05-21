@@ -1,5 +1,21 @@
 /* Trace viewer styles — warm sepia (dark) / warm cream (light) palette,
-   terracotta accent, JetBrains Mono. Three-column console layout. */
+   terracotta accent, Die Grotesk. Three-column console layout. */
+
+@font-face {
+  font-family: 'Die Grotesk';
+  src: url('/fonts/die-grotesk-vf-roman.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Die Grotesk';
+  src: url('/fonts/die-grotesk-vf-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -58,8 +74,7 @@
 }
 
 html, body {
-  font-family: 'JetBrains Mono', 'SF Mono', Monaco, Inconsolata, 'Fira Mono',
-               'Source Code Pro', monospace;
+  font-family: 'Die Grotesk', sans-serif;
   font-size: 14.5px;
   line-height: 1.6;
   background-color: var(--bg-primary);
@@ -85,7 +100,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   position: fixed;
   background: var(--bg-tertiary);
   color: var(--text-primary);
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-family: 'Die Grotesk', sans-serif;
   font-size: 0.72rem;
   font-weight: 500;
   font-style: normal;
@@ -1972,7 +1987,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 
 /* Plain ".bash-cmd" — used outside tool cards (Edit/Write paths). Subtle
-   monospaced tag, not a full terminal. */
+   compact tag, not a full terminal. */
 .bash-cmd {
   background-color: var(--bg-tertiary);
   color: var(--text-primary);

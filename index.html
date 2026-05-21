@@ -5,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PostTrainBench</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=PT+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-
-
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=hero-logo">
 </head>
 <body>
     <nav class="navbar">
@@ -59,12 +54,9 @@
 
     <section class="hero">
         <div class="container">
-            <h1 class="hero-title">
-                <span class="title-main">PostTrain</span><span class="title-accent">Bench</span>
-            </h1>
-            <p class="hero-subtitle">Measuring how well AI agents can post-train language models</p>
+            <h1 class="hero-subtitle">Measuring how well AI agents can post-train language models</h1>
             <div class="hero-description">
-                <p>Can AI agents improve performance of base LLMs? We give each agent 4 small target LLMs, an H100 GPU, and 10 hours to post-train them.</p>
+                <p>Four base models. One H100. Ten hours for an AI agent to make them better.</p>
             </div>
             <div class="hero-buttons">
                 <a href="https://arxiv.org/abs/2603.08640" target="_blank" class="btn btn-primary">Read the Paper</a>
@@ -90,7 +82,7 @@
                 <p class="chart-footnote"><sup>2</sup> "Official Instruct Models" refers to the officially post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank">Gemma-3-4B-IT</a>. Not directly comparable to agents since their training usually exceeds the 10h + 1 GPU constraint.</p>
                 <p class="chart-footnote"><sup>†</sup> Reprompted: the agent was manually prompted to continue each time it stopped before the time budget expired.</p>
             </div>
-            <details class="changelog" open>
+            <details class="changelog">
                 <summary>Changelog</summary>
                 <div class="changelog-content open">
                     <div class="changelog-entry">
@@ -244,8 +236,8 @@
         <div class="container">
             <h2 class="section-title">Pipeline</h2>
             <div class="pipeline-diagram">
-                <object type="image/svg+xml" data="pipeline.svg" class="pipeline-svg pipeline-desktop">PostTrainBench Pipeline Diagram</object>
-                <object type="image/svg+xml" data="pipeline-mobile.svg" class="pipeline-svg pipeline-mobile">PostTrainBench Pipeline Diagram</object>
+                <object type="image/svg+xml" data="pipeline.svg?v=hero-logo" class="pipeline-svg pipeline-desktop">PostTrainBench Pipeline Diagram</object>
+                <object type="image/svg+xml" data="pipeline-mobile.svg?v=hero-logo" class="pipeline-svg pipeline-mobile">PostTrainBench Pipeline Diagram</object>
             </div>
         </div>
     </section>
@@ -472,8 +464,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <script src="config.js"></script>
-    <script src="data.js"></script>
-    <script src="script.js"></script>
+    <script src="config.js?v=hero-logo"></script>
+    <script src="data.js?v=hero-logo"></script>
+    <script src="script.js?v=hero-logo"></script>
 </body>
 </html>

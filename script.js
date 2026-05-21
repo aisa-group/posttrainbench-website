@@ -116,23 +116,11 @@ function getLeaderboardDataForModel(modelName) {
         }));
 }
 
-// Get heatmap color based on normalized value (0-1 scale)
-// Uses site's terracotta accent color (#c17d5a) with varying intensity
-function getHeatmapColor(normalizedValue) {
-    const currentTheme = html.getAttribute('data-theme');
-    const value = Math.max(0, Math.min(1, normalizedValue));
-
-    // Site accent color: #c17d5a (193, 125, 90)
-    const r = 193;
-    const g = 125;
-    const b = 90;
-
-    // Vary opacity based on value - low scores subtle, high scores prominent
-    const alpha = currentTheme === 'dark'
-        ? 0.1 + (0.5 * value)   // 0.1 → 0.6
-        : 0.08 + (0.42 * value); // 0.08 → 0.5
-
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+// Get heatmap color from the displayed percentage.
+// Example: 51.14% renders as sky blue at 51.14% opacity.
+function getHeatmapColor(percentage) {
+    const alpha = Math.max(0, Math.min(100, percentage)) / 100;
+    return `rgba(86, 180, 233, ${alpha.toFixed(4)})`;
 }
 
 // Helper to get value from benchmark score (handles both old and new format)
@@ -193,34 +181,6 @@ function populateLeaderboard(modelName = "average") {
     // Only show markers in model-specific view, not average
     const showMarkers = modelName !== "average";
 
-    // Collect all values for each column to find min/max
-    const columns = {
-        average: data.map(e => parseFloat(e.averageScore)),
-        aime2025: data.map(e => getBenchmarkValue(e.benchmarkScores.aime2025)),
-        arenahardwriting: data.map(e => getBenchmarkValue(e.benchmarkScores.arenahardwriting)),
-        bfcl: data.map(e => getBenchmarkValue(e.benchmarkScores.bfcl)),
-        gpqamain: data.map(e => getBenchmarkValue(e.benchmarkScores.gpqamain)),
-        gsm8k: data.map(e => getBenchmarkValue(e.benchmarkScores.gsm8k)),
-        healthbench: data.map(e => getBenchmarkValue(e.benchmarkScores.healthbench)),
-        humaneval: data.map(e => getBenchmarkValue(e.benchmarkScores.humaneval))
-    };
-
-    // Find min and max for each column
-    const ranges = {};
-    for (const [key, values] of Object.entries(columns)) {
-        ranges[key] = {
-            min: Math.min(...values),
-            max: Math.max(...values)
-        };
-    }
-
-    // Normalize value within column range
-    const normalize = (value, column) => {
-        const range = ranges[column];
-        if (range.max === range.min) return 0.5; // All same values
-        return (value - range.min) / (range.max - range.min);
-    };
-
     data.forEach(entry => {
         const row = document.createElement('tr');
 
@@ -228,7 +188,7 @@ function populateLeaderboard(modelName = "average") {
         const rankDisplay = entry.rank !== null ? entry.rank : '-';
         const rankClass = entry.rank !== null && entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other';
 
-        // Create cells with heatmap colors normalized per column
+        // Create cells with heatmap opacity directly tied to the displayed percentage.
         const avgValue = parseFloat(entry.averageScore);
         const aimeValue = getBenchmarkValue(entry.benchmarkScores.aime2025);
         const arenaValue = getBenchmarkValue(entry.benchmarkScores.arenahardwriting);
@@ -238,14 +198,14 @@ function populateLeaderboard(modelName = "average") {
         const healthValue = getBenchmarkValue(entry.benchmarkScores.healthbench);
         const humanValue = getBenchmarkValue(entry.benchmarkScores.humaneval);
 
-        const avgColor = getHeatmapColor(normalize(avgValue, 'average'));
-        const aimeColor = getHeatmapColor(normalize(aimeValue, 'aime2025'));
-        const arenaColor = getHeatmapColor(normalize(arenaValue, 'arenahardwriting'));
-        const bfclColor = getHeatmapColor(normalize(bfclValue, 'bfcl'));
-        const gpqaColor = getHeatmapColor(normalize(gpqaValue, 'gpqamain'));
-        const gsmColor = getHeatmapColor(normalize(gsmValue, 'gsm8k'));
-        const healthColor = getHeatmapColor(normalize(healthValue, 'healthbench'));
-        const humanColor = getHeatmapColor(normalize(humanValue, 'humaneval'));
+        const avgColor = getHeatmapColor(avgValue);
+        const aimeColor = getHeatmapColor(aimeValue);
+        const arenaColor = getHeatmapColor(arenaValue);
+        const bfclColor = getHeatmapColor(bfclValue);
+        const gpqaColor = getHeatmapColor(gpqaValue);
+        const gsmColor = getHeatmapColor(gsmValue);
+        const healthColor = getHeatmapColor(healthValue);
+        const humanColor = getHeatmapColor(humanValue);
 
         // Format std display (only show if available)
         const stdDisplay = entry.stdDev ? `<span class="std-value">± ${entry.stdDev}%</span>` : '';
@@ -352,6 +312,10 @@ function createSimpleChart(modelName = "average") {
     const textSecondary = style.getPropertyValue('--text-secondary').trim();
     const accentPrimary = style.getPropertyValue('--accent-primary').trim();
     const borderColor = style.getPropertyValue('--border-color').trim();
+    const chartFont = style.getPropertyValue('--font-sans').trim() || "'Die Grotesk', sans-serif";
+    const chartTooltipBg = style.getPropertyValue('--chart-tooltip-bg').trim() || 'rgba(31, 30, 28, 0.88)';
+    const chartLabelOnBar = style.getPropertyValue('--chart-label-on-bar').trim() || '#ffffff';
+    const chartError = style.getPropertyValue('--chart-error').trim() || '#5F5C56';
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
@@ -469,7 +433,7 @@ function createSimpleChart(modelName = "average") {
             const dataset = chart.data.datasets[0];
 
             ctx.save();
-            ctx.strokeStyle = '#704028'; // Dark terracotta for error bars
+            ctx.strokeStyle = chartError;
             ctx.lineWidth = isMobile ? 1 : 1.5;
 
             dataset.data.forEach((value, index) => {
@@ -528,14 +492,14 @@ function createSimpleChart(modelName = "average") {
                     display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backgroundColor: chartTooltipBg,
                     padding: 12,
                     titleFont: {
-                        family: "'JetBrains Mono', monospace",
+                        family: chartFont,
                         size: fontSizes.tooltipTitle
                     },
                     bodyFont: {
-                        family: "'JetBrains Mono', monospace",
+                        family: chartFont,
                         size: fontSizes.tooltipBody
                     },
                     borderColor: accentPrimary,
@@ -550,12 +514,12 @@ function createSimpleChart(modelName = "average") {
                 },
                 datalabels: {
                     display: !isMobile,
-                    color: '#ffffff',
+                    color: chartLabelOnBar,
                     anchor: 'start',
                     align: 'end',
                     offset: 4,
                     font: {
-                        family: "'JetBrains Mono', monospace",
+                        family: chartFont,
                         size: fontSizes.axisTicks,
                         weight: 500
                     },
@@ -573,7 +537,7 @@ function createSimpleChart(modelName = "average") {
                         text: 'Average benchmark performance¹',
                         color: textPrimary,
                         font: {
-                            family: "'JetBrains Mono', monospace",
+                            family: chartFont,
                             size: fontSizes.axisTitle,
                             weight: 500
                         }
@@ -584,7 +548,7 @@ function createSimpleChart(modelName = "average") {
                     ticks: {
                         color: textSecondary,
                         font: {
-                            family: "'JetBrains Mono', monospace",
+                            family: chartFont,
                             size: isMobile ? 9 : fontSizes.axisTicks
                         },
                         stepSize: isMobile ? 20 : 10,
@@ -600,7 +564,7 @@ function createSimpleChart(modelName = "average") {
                         text: 'LLM powering the CLI agent',
                         color: textPrimary,
                         font: {
-                            family: "'JetBrains Mono', monospace",
+                            family: chartFont,
                             size: fontSizes.axisTitle,
                             weight: 500
                         }
@@ -611,7 +575,7 @@ function createSimpleChart(modelName = "average") {
                     ticks: {
                         color: textSecondary,
                         font: {
-                            family: "'JetBrains Mono', monospace",
+                            family: chartFont,
                             size: isMobile ? 9 : Math.max(9, fontSizes.axisTicks - 1)
                         },
                         maxRotation: isMobile ? 55 : 0,
@@ -648,6 +612,8 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
     const textSecondary = style.getPropertyValue('--text-secondary').trim();
     const accentPrimary = style.getPropertyValue('--accent-primary').trim();
     const borderColor = style.getPropertyValue('--border-color').trim();
+    const chartFont = style.getPropertyValue('--font-sans').trim() || "'Die Grotesk', sans-serif";
+    const chartTooltipBg = style.getPropertyValue('--chart-tooltip-bg').trim() || 'rgba(31, 30, 28, 0.88)';
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
@@ -663,24 +629,29 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
     }
 
     const agentColors = {
-        'human': '#6b655a',
-        'base-model': '#9a9590',
-        'gpt-5.1-codex-max': '#6a7a5a',
-        'gpt-5.2': '#7a8a6a',
-        'gpt-5.2-codex': '#8a9a7a',
-        'gpt-5.3-codex-high': '#5a6a4a',
-        'gpt-5.3-codex-med': '#7a8a6a',
-        'gpt-5.4-high': '#4a5a3a',
-        'opus-4.5': '#c17d5a',
-        'opus-4.6': '#d48a60',
-        'opus-4.6-1m': '#e09770',
-        'sonnet-4.5': '#a66b4f',
-        'sonnet-4.6': '#b8785a',
-        'gemini-3-pro': '#6a7a85',
-        'gemini-3.1-pro': '#5a6a75',
-        'glm-4.7': '#6a8078',
-        'glm-5': '#5a7068',
-        'minimax-m2.1': '#8a7078'
+        'human': '#5F5C56',
+        'base-model': '#9E9B94',
+        'gpt-5.1-codex-max': '#0072B2',
+        'gpt-5.2': '#56B4E9',
+        'gpt-5.2-codex': '#00A889',
+        'gpt-5.3-codex-high': '#0072B2',
+        'gpt-5.3-codex-med': '#56B4E9',
+        'gpt-5.4-high': '#00A889',
+        'opus-4.5': '#E69F00',
+        'opus-4.6': '#E55F3F',
+        'opus-4.6-1m': '#CC79A7',
+        'opus-4.7': '#F5C710',
+        'sonnet-4.5': '#E69F00',
+        'sonnet-4.6': '#E55F3F',
+        'gemini-3-pro': '#56B4E9',
+        'gemini-3.1-pro': '#0072B2',
+        'glm-4.7': '#00A889',
+        'glm-5': '#00A889',
+        'minimax-m2.1': '#CC79A7',
+        'minimax-m2.5': '#CC79A7',
+        'kimi-k2.5': '#F5C710',
+        'gpt-5.5-xhigh': '#0072B2',
+        'gpt-5.5-xhigh-reprompted': '#56B4E9'
     };
 
     const allData = getLeaderboardDataForModel(modelName);
@@ -735,10 +706,10 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        backgroundColor: chartTooltipBg,
                         padding: 8,
-                        titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
-                        bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
+                        titleFont: { family: chartFont, size: 11 },
+                        bodyFont: { family: chartFont, size: 10 },
                         borderColor: accentPrimary,
                         borderWidth: 1,
                         callbacks: {
@@ -757,7 +728,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                         grid: { color: borderColor },
                         ticks: {
                             color: textSecondary,
-                            font: { family: "'JetBrains Mono', monospace", size: 9 },
+                            font: { family: chartFont, size: 9 },
                             stepSize: 20,
                             callback: value => value + '%'
                         }
@@ -767,7 +738,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                         grid: { display: false },
                         ticks: {
                             color: textSecondary,
-                            font: { family: "'JetBrains Mono', monospace", size: 9 },
+                            font: { family: chartFont, size: 9 },
                             maxRotation: 55,
                             minRotation: 55
                         }
@@ -815,17 +786,17 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                         align: 'center',
                         labels: {
                             color: textPrimary,
-                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.legend },
+                            font: { family: chartFont, size: fontSizes.legend },
                             padding: 15,
                             boxWidth: 14,
                             boxHeight: 14
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        backgroundColor: chartTooltipBg,
                         padding: 12,
-                        titleFont: { family: "'JetBrains Mono', monospace", size: fontSizes.tooltipTitle },
-                        bodyFont: { family: "'JetBrains Mono', monospace", size: fontSizes.tooltipBody },
+                        titleFont: { family: chartFont, size: fontSizes.tooltipTitle },
+                        bodyFont: { family: chartFont, size: fontSizes.tooltipBody },
                         borderColor: accentPrimary,
                         borderWidth: 1,
                         callbacks: {
@@ -844,12 +815,12 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                             display: true,
                             text: 'Benchmark Score (%)',
                             color: textPrimary,
-                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTitle, weight: 500 }
+                            font: { family: chartFont, size: fontSizes.axisTitle, weight: 500 }
                         },
                         grid: { color: borderColor },
                         ticks: {
                             color: textSecondary,
-                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks },
+                            font: { family: chartFont, size: fontSizes.axisTicks },
                             stepSize: 10,
                             callback: value => value + '%'
                         }
@@ -859,7 +830,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
                         grid: { display: false },
                         ticks: {
                             color: textSecondary,
-                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks },
+                            font: { family: chartFont, size: fontSizes.axisTicks },
                             maxRotation: 0,
                             minRotation: 0
                         }
@@ -883,6 +854,9 @@ function createTimeSpentChart() {
     const textSecondary = style.getPropertyValue('--text-secondary').trim();
     const accentPrimary = style.getPropertyValue('--accent-primary').trim();
     const borderColor = style.getPropertyValue('--border-color').trim();
+    const chartFont = style.getPropertyValue('--font-sans').trim() || "'Die Grotesk', sans-serif";
+    const chartTooltipBg = style.getPropertyValue('--chart-tooltip-bg').trim() || 'rgba(31, 30, 28, 0.88)';
+    const chartError = style.getPropertyValue('--chart-error').trim() || '#5F5C56';
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
@@ -926,7 +900,7 @@ function createTimeSpentChart() {
                 let labelX;
 
                 if (dataItem.stdHours) {
-                    ctx.strokeStyle = '#704028';
+                    ctx.strokeStyle = chartError;
                     ctx.lineWidth = isMobile ? 1 : 2;
 
                     const capSize = Math.min(barHeight * 0.3, isMobile ? 4 : 6);
@@ -948,7 +922,7 @@ function createTimeSpentChart() {
                 }
 
                 ctx.fillStyle = textSecondary;
-                ctx.font = `500 ${isMobile ? 9 : fontSizes.axisTicks}px 'JetBrains Mono', monospace`;
+                ctx.font = `500 ${isMobile ? 9 : fontSizes.axisTicks}px ${chartFont}`;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
 
@@ -1000,23 +974,23 @@ function createTimeSpentChart() {
                 if (isMobile) {
                     // On mobile: show only agent name, single line
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
+                    ctx.font = `500 ${labelFontSize}px ${chartFont}`;
                     ctx.textBaseline = 'middle';
                     ctx.fillText(displayName, xPos, yPos);
                 } else if (scaffold) {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
+                    ctx.font = `500 ${labelFontSize}px ${chartFont}`;
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(displayName, xPos, yPos - 1);
 
                     ctx.globalAlpha = 0.55;
-                    ctx.font = `400 ${scaffoldFontSize}px 'JetBrains Mono', monospace`;
+                    ctx.font = `400 ${scaffoldFontSize}px ${chartFont}`;
                     ctx.textBaseline = 'top';
                     ctx.fillText(scaffold, xPos, yPos + 1);
                     ctx.globalAlpha = 1;
                 } else {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
+                    ctx.font = `500 ${labelFontSize}px ${chartFont}`;
                     ctx.textBaseline = 'middle';
                     ctx.fillText(displayName, xPos, yPos);
                 }
@@ -1069,7 +1043,7 @@ function createTimeSpentChart() {
             c.stroke();
             c.setLineDash([]);
             c.fillStyle = accentPrimary;
-            c.font = `600 ${isMobile ? 9 : 10}px 'JetBrains Mono', monospace`;
+            c.font = `600 ${isMobile ? 9 : 10}px ${chartFont}`;
             c.textAlign = 'center';
             c.textBaseline = 'bottom';
             c.fillText('10h budget', xPos, chartArea.top - 4);
@@ -1112,14 +1086,14 @@ function createTimeSpentChart() {
                     display: false
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backgroundColor: chartTooltipBg,
                     padding: isMobile ? 8 : 12,
                     titleFont: {
-                        family: "'JetBrains Mono', monospace",
+                        family: chartFont,
                         size: isMobile ? 11 : fontSizes.tooltipTitle
                     },
                     bodyFont: {
-                        family: "'JetBrains Mono', monospace",
+                        family: chartFont,
                         size: isMobile ? 10 : fontSizes.tooltipBody
                     },
                     borderColor: accentPrimary,
@@ -1148,7 +1122,7 @@ function createTimeSpentChart() {
                         text: 'Time (hours)',
                         color: textPrimary,
                         font: {
-                            family: "'JetBrains Mono', monospace",
+                            family: chartFont,
                             size: fontSizes.axisTitle,
                             weight: 500
                         }
@@ -1159,7 +1133,7 @@ function createTimeSpentChart() {
                     ticks: {
                         color: textSecondary,
                         font: {
-                            family: "'JetBrains Mono', monospace",
+                            family: chartFont,
                             size: isMobile ? 9 : fontSizes.axisTicks
                         },
                         stepSize: isMobile ? 5 : 2
@@ -1175,7 +1149,7 @@ function createTimeSpentChart() {
                     ticks: {
                         color: 'transparent',
                         font: {
-                            family: "'JetBrains Mono', monospace",
+                            family: chartFont,
                             size: isMobile ? 9 : fontSizes.axisTicks
                         }
                     }
@@ -1351,28 +1325,6 @@ if (toggleTableBtn && leaderboardTable && mobileTableNotice) {
     });
 }
 
-// Navbar logo visibility based on hero section.
-// While the hero is on screen, the giant "PostTrainBench" title IS the
-// brand mark — repeating it in the navbar would be visual duplication.
-// We fade the nav logo in only after the hero scrolls off, so it picks
-// up where the hero left off.
-const logo = document.querySelector('.logo');
-const heroSection = document.querySelector('.hero');
-
-function handleNavbarLogoVisibility() {
-    if (!heroSection || !logo) return;
-    const heroBottom = heroSection.getBoundingClientRect().bottom;
-    if (heroBottom > 0) {
-        logo.style.opacity = '0';
-        logo.style.visibility = 'hidden';
-    } else {
-        logo.style.opacity = '1';
-        logo.style.visibility = 'visible';
-    }
-}
-
-window.addEventListener('scroll', handleNavbarLogoVisibility);
-
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
     // Load scores data from JSON
@@ -1389,7 +1341,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     createSimpleChart();
     createDetailedChart();
     createTimeSpentChart();
-    handleNavbarLogoVisibility(); // Set initial state based on scroll position
 
     // Toggle time chart between main agents and all agents
     const toggleBtn = document.getElementById('toggleTimeAgents');
