@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 990 265">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 220" role="img" aria-labelledby="pipeline-title pipeline-desc">
+  <title id="pipeline-title">PostTrainBench pipeline diagram</title>
+  <desc id="pipeline-desc">An agent post-trains a base LLM for 10 hours, submits a model through an anti-cheat gate, then clean submissions run through evaluation to produce a benchmark score. Cheating submissions receive the base LLM score.</desc>
   <defs>
     <style>
       @font-face {
@@ -9,110 +11,86 @@
         font-display: swap;
       }
 
-      .box1, .box2, .box-judge, .box-fail, .box-eval, .box-score {
-        fill: transparent;
-        stroke: #d6d2c8;
-        stroke-width: 1.5;
+      .node {
+        fill: #fff;
+        stroke: none;
       }
-      .box-fail { stroke: #E55F3F; }
-      .box-eval { stroke: #00A889; }
-      .box-score { stroke: #F5C710; }
 
-      .text, .text-small, .title1, .title2, .title-judge, .title-fail,
-      .title-eval, .title-score, .subtitle, .label-text, .label-text-pass,
-      .diamond-text, .brace-text, .brace-text-small, .subtitle-plain,
-      .annotation {
+      .arrow {
+        stroke: #aaa399;
+        stroke-width: 1.15;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        marker-end: url(#arrowhead);
+      }
+
+      .line {
+        stroke: #aaa399;
+        stroke-width: 1.15;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .title, .body, .note, .label {
         font-family: 'Die Grotesk', sans-serif;
       }
-      .text { font-size: 13px; fill: #57544f; }
-      .text-small { font-size: 12px; fill: #68645e; }
-      .title1, .title2, .title-judge { font-size: 14px; font-weight: 600; fill: #57544f; }
-      .title-fail { font-size: 14px; font-weight: 600; fill: #E55F3F; }
-      .title-eval { font-size: 14px; font-weight: 600; fill: #00866e; }
-      .title-score { font-size: 14px; font-weight: 600; fill: #766000; }
-      .subtitle { font-size: 12px; fill: #57544f; font-weight: 700; }
 
-      .arrow { stroke: #9e9a91; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
-      .arrow-fail { stroke: #E55F3F; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-fail); }
-      .arrow-pass { stroke: #00A889; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-pass); }
+      .title {
+        font-size: 13.5px;
+        font-weight: 500;
+        fill: #2d2a23;
+      }
 
-      .label-text { font-size: 11px; fill: #E55F3F; font-style: italic; font-weight: 600; }
-      .label-text-pass { font-size: 11px; fill: #00866e; font-style: italic; font-weight: 600; }
-      .diamond-text { font-size: 9px; fill: #68645e; }
+      .body, .note, .label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        fill: #6b655a;
+      }
 
-      .brace { stroke: #bdb8ae; stroke-width: 1.5; fill: none; }
-      .brace-text { font-size: 14px; fill: #57544f; }
-      .brace-text-small { font-size: 12px; fill: #68645e; }
-      .subtitle-plain { font-size: 11px; fill: #68645e; font-weight: 500; }
-      .annotation { font-size: 8px; fill: #68645e; font-style: italic; }
+      .label {
+        dominant-baseline: middle;
+      }
     </style>
-    <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#9e9a91" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-    </marker>
-    <marker id="arrowhead-fail" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#E55F3F" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-    </marker>
-    <marker id="arrowhead-pass" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <polyline points="1 1, 5 3, 1 5" fill="none" stroke="#00A889" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <marker id="arrowhead" markerWidth="5" markerHeight="5" refX="4.4" refY="2.5" orient="auto">
+      <polyline points="1.2 1.2, 4 2.5, 1.2 3.8" fill="none" stroke="#aaa399" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
 
-  <!-- Box 1: Agent post-trains LLM -->
-  <rect x="20" y="55" width="200" height="195" class="box1" rx="8"/>
-  <text x="120" y="82" class="title1" text-anchor="middle">Agent post-trains LLM</text>
-  <text x="38" y="108" class="subtitle">Inputs:</text>
-  <text x="38" y="128" class="text-small">• Benchmark script</text>
-  <text x="38" y="148" class="text-small">• Base LLM</text>
-  <text x="38" y="175" class="subtitle">Resources:</text>
-  <text x="38" y="195" class="text-small">• 10 hours on H100</text>
-  <text x="38" y="215" class="text-small">• Terminal access</text>
-  <text x="38" y="235" class="text-small">• Web search access</text>
+  <rect x="20" y="78" width="160" height="80" rx="9" class="node"/>
+  <text x="100" y="112" class="title" text-anchor="middle">Base LLM + script</text>
+  <text x="100" y="136" class="body" text-anchor="middle">10h · H100 · web</text>
 
-  <!-- Arrow 1 -->
-  <path d="M 220 150 L 244 150" class="arrow"/>
+  <path d="M 180 118 L 212 118" class="arrow"/>
 
-  <!-- Box 2: Agent produces -->
-  <rect x="250" y="115" width="160" height="70" class="box2" rx="8"/>
-  <text x="330" y="143" class="subtitle-plain" text-anchor="middle">Agent produces:</text>
-  <text x="330" y="166" class="title2" text-anchor="middle">Post-trained LLM</text>
+  <rect x="220" y="78" width="160" height="80" rx="9" class="node"/>
+  <text x="300" y="112" class="title" text-anchor="middle">Agent run</text>
+  <text x="300" y="136" class="body" text-anchor="middle">post-trained LLM</text>
 
-  <!-- Arrow 2 -->
-  <path d="M 410 150 L 424 150" class="arrow"/>
+  <path d="M 380 118 L 442 118" class="arrow"/>
 
-  <!-- Diamond: Anti-cheat Judge -->
-  <polygon points="520,48 612,150 520,252 428,150" class="box-judge"/>
-  <text x="520" y="132" class="title-judge" text-anchor="middle">Anti-cheat</text>
-  <text x="520" y="150" class="title-judge" text-anchor="middle">Judge</text>
-  <text x="520" y="170" class="diamond-text" text-anchor="middle">Allowed LLM submitted?</text>
-  <text x="520" y="185" class="diamond-text" text-anchor="middle">Data contamination?</text>
+  <rect x="464" y="82" width="72" height="72" rx="6" class="node" transform="rotate(45 500 118)"/>
+  <text x="500" y="123" class="title" text-anchor="middle">Cheat check</text>
 
-  <!-- Branch: Cheating detected (upward) -->
-  <path d="M 520 48 L 520 35 L 664 35" class="arrow-fail"/>
-  <text x="600" y="27" class="label-text">Cheating</text>
+  <path d="M 558 118 L 604 118" class="line"/>
+  <path d="M 604 118 L 604 78 L 612 78" class="arrow"/>
+  <text x="594" y="78" class="label" text-anchor="end">Cheating</text>
 
-  <!-- Box: Base LLM Score (left-aligned with Evaluation box) -->
-  <rect x="670" y="10" width="150" height="50" class="box-fail" rx="8"/>
-  <text x="745" y="41" class="title-fail" text-anchor="middle">Base LLM Score</text>
+  <rect x="620" y="52" width="160" height="52" rx="9" class="node"/>
+  <text x="700" y="83" class="title" text-anchor="middle">Base LLM Score</text>
 
-  <!-- Branch: No cheating (rightward) -->
-  <path d="M 612 150 L 664 150" class="arrow-pass"/>
-  <text x="620" y="140" class="label-text-pass">Clean</text>
+  <path d="M 604 118 L 604 156 L 612 156" class="arrow"/>
+  <text x="594" y="156" class="label" text-anchor="end">Clean</text>
 
-  <!-- Box: Evaluation -->
-  <rect x="670" y="115" width="150" height="70" class="box-eval" rx="8"/>
-  <text x="745" y="143" class="title-eval" text-anchor="middle">Evaluation</text>
-  <text x="745" y="166" class="text-small" text-anchor="middle">Run full benchmark</text>
+  <rect x="620" y="130" width="160" height="52" rx="9" class="node"/>
+  <text x="700" y="161" class="title" text-anchor="middle">Evaluation</text>
 
-  <!-- Arrow to final score -->
-  <path d="M 820 150 L 854 150" class="arrow"/>
+  <path d="M 780 156 L 812 156" class="arrow"/>
 
-  <!-- Box: Benchmark Score -->
-  <rect x="860" y="115" width="110" height="70" class="box-score" rx="8"/>
-  <text x="915" y="146" class="title-score" text-anchor="middle">Benchmark</text>
-  <text x="915" y="165" class="title-score" text-anchor="middle">Score<tspan baseline-shift="super" font-size="9px">†</tspan></text>
-
-  <!-- Annotation below Score box -->
-  <text x="915" y="212" class="annotation" text-anchor="middle"><tspan baseline-shift="super" font-size="7px">†</tspan>Averaged across</text>
-  <text x="915" y="224" class="annotation" text-anchor="middle">4 LLMs × 7 benchmarks</text>
+  <rect x="820" y="130" width="160" height="52" rx="9" class="node"/>
+  <text x="900" y="161" class="title" text-anchor="middle">Benchmark Score</text>
 
 </svg>

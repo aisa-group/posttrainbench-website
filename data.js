@@ -6,7 +6,6 @@ let timeData = {};
 let taskData = [];
 let leaderboardData = [];
 let timeSpentData = [];
-let statistics = {};
 
 function calculateWeightedAverage(agentKey) {
     const benchmarks = Object.keys(benchmarkWeights);
@@ -24,18 +23,6 @@ function calculateWeightedAverage(agentKey) {
     });
 
     return (totalWeightedSum / modelCount).toFixed(2);
-}
-
-function calculateWeightedAverageForModel(agentKey, modelName) {
-    const benchmarks = Object.keys(benchmarkWeights);
-    let weightedSum = 0;
-
-    benchmarks.forEach(benchmark => {
-        const score = modelBenchmarkData[agentKey][modelName][benchmark].value;
-        weightedSum += score * benchmarkWeights[benchmark];
-    });
-
-    return weightedSum.toFixed(2);
 }
 
 function calculateWeightedAverageStd(agentKey) {
@@ -136,15 +123,6 @@ function buildTaskData() {
     }));
 }
 
-function buildStatistics() {
-    statistics = {
-        totalBenchmarks: taskData.length,
-        totalAgents: leaderboardData.filter(e => !e.isBaseline && !e.isOpenCode).length,
-        totalModels: setupInfo.models.length,
-        timeLimit: setupInfo.timeLimit
-    };
-}
-
 function buildTimeSpentData() {
     timeSpentData = Object.entries(timeData)
         .filter(([key]) => agentInfo[key])
@@ -177,7 +155,6 @@ async function loadScoresData() {
 
         buildLeaderboardData();
         buildTaskData();
-        buildStatistics();
         buildTimeSpentData();
 
         return true;

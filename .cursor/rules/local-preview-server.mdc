@@ -1,0 +1,11 @@
+---
+description: Local preview server workflow for this static site
+alwaysApply: true
+---
+
+# Local Preview Server
+
+- This repo is a static site. Use `python3 scripts/serve_local.py` from the repo root to preview it locally.
+- The helper binds to `127.0.0.1`, chooses an available port starting at `58926`, disables browser caching for CSS/JS, and prints the URL.
+- Prefer this helper over raw `python3 -m http.server` so future sessions do not pile up stale servers or fixed-port conflicts.
+- If a server from this helper is already running, the next run reuses it and prints its URL. Use `python3 scripts/serve_local.py --restart` only when a fresh process is needed.

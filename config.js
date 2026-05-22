@@ -2,15 +2,6 @@
 
 // Models used in benchmarks
 const baseModels = ["Qwen3-1.7B-Base", "Qwen3-4B-Base", "SmolLM3-3B-Base", "gemma-3-4b-pt"];
-const humanModels = ["Qwen3-1.7B", "Qwen3-4B", "SmolLM3-3B", "gemma-3-4b-it"];
-
-// Display names for models in dropdown
-const modelDisplayNames = {
-    "Qwen3-1.7B-Base": "Qwen3-1.7B",
-    "Qwen3-4B-Base": "Qwen3-4B",
-    "SmolLM3-3B-Base": "SmolLM3-3B",
-    "gemma-3-4b-pt": "Gemma-3-4B"
-};
 
 // Agents to show in main chart (others appear in table only)
 const chartAgentKeys = [
@@ -139,10 +130,3 @@ const benchmarkInfo = {
     humaneval: { title: "HumanEval", version: "", difficulty: "medium", category: "Coding", description: "Evaluates code generation capabilities through hand-written programming problems." }
 };
 
-// Training setup information
-const setupInfo = {
-    models: ["Qwen3 1.7B", "Qwen3 4B", "SmolLM3 3B", "Gemma 3 4B"],
-    hardware: "H100 GPU",
-    timeLimit: "10 hours",
-    modelsPerAgent: 4
-};

@@ -5,11 +5,12 @@
 
 
 ```bash
-# Start local server
-python3 -m http.server 8000
+# Start local server on an available localhost port
+python3 scripts/serve_local.py
 
-# Open in browser
-open http://localhost:8000
+# The script prints the URL and stores it in .local-server.url.
+# If a helper server is already running, it reuses that server.
+python3 scripts/serve_local.py --restart  # force a fresh server process
 ```
 
 

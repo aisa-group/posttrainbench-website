@@ -6,32 +6,80 @@ if (typeof ChartDataLabels !== 'undefined') {
 
 // Global chart instances
 let performanceChart = null;
-let detailedChart = null;
 
 // Hamburger Menu Toggle
 const hamburgerBtn = document.getElementById('hamburger-btn');
 const navLinks = document.getElementById('nav-links');
+const navbar = document.querySelector('.navbar');
 
-hamburgerBtn.addEventListener('click', () => {
-    hamburgerBtn.classList.toggle('active');
-    navLinks.classList.toggle('active');
-});
+if (navbar) {
+    const hideThreshold = 96;
+    let lastScrollY = Math.max(window.scrollY, 0);
+    let ticking = false;
 
-// Close menu when clicking a link
-navLinks.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => {
-        hamburgerBtn.classList.remove('active');
-        navLinks.classList.remove('active');
+    const updateNavbarVisibility = () => {
+        const currentScrollY = Math.max(window.scrollY, 0);
+        const scrollingUp = currentScrollY < lastScrollY;
+        const scrollingDown = currentScrollY > lastScrollY;
+        const pastThreshold = currentScrollY > hideThreshold;
+        const menuOpen = hamburgerBtn?.classList.contains('active');
+
+        if (!pastThreshold || scrollingUp || menuOpen) {
+            navbar.classList.remove('navbar-hidden');
+        } else if (scrollingDown) {
+            navbar.classList.add('navbar-hidden');
+        }
+
+        lastScrollY = currentScrollY;
+        ticking = false;
+    };
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(updateNavbarVisibility);
+            ticking = true;
+        }
+    }, { passive: true });
+}
+
+if (hamburgerBtn && navLinks) {
+    const mobileNavQuery = window.matchMedia('(max-width: 767px)');
+
+    const syncNavAccessibility = () => {
+        if (mobileNavQuery.matches) {
+            navLinks.setAttribute('aria-hidden', String(!hamburgerBtn.classList.contains('active')));
+        } else {
+            navLinks.removeAttribute('aria-hidden');
+        }
+    };
+
+    const setNavOpen = (isOpen) => {
+        hamburgerBtn.classList.toggle('active', isOpen);
+        navLinks.classList.toggle('active', isOpen);
+        hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
+        hamburgerBtn.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
+        syncNavAccessibility();
+    };
+
+    syncNavAccessibility();
+    mobileNavQuery.addEventListener('change', syncNavAccessibility);
+
+    hamburgerBtn.addEventListener('click', () => {
+        setNavOpen(!hamburgerBtn.classList.contains('active'));
     });
-});
 
-// Close menu when clicking outside
-document.addEventListener('click', (e) => {
-    if (!hamburgerBtn.contains(e.target) && !navLinks.contains(e.target)) {
-        hamburgerBtn.classList.remove('active');
-        navLinks.classList.remove('active');
-    }
-});
+    // Close menu when clicking a link
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => setNavOpen(false));
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!hamburgerBtn.contains(e.target) && !navLinks.contains(e.target)) {
+            setNavOpen(false);
+        }
+    });
+}
 
 // Theme Toggle
 const themeToggle = document.getElementById('theme-toggle');
@@ -51,11 +99,7 @@ themeToggle.addEventListener('click', () => {
     // Recreate charts with new theme colors
     if (performanceChart) {
         performanceChart.destroy();
-        createSimpleChart(currentSelectedModel);
-    }
-    if (detailedChart) {
-        detailedChart.destroy();
-        createDetailedChart(currentSelectedModel, currentSelectedBenchmark);
+        createSimpleChart();
     }
     if (timeSpentChart) {
         timeSpentChart.destroy();
@@ -63,64 +107,11 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
-// Map dropdown display values to actual model names in data
-const modelNameMap = {
-    "Qwen3-1.7B": "Qwen3-1.7B-Base",
-    "Qwen3-4B": "Qwen3-4B-Base",
-    "SmolLM3-3B": "SmolLM3-3B-Base",
-    "Gemma-3-4B": "gemma-3-4b-pt"
-};
-
-// Get leaderboard data for specific model or average
-function getLeaderboardDataForModel(modelName) {
-    if (modelName === "average") {
-        return leaderboardData;
-    }
-
-    // Map display name to actual model name
-    const actualModelName = modelNameMap[modelName] || modelName;
-
-    // Create data for specific model
-    const modelData = leaderboardData.map(entry => {
-        const modelScores = modelBenchmarkData[entry.agentKey][actualModelName];
-        // Convert to the expected format with values and fallback types
-        const benchmarkScoresForDisplay = {};
-        Object.keys(modelScores).forEach(key => {
-            benchmarkScoresForDisplay[key] = {
-                value: modelScores[key].value.toFixed(2),
-                fallbackType: modelScores[key].fallbackType
-            };
-        });
-        return {
-            agentKey: entry.agentKey,
-            agent: entry.agent,
-            averageScore: calculateWeightedAverageForModel(entry.agentKey, actualModelName),
-            stdDev: entry.stdDev,
-            benchmarkScores: benchmarkScoresForDisplay,
-            description: entry.description,
-            isBaseline: entry.isBaseline,
-            isOpenCode: entry.isOpenCode,
-            scaffold: entry.scaffold,
-            reasoningEffort: entry.reasoningEffort,
-            showInChart: entry.showInChart
-        };
-    });
-
-    // Sort and rank (baselines get no rank)
-    let agentRank = 1;
-    return modelData
-        .sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore))
-        .map(entry => ({
-            ...entry,
-            rank: entry.isBaseline ? null : agentRank++
-        }));
-}
-
 // Get heatmap color from the displayed percentage.
 // Example: 51.14% renders as sky blue at 51.14% opacity.
 function getHeatmapColor(percentage) {
     const alpha = Math.max(0, Math.min(100, percentage)) / 100;
-    return `rgba(86, 180, 233, ${alpha.toFixed(4)})`;
+    return `rgba(84, 193, 240, ${alpha.toFixed(4)})`;
 }
 
 // Helper to get value from benchmark score (handles both old and new format)
@@ -129,6 +120,64 @@ function getBenchmarkValue(score) {
         return parseFloat(score.value);
     }
     return parseFloat(score);
+}
+
+const colorProbe = document.createElement('span');
+
+function getCssVar(style, name, fallback = '') {
+    return style.getPropertyValue(name).trim() || fallback;
+}
+
+function resolveCssColor(rawColor, fallback) {
+    colorProbe.style.color = '';
+    colorProbe.style.color = rawColor || fallback;
+    document.body.appendChild(colorProbe);
+    const resolved = getComputedStyle(colorProbe).color;
+    colorProbe.remove();
+    return resolved || rawColor || fallback;
+}
+
+function getCssColor(style, name, fallback) {
+    return resolveCssColor(getCssVar(style, name, fallback), fallback);
+}
+
+function getChartTheme() {
+    const style = getComputedStyle(document.documentElement);
+    const dataviz = Array.from({ length: 8 }, (_, index) =>
+        getCssColor(style, `--color-dataviz-${index + 1}`, '#0072B2')
+    );
+
+    return {
+        textPrimary: getCssColor(style, '--text-primary', '#2d2a23'),
+        textSecondary: getCssColor(style, '--dl-text-tertiary', getCssVar(style, '--text-secondary', '#6b655a')),
+        accentPrimary: getCssColor(style, '--accent-primary', '#0072B2'),
+        borderColor: getCssColor(style, '--chart-grid-color', 'rgba(53, 52, 49, 0.14)'),
+        chartFont: getCssVar(style, '--font-sans', "'Die Grotesk', sans-serif"),
+        chartTooltipBg: getCssColor(style, '--chart-tooltip-bg', 'rgba(250, 248, 243, 0.96)'),
+        chartTooltipText: getCssColor(style, '--chart-tooltip-text', '#2d2a23'),
+        chartTooltipMuted: getCssColor(style, '--chart-tooltip-muted', '#57544f'),
+        chartTooltipBorder: getCssColor(style, '--chart-tooltip-border', 'rgba(144, 141, 134, 0.32)'),
+        chartLabelOnBar: getCssColor(style, '--chart-label-on-bar', '#ffffff'),
+        chartError: getCssColor(style, '--chart-error', '#908d86'),
+        chartStripe: getCssColor(style, '--chart-stripe', 'rgba(255, 255, 255, 0.42)'),
+        chartBar: getCssColor(style, '--chart-bar', dataviz[0]),
+        chartBarBaseline1: getCssColor(style, '--chart-bar-baseline-1', dataviz[7]),
+        chartBarBaseline2: getCssColor(style, '--chart-bar-baseline-2', dataviz[7]),
+        dataviz
+    };
+}
+
+const REPROMPTED_TOOLTIP = 'Reprompted: manually prompted to continue after stopping early.';
+
+function isReprompted(entry) {
+    return Boolean(entry?.reasoningEffort?.includes('Reprompted'));
+}
+
+function withRepromptedTooltip(label, entry) {
+    if (!isReprompted(entry)) return label;
+    return Array.isArray(label)
+        ? [...label, REPROMPTED_TOOLTIP]
+        : [label, REPROMPTED_TOOLTIP];
 }
 
 // Helper to get fallback type from benchmark score
@@ -172,14 +221,11 @@ function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
 }
 
 // Populate Leaderboard
-function populateLeaderboard(modelName = "average") {
+function populateLeaderboard() {
     const tbody = document.getElementById('leaderboard-data');
     tbody.innerHTML = ''; // Clear existing data
 
-    const data = getLeaderboardDataForModel(modelName);
-
-    // Only show markers in model-specific view, not average
-    const showMarkers = modelName !== "average";
+    const data = leaderboardData;
 
     data.forEach(entry => {
         const row = document.createElement('tr');
@@ -209,18 +255,14 @@ function populateLeaderboard(modelName = "average") {
 
         // Format std display (only show if available)
         const stdDisplay = entry.stdDev ? `<span class="std-value">± ${entry.stdDev}%</span>` : '';
-        // Show std for benchmarks in average view (when showMarkers is false)
-        const showStd = !showMarkers;
+        const showMarkers = false;
+        const showStd = true;
 
         // Format agent name - put scaffold name on separate line with smaller styling
-        let displayAgent = entry.agent;
-        if (entry.agent === 'Official Instruct Models' && modelName !== 'average') {
-            displayAgent = 'Official Instruct Model';
-        }
-        let agentNameHtml = displayAgent;
+        let agentNameHtml = entry.agent;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
-            agentNameHtml = `${displayAgent}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
+            agentNameHtml = `${entry.agent}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
         }
 
         row.innerHTML = `
@@ -266,20 +308,6 @@ function populateTasks() {
     });
 }
 
-// Populate Statistics
-function populateStatistics() {
-    // Check if elements exist before updating (in case stats section is removed)
-    const benchmarksEl = document.getElementById('total-benchmarks');
-    const agentsEl = document.getElementById('total-agents');
-    const modelsEl = document.getElementById('total-models');
-    const timeLimitEl = document.getElementById('time-limit');
-
-    if (benchmarksEl) benchmarksEl.textContent = statistics.totalBenchmarks;
-    if (agentsEl) agentsEl.textContent = statistics.totalAgents;
-    if (modelsEl) modelsEl.textContent = statistics.totalModels;
-    if (timeLimitEl) timeLimitEl.textContent = statistics.timeLimit;
-}
-
 // Calculate adaptive font sizes based on chart dimensions
 function calculateFontSizes(canvas) {
     const width = canvas.offsetWidth || canvas.width;
@@ -294,28 +322,35 @@ function calculateFontSizes(canvas) {
 
     // Calculate sizes - mobile gets good base sizes, desktop scales up more
     return {
-        tooltipTitle: Math.max(14, Math.round(baseSize * 0.028 * scale)),
-        tooltipBody: Math.max(13, Math.round(baseSize * 0.026 * scale)),
+        tooltipTitle: isMobile ? 11 : 12,
+        tooltipBody: isMobile ? 10 : 11,
         axisTitle: Math.max(13, Math.round(baseSize * 0.026 * scale)),
         axisTicks: Math.max(11, Math.round(baseSize * 0.020 * scale)),
         legend: Math.max(12, Math.round(baseSize * 0.022 * scale))
     };
 }
 
-// Create Simple Performance Chart (average view)
-function createSimpleChart(modelName = "average") {
+// Create Simple Performance Chart
+function createSimpleChart() {
     const ctx = document.getElementById('performanceChart');
 
     // Get theme colors
-    const style = getComputedStyle(document.documentElement);
-    const textPrimary = style.getPropertyValue('--text-primary').trim();
-    const textSecondary = style.getPropertyValue('--text-secondary').trim();
-    const accentPrimary = style.getPropertyValue('--accent-primary').trim();
-    const borderColor = style.getPropertyValue('--border-color').trim();
-    const chartFont = style.getPropertyValue('--font-sans').trim() || "'Die Grotesk', sans-serif";
-    const chartTooltipBg = style.getPropertyValue('--chart-tooltip-bg').trim() || 'rgba(31, 30, 28, 0.88)';
-    const chartLabelOnBar = style.getPropertyValue('--chart-label-on-bar').trim() || '#ffffff';
-    const chartError = style.getPropertyValue('--chart-error').trim() || '#5F5C56';
+    const {
+        textPrimary,
+        textSecondary,
+        borderColor,
+        chartFont,
+        chartTooltipBg,
+        chartTooltipText,
+        chartTooltipMuted,
+        chartTooltipBorder,
+        chartLabelOnBar,
+        chartError,
+        chartStripe,
+        chartBar,
+        chartBarBaseline1,
+        chartBarBaseline2
+    } = getChartTheme();
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
@@ -334,11 +369,8 @@ function createSimpleChart(modelName = "average") {
         footnotes.forEach(fn => fn.style.width = '');
     }
 
-    // Get data for selected model
-    const allData = getLeaderboardDataForModel(modelName);
-
     // Filter to only show agents that should appear in chart
-    const data = allData.filter(d => d.showInChart !== false);
+    const data = leaderboardData.filter(d => d.showInChart !== false);
 
     // Reverse order for chart (ascending - lowest to highest)
     const reversedData = [...data].reverse();
@@ -387,7 +419,7 @@ function createSimpleChart(modelName = "average") {
         const pctx = patternCanvas.getContext('2d');
         pctx.fillStyle = color;
         pctx.fillRect(0, 0, 10, 10);
-        pctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        pctx.strokeStyle = chartStripe;
         pctx.lineWidth = 2;
         pctx.beginPath();
         pctx.moveTo(0, 10);
@@ -403,10 +435,6 @@ function createSimpleChart(modelName = "average") {
         pctx.stroke();
         return ctx.getContext('2d').createPattern(patternCanvas, 'repeat');
     };
-
-    const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
-    const chartBarBaseline1 = style.getPropertyValue('--chart-bar-baseline-1').trim() || '#9a9590';
-    const chartBarBaseline2 = style.getPropertyValue('--chart-bar-baseline-2').trim() || '#6b655a';
 
     const chartColors = reversedData.map(d => {
         if (d.agent === 'Base Models') return chartBarBaseline1;
@@ -477,8 +505,9 @@ function createSimpleChart(modelName = "average") {
                 data: reversedData.map(d => parseFloat(d.averageScore)),
                 backgroundColor: chartColors,
                 borderColor: chartColors,
-                borderWidth: isMobile ? 1 : 2,
-                borderRadius: isMobile ? 2 : 4,
+                borderWidth: 0,
+                borderRadius: isMobile ? 4 : 8,
+                borderSkipped: false,
                 barPercentage: isMobile ? 0.7 : 0.8,
                 categoryPercentage: isMobile ? 0.8 : 0.9
             }]
@@ -493,28 +522,40 @@ function createSimpleChart(modelName = "average") {
                 },
                 tooltip: {
                     backgroundColor: chartTooltipBg,
+                    titleColor: chartTooltipText,
+                    bodyColor: chartTooltipMuted,
+                    borderColor: chartTooltipBorder,
+                    borderWidth: 1,
+                    cornerRadius: 10,
+                    displayColors: false,
                     padding: 12,
+                    titleMarginBottom: 8,
                     titleFont: {
                         family: chartFont,
-                        size: fontSizes.tooltipTitle
+                        size: fontSizes.tooltipTitle,
+                        weight: 500
                     },
                     bodyFont: {
                         family: chartFont,
                         size: fontSizes.tooltipBody
                     },
-                    borderColor: accentPrimary,
-                    borderWidth: 1,
                     callbacks: {
                         label: function(context) {
                             const std = errorBars[context.dataIndex];
                             const stdText = std ? ` ± ${std}%` : '';
-                            return `Average Score: ${context.parsed.y.toFixed(1)}%${stdText}`;
+                            const label = `Average Score: ${context.parsed.y.toFixed(1)}%${stdText}`;
+                            return withRepromptedTooltip(label, reversedData[context.dataIndex]);
                         }
                     }
                 },
                 datalabels: {
                     display: !isMobile,
-                    color: chartLabelOnBar,
+                    color: function(context) {
+                        const entry = reversedData[context.dataIndex];
+                        return entry.agent === 'Base Models' || entry.agent === 'Official Instruct Models'
+                            ? chartLabelOnBar
+                            : textPrimary;
+                    },
                     anchor: 'start',
                     align: 'end',
                     offset: 4,
@@ -543,13 +584,19 @@ function createSimpleChart(modelName = "average") {
                         }
                     },
                     grid: {
-                        color: borderColor
+                        color: borderColor,
+                        drawTicks: false
+                    },
+                    border: {
+                        display: false
                     },
                     ticks: {
                         color: textSecondary,
+                        padding: 8,
                         font: {
                             family: chartFont,
-                            size: isMobile ? 9 : fontSizes.axisTicks
+                            size: isMobile ? 9 : fontSizes.axisTicks,
+                            weight: 500
                         },
                         stepSize: isMobile ? 20 : 10,
                         callback: function(value) {
@@ -560,8 +607,7 @@ function createSimpleChart(modelName = "average") {
                 },
                 x: {
                     title: {
-                        display: !isMobile,
-                        text: 'LLM powering the CLI agent',
+                        display: false,
                         color: textPrimary,
                         font: {
                             family: chartFont,
@@ -572,11 +618,16 @@ function createSimpleChart(modelName = "average") {
                     grid: {
                         display: false
                     },
+                    border: {
+                        display: false
+                    },
                     ticks: {
                         color: textSecondary,
+                        padding: 8,
                         font: {
                             family: chartFont,
-                            size: isMobile ? 9 : Math.max(9, fontSizes.axisTicks - 1)
+                            size: isMobile ? 9 : Math.max(9, fontSizes.axisTicks - 1),
+                            weight: 500
                         },
                         maxRotation: isMobile ? 55 : 0,
                         minRotation: isMobile ? 55 : 0,
@@ -602,269 +653,363 @@ const benchmarkDisplayNames = {
     'humaneval': 'HumanEval'
 };
 
-// Create Detailed Chart (grouped by benchmark on desktop, single benchmark on mobile)
-function createDetailedChart(modelName = "average", benchmarkKey = null) {
+// Create Detailed Chart (dot plot matrix on desktop, single-benchmark dot plot on mobile)
+function createDetailedChart(benchmarkKey = null) {
     const ctx = document.getElementById('detailedChart');
 
     // Get theme colors
-    const style = getComputedStyle(document.documentElement);
-    const textPrimary = style.getPropertyValue('--text-primary').trim();
-    const textSecondary = style.getPropertyValue('--text-secondary').trim();
-    const accentPrimary = style.getPropertyValue('--accent-primary').trim();
-    const borderColor = style.getPropertyValue('--border-color').trim();
-    const chartFont = style.getPropertyValue('--font-sans').trim() || "'Die Grotesk', sans-serif";
-    const chartTooltipBg = style.getPropertyValue('--chart-tooltip-bg').trim() || 'rgba(31, 30, 28, 0.88)';
+    const {
+        textPrimary,
+        textSecondary,
+        borderColor,
+        chartFont,
+        chartTooltipBg,
+        chartTooltipText,
+        chartTooltipMuted,
+        chartTooltipBorder,
+        chartDot,
+        chartDotReference,
+        chartDotReferenceStrong,
+        chartLaneGuide,
+        chartLaneFill,
+        chartWinnerLabel
+    } = getChartTheme();
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
 
     // Set wrapper dimensions based on screen size
     const wrapper = ctx.closest('.leaderboard-chart-wrapper');
+    const data = leaderboardData.filter(d => d.showInChart !== false);
+    const orderedData = [...data].sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore));
+    const fontSizes = calculateFontSizes(ctx);
+    const axisTickSize = isMobile ? 9 : 11;
+    const tooltipTitleSize = fontSizes.tooltipTitle;
+    const tooltipBodySize = fontSizes.tooltipBody;
+
     if (isMobile) {
         wrapper.style.minWidth = '';
-        wrapper.style.height = '300px';
+        wrapper.style.height = `${Math.max(360, orderedData.length * 26 + 96)}px`;
     } else {
         wrapper.style.minWidth = '';
-        wrapper.style.height = '';
+        wrapper.style.height = `${Math.max(540, orderedData.length * 32 + 128)}px`;
     }
 
-    const agentColors = {
-        'human': '#5F5C56',
-        'base-model': '#9E9B94',
-        'gpt-5.1-codex-max': '#0072B2',
-        'gpt-5.2': '#56B4E9',
-        'gpt-5.2-codex': '#00A889',
-        'gpt-5.3-codex-high': '#0072B2',
-        'gpt-5.3-codex-med': '#56B4E9',
-        'gpt-5.4-high': '#00A889',
-        'opus-4.5': '#E69F00',
-        'opus-4.6': '#E55F3F',
-        'opus-4.6-1m': '#CC79A7',
-        'opus-4.7': '#F5C710',
-        'sonnet-4.5': '#E69F00',
-        'sonnet-4.6': '#E55F3F',
-        'gemini-3-pro': '#56B4E9',
-        'gemini-3.1-pro': '#0072B2',
-        'glm-4.7': '#00A889',
-        'glm-5': '#00A889',
-        'minimax-m2.1': '#CC79A7',
-        'minimax-m2.5': '#CC79A7',
-        'kimi-k2.5': '#F5C710',
-        'gpt-5.5-xhigh': '#0072B2',
-        'gpt-5.5-xhigh-reprompted': '#56B4E9'
+    const theme = {
+        chartDot,
+        chartDotReference,
+        chartDotReferenceStrong
     };
 
-    const allData = getLeaderboardDataForModel(modelName);
-    const data = allData.filter(d => d.showInChart !== false);
+    const benchmarkMeta = [
+        { label: 'AIME 2025', key: 'aime2025' },
+        { label: 'Arena Hard', key: 'arenahardwriting' },
+        { label: 'BFCL', key: 'bfcl' },
+        { label: 'GPQA Main', key: 'gpqamain' },
+        { label: 'GSM8K', key: 'gsm8k' },
+        { label: 'HealthBench', key: 'healthbench' },
+        { label: 'HumanEval', key: 'humaneval' }
+    ];
 
-    const fontSizes = calculateFontSizes(ctx);
+    const fallbackLabel = fallbackType => {
+        if (fallbackType === 'not_stored') return 'Model not submitted - base model score shown';
+        if (fallbackType === 'error') return 'Evaluation error - base model score shown';
+        return null;
+    };
 
     if (isMobile) {
-        // Mobile: Single benchmark, agents on X-axis
+        // Mobile: Single benchmark, agents on Y-axis and score on X-axis.
         const selectedBenchmark = benchmarkKey || currentSelectedBenchmark;
+        const benchmark = benchmarkMeta.find(item => item.key === selectedBenchmark) || benchmarkMeta[0];
 
-        // Sort by the selected benchmark score ascending (lowest to highest)
-        const orderedData = [...data].sort((a, b) => {
+        const mobileData = [...data].sort((a, b) => {
             const scoreA = getBenchmarkValue(a.benchmarkScores[selectedBenchmark]);
             const scoreB = getBenchmarkValue(b.benchmarkScores[selectedBenchmark]);
-            return scoreA - scoreB;
+            return scoreB - scoreA;
         });
 
-        const scores = orderedData.map(entry => getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]));
-        const labels = orderedData.map(d => d.agent);
-        const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
-        const chartBarBaseline1 = style.getPropertyValue('--chart-bar-baseline-1').trim() || '#9a9590';
-        const chartBarBaseline2 = style.getPropertyValue('--chart-bar-baseline-2').trim() || '#6b655a';
-
-        const colors = orderedData.map(d => {
-            if (d.agentKey === 'base-model') return chartBarBaseline1;
-            if (d.agentKey === 'human') return chartBarBaseline2;
-            return chartBar;
+        const points = mobileData.map((entry, agentIndex) => {
+            const score = getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]);
+            return {
+                x: score,
+                y: agentIndex,
+                score,
+                benchmark,
+                entry,
+                fallbackType: getFallbackType(entry.benchmarkScores[selectedBenchmark])
+            };
         });
-
-        const maxScore = Math.max(...scores);
-        const yAxisMax = Math.ceil(maxScore / 10) * 10 + 10;
+        const highlightCandidates = points.filter(canHighlightDetailedPoint);
+        const topMobileScore = highlightCandidates.length
+            ? Math.max(...highlightCandidates.map(point => point.score))
+            : null;
+        points.forEach(point => {
+            point.isWinner = topMobileScore !== null && canHighlightDetailedPoint(point) && point.score === topMobileScore;
+        });
 
         detailedChart = new Chart(ctx, {
-            type: 'bar',
+            type: 'scatter',
             data: {
-                labels: labels,
-                datasets: [{
-                    label: benchmarkDisplayNames[selectedBenchmark],
-                    data: scores,
-                    backgroundColor: colors,
-                    borderColor: colors,
-                    borderWidth: 1,
-                    borderRadius: 3,
-                    barPercentage: 0.7,
-                    categoryPercentage: 0.85
-                }]
+                datasets: [createDetailedScatterDataset(points, theme, {
+                    label: benchmarkDisplayNames[selectedBenchmark]
+                })]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: prefersReducedMotion() ? 0 : 420,
+                    easing: 'easeOutQuart'
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
                         backgroundColor: chartTooltipBg,
-                        padding: 8,
-                        titleFont: { family: chartFont, size: 11 },
-                        bodyFont: { family: chartFont, size: 10 },
-                        borderColor: accentPrimary,
+                        titleColor: chartTooltipText,
+                        bodyColor: chartTooltipMuted,
+                        borderColor: chartTooltipBorder,
                         borderWidth: 1,
+                        cornerRadius: 10,
+                        displayColors: false,
+                        padding: 8,
+                        titleFont: { family: chartFont, size: 10, weight: 500 },
+                        bodyFont: { family: chartFont, size: 9 },
                         callbacks: {
+                            title: function(context) {
+                                return context[0]?.raw?.benchmark?.label || benchmarkDisplayNames[selectedBenchmark];
+                            },
                             label: function(context) {
-                                return `${context.parsed.y.toFixed(2)}%`;
+                                const raw = context.raw;
+                                const label = `${formatDetailedAgentLabel(raw.entry)}: ${raw.score.toFixed(2)}%`;
+                                return withRepromptedTooltip(label, raw.entry);
+                            },
+                            afterLabel: function(context) {
+                                return fallbackLabel(context.raw?.fallbackType);
                             }
                         }
                     },
                     datalabels: { display: false }
                 },
                 scales: {
-                    y: {
+                    x: {
                         beginAtZero: true,
-                        max: yAxisMax,
-                        title: { display: false },
-                        grid: { color: borderColor },
+                        min: 0,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Benchmark Score (%)',
+                            color: textPrimary,
+                            font: { family: chartFont, size: 11, weight: 500 }
+                        },
+                        grid: {
+                            color: borderColor,
+                            drawTicks: false,
+                            borderDash: [2, 4]
+                        },
+                        border: { display: false },
                         ticks: {
                             color: textSecondary,
-                            font: { family: chartFont, size: 9 },
+                            padding: 8,
+                            font: { family: chartFont, size: axisTickSize, weight: 500 },
                             stepSize: 20,
                             callback: value => value + '%'
                         }
                     },
-                    x: {
+                    y: {
+                        min: -0.5,
+                        max: mobileData.length - 0.5,
+                        reverse: true,
+                        afterBuildTicks: axis => {
+                            axis.ticks = mobileData.map((_, index) => ({ value: index }));
+                        },
+                        afterFit: scale => {
+                            scale.width = Math.min(scale.width, 112);
+                        },
                         title: { display: false },
-                        grid: { display: false },
+                        grid: {
+                            color: borderColor,
+                            drawTicks: false,
+                            borderDash: [2, 4]
+                        },
+                        border: { display: false },
                         ticks: {
                             color: textSecondary,
-                            font: { family: chartFont, size: 9 },
-                            maxRotation: 55,
-                            minRotation: 55
+                            padding: 8,
+                            font: { family: chartFont, size: axisTickSize, weight: 500 },
+                            callback: value => {
+                                const index = Math.round(value);
+                                return mobileData[index] ? formatCompactAgentLabel(mobileData[index]) : '';
+                            }
                         }
                     }
                 }
             }
         });
     } else {
-        // Desktop: Grouped bar chart - benchmarks on X-axis, agents as different bars
-        const benchmarks = ['AIME 2025', 'Arena Hard', 'BFCL', 'GPQA Main', 'GSM8K', 'HealthBench', 'HumanEval'];
-        const benchmarkKeys = ['aime2025', 'arenahardwriting', 'bfcl', 'gpqamain', 'gsm8k', 'healthbench', 'humaneval'];
+        // Desktop: benchmark lanes with each score positioned inside its lane.
+        const layout = {
+            laneWidth: 116,
+            scoreWidth: 92,
+            lanePadding: 12
+        };
+        const points = [];
+        const winners = [];
 
-        // Sort by average score ascending (lowest to highest, like main chart)
-        const orderedData = [...data].sort((a, b) => parseFloat(a.averageScore) - parseFloat(b.averageScore));
+        benchmarkMeta.forEach((benchmark, benchmarkIndex) => {
+            let winner = null;
 
-        const datasets = orderedData.map(entry => ({
-            label: entry.reasoningEffort ? `${entry.agent} (${entry.reasoningEffort})` : entry.agent,
-            data: benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key])),
-            backgroundColor: agentColors[entry.agentKey] || accentPrimary,
-            borderColor: agentColors[entry.agentKey] || accentPrimary,
-            borderWidth: 1,
-            borderRadius: 4,
-            barPercentage: 0.8,
-            categoryPercentage: 0.9
-        }));
+            orderedData.forEach((entry, agentIndex) => {
+                const score = getBenchmarkValue(entry.benchmarkScores[benchmark.key]);
+                const point = createDetailedPoint(entry, benchmark, benchmarkIndex, agentIndex, score, layout);
+                points.push(point);
 
-        const maxScore = Math.max(...orderedData.flatMap(entry =>
-            benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key]))
-        ));
-        const yAxisMax = Math.ceil(maxScore / 10) * 10;
+                if (canHighlightDetailedPoint(point) && (!winner || point.score > winner.score)) {
+                    winner = point;
+                }
+            });
+
+            if (winner) winners.push(winner);
+        });
+        winners.forEach(point => {
+            point.isWinner = true;
+        });
 
         detailedChart = new Chart(ctx, {
-            type: 'bar',
+            type: 'scatter',
             data: {
-                labels: benchmarks,
-                datasets: datasets
+                datasets: [createDetailedScatterDataset(points, theme)]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: prefersReducedMotion() ? 0 : 520,
+                    easing: 'easeOutQuart'
+                },
                 plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        align: 'center',
-                        labels: {
-                            color: textPrimary,
-                            font: { family: chartFont, size: fontSizes.legend },
-                            padding: 15,
-                            boxWidth: 14,
-                            boxHeight: 14
-                        }
+                    legend: { display: false },
+                    detailedDotPlotGuides: {
+                        benchmarks: benchmarkMeta,
+                        layout,
+                        winners,
+                        laneGuideColor: chartLaneGuide,
+                        laneFillColor: chartLaneFill,
+                        winnerLabelColor: chartWinnerLabel,
+                        font: chartFont,
+                        labelSize: 10
                     },
                     tooltip: {
                         backgroundColor: chartTooltipBg,
-                        padding: 12,
-                        titleFont: { family: chartFont, size: fontSizes.tooltipTitle },
-                        bodyFont: { family: chartFont, size: fontSizes.tooltipBody },
-                        borderColor: accentPrimary,
+                        titleColor: chartTooltipText,
+                        bodyColor: chartTooltipMuted,
+                        borderColor: chartTooltipBorder,
                         borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 12,
+                        displayColors: false,
+                        titleFont: { family: chartFont, size: tooltipTitleSize, weight: 500 },
+                        bodyFont: { family: chartFont, size: tooltipBodySize },
                         callbacks: {
+                            title: function(context) {
+                                return context[0]?.raw?.benchmark?.label || '';
+                            },
                             label: function(context) {
-                                return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%`;
+                                const raw = context.raw;
+                                const label = `${formatDetailedAgentLabel(raw.entry)}: ${raw.score.toFixed(2)}%`;
+                                return withRepromptedTooltip(label, raw.entry);
+                            },
+                            afterLabel: function(context) {
+                                return fallbackLabel(context.raw?.fallbackType);
                             }
                         }
                     },
                     datalabels: { display: false }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: yAxisMax,
-                        title: {
-                            display: true,
-                            text: 'Benchmark Score (%)',
-                            color: textPrimary,
-                            font: { family: chartFont, size: fontSizes.axisTitle, weight: 500 }
-                        },
-                        grid: { color: borderColor },
-                        ticks: {
-                            color: textSecondary,
-                            font: { family: chartFont, size: fontSizes.axisTicks },
-                            stepSize: 10,
-                            callback: value => value + '%'
-                        }
-                    },
                     x: {
+                        beginAtZero: true,
+                        min: 0,
+                        max: benchmarkMeta.length * layout.laneWidth,
+                        afterBuildTicks: axis => {
+                            axis.ticks = benchmarkMeta.map((_, index) => ({
+                                value: index * layout.laneWidth + layout.laneWidth / 2
+                            }));
+                        },
                         title: { display: false },
                         grid: { display: false },
+                        border: { display: false },
                         ticks: {
                             color: textSecondary,
-                            font: { family: chartFont, size: fontSizes.axisTicks },
+                            padding: 8,
+                            font: { family: chartFont, size: axisTickSize, weight: 500 },
                             maxRotation: 0,
-                            minRotation: 0
+                            minRotation: 0,
+                            callback: value => {
+                                const index = benchmarkMeta.findIndex((_, benchmarkIndex) =>
+                                    Math.abs(value - (benchmarkIndex * layout.laneWidth + layout.laneWidth / 2)) < 1
+                                );
+                                return index >= 0 ? benchmarkMeta[index].label : '';
+                            }
+                        }
+                    },
+                    y: {
+                        min: -0.5,
+                        max: orderedData.length - 0.5,
+                        reverse: true,
+                        afterBuildTicks: axis => {
+                            axis.ticks = orderedData.map((_, index) => ({ value: index }));
+                        },
+                        title: { display: false },
+                        grid: {
+                            color: borderColor,
+                            drawTicks: false,
+                            borderDash: [2, 4]
+                        },
+                        border: { display: false },
+                        ticks: {
+                            color: textSecondary,
+                            padding: 8,
+                            font: { family: chartFont, size: axisTickSize, weight: 500 },
+                            callback: value => {
+                                const index = Math.round(value);
+                                return orderedData[index] ? formatDetailedAgentLabel(orderedData[index]) : '';
+                            }
                         }
                     }
                 }
-            }
+            },
+            plugins: [detailedDotPlotPlugin]
         });
     }
 }
 
 // Create Time Spent Chart
 let timeSpentChart = null;
-let showAllTimeAgents = false;
 
 function createTimeSpentChart() {
     const ctx = document.getElementById('timeSpentChart');
 
     // Get theme colors
-    const style = getComputedStyle(document.documentElement);
-    const textPrimary = style.getPropertyValue('--text-primary').trim();
-    const textSecondary = style.getPropertyValue('--text-secondary').trim();
-    const accentPrimary = style.getPropertyValue('--accent-primary').trim();
-    const borderColor = style.getPropertyValue('--border-color').trim();
-    const chartFont = style.getPropertyValue('--font-sans').trim() || "'Die Grotesk', sans-serif";
-    const chartTooltipBg = style.getPropertyValue('--chart-tooltip-bg').trim() || 'rgba(31, 30, 28, 0.88)';
-    const chartError = style.getPropertyValue('--chart-error').trim() || '#5F5C56';
+    const {
+        textPrimary,
+        textSecondary,
+        borderColor,
+        chartFont,
+        chartTooltipBg,
+        chartTooltipText,
+        chartTooltipMuted,
+        chartTooltipBorder,
+        chartError,
+        chartStripe,
+        chartBar
+    } = getChartTheme();
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
 
     // Sort by hours (descending), filter out baselines
-    const agentFilter = showAllTimeAgents ? timeChartAgentKeys : chartAgentKeys;
     const sortedData = [...timeSpentData]
-        .filter(d => !d.isBaseline && agentFilter.includes(d.agentKey))
+        .filter(d => !d.isBaseline && timeChartAgentKeys.includes(d.agentKey))
         .sort((a, b) => b.hours - a.hours);
 
     // Set wrapper dimensions based on screen size and agent count
@@ -983,7 +1128,7 @@ function createTimeSpentChart() {
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(displayName, xPos, yPos - 1);
 
-                    ctx.globalAlpha = 0.55;
+                    ctx.globalAlpha = 0.82;
                     ctx.font = `400 ${scaffoldFontSize}px ${chartFont}`;
                     ctx.textBaseline = 'top';
                     ctx.fillText(scaffold, xPos, yPos + 1);
@@ -1007,15 +1152,13 @@ function createTimeSpentChart() {
         const p = pc.getContext('2d');
         p.fillStyle = color;
         p.fillRect(0, 0, 10, 10);
-        p.strokeStyle = 'rgba(255,255,255,0.35)';
+        p.strokeStyle = chartStripe;
         p.lineWidth = 2;
         p.beginPath(); p.moveTo(0, 10); p.lineTo(10, 0); p.stroke();
         p.beginPath(); p.moveTo(-2, 2); p.lineTo(2, -2); p.stroke();
         p.beginPath(); p.moveTo(8, 12); p.lineTo(12, 8); p.stroke();
         return ctx.getContext('2d').createPattern(pc, 'repeat');
     };
-
-    const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
 
     const timeBarColors = sortedData.map(d => {
         if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createTimeStripePattern(chartBar);
@@ -1025,28 +1168,20 @@ function createTimeSpentChart() {
     // Vertical dashed line at x=10 to mark the budget. The chart's
     // x-axis goes to 11 (not 10) so error bars on the top agents
     // (Opus 4.6 at ~9h with ±std) and their text labels have room
-    // past the budget line. Label sits ABOVE chartArea.top in the
-    // layout's top padding, so it never collides with the top bar's
-    // right-side data label.
+    // past the budget line.
     const budgetLinePlugin = {
         id: 'budgetLine',
         afterDatasetsDraw(chart) {
             const { ctx: c, scales, chartArea } = chart;
             const xPos = scales.x.getPixelForValue(10);
             c.save();
-            c.strokeStyle = accentPrimary;
-            c.lineWidth = 1.5;
+            c.strokeStyle = borderColor;
+            c.lineWidth = 1;
             c.setLineDash([4, 4]);
             c.beginPath();
             c.moveTo(xPos, chartArea.top);
             c.lineTo(xPos, chartArea.bottom);
             c.stroke();
-            c.setLineDash([]);
-            c.fillStyle = accentPrimary;
-            c.font = `600 ${isMobile ? 9 : 10}px ${chartFont}`;
-            c.textAlign = 'center';
-            c.textBaseline = 'bottom';
-            c.fillText('10h budget', xPos, chartArea.top - 4);
             c.restore();
         }
     };
@@ -1060,8 +1195,9 @@ function createTimeSpentChart() {
                 data: sortedData.map(d => d.hours),
                 backgroundColor: timeBarColors,
                 borderColor: chartBar,
-                borderWidth: isMobile ? 1 : 2,
-                borderRadius: isMobile ? 2 : 4,
+                borderWidth: 0,
+                borderRadius: isMobile ? 4 : 8,
+                borderSkipped: false,
                 barPercentage: isMobile ? 0.6 : 0.8,
                 categoryPercentage: isMobile ? 0.8 : 0.9,
                 datalabels: { display: false }
@@ -1072,12 +1208,11 @@ function createTimeSpentChart() {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            // Padding gives the budget label (top) and right-side data
-            // labels (e.g. "9:39 ± 0:53") room without colliding with
-            // the chart's own canvas edges.
+            // Padding gives right-side data labels (e.g. "9:39 ± 0:53")
+            // room without colliding with the chart's own canvas edges.
             layout: {
                 padding: {
-                    top: isMobile ? 14 : 18,
+                    top: isMobile ? 6 : 8,
                     right: isMobile ? 55 : 80
                 }
             },
@@ -1087,17 +1222,23 @@ function createTimeSpentChart() {
                 },
                 tooltip: {
                     backgroundColor: chartTooltipBg,
+                    titleColor: chartTooltipText,
+                    bodyColor: chartTooltipMuted,
+                    borderColor: chartTooltipBorder,
+                    borderWidth: 1,
+                    cornerRadius: 10,
+                    displayColors: false,
                     padding: isMobile ? 8 : 12,
+                    titleMarginBottom: 8,
                     titleFont: {
                         family: chartFont,
-                        size: isMobile ? 11 : fontSizes.tooltipTitle
+                        size: isMobile ? 10 : fontSizes.tooltipTitle,
+                        weight: 500
                     },
                     bodyFont: {
                         family: chartFont,
-                        size: isMobile ? 10 : fontSizes.tooltipBody
+                        size: isMobile ? 9 : fontSizes.tooltipBody
                     },
-                    borderColor: accentPrimary,
-                    borderWidth: 1,
                     callbacks: {
                         label: function(context) {
                             const dataItem = sortedData[context.dataIndex];
@@ -1105,7 +1246,7 @@ function createTimeSpentChart() {
                             if (dataItem.stdHours) {
                                 label += ` ± ${dataItem.stdTime}`;
                             }
-                            return label;
+                            return withRepromptedTooltip(label, dataItem);
                         }
                     }
                 },
@@ -1128,13 +1269,19 @@ function createTimeSpentChart() {
                         }
                     },
                     grid: {
-                        color: borderColor
+                        color: borderColor,
+                        drawTicks: false
+                    },
+                    border: {
+                        display: false
                     },
                     ticks: {
                         color: textSecondary,
+                        padding: 8,
                         font: {
                             family: chartFont,
-                            size: isMobile ? 9 : fontSizes.axisTicks
+                            size: isMobile ? 9 : fontSizes.axisTicks,
+                            weight: 500
                         },
                         stepSize: isMobile ? 5 : 2
                     }
@@ -1144,6 +1291,9 @@ function createTimeSpentChart() {
                         display: false
                     },
                     grid: {
+                        display: false
+                    },
+                    border: {
                         display: false
                     },
                     ticks: {
@@ -1186,11 +1336,7 @@ window.addEventListener('resize', () => {
     resizeTimeout = setTimeout(() => {
         if (performanceChart) {
             performanceChart.destroy();
-            createSimpleChart(currentSelectedModel);
-        }
-        if (detailedChart) {
-            detailedChart.destroy();
-            createDetailedChart(currentSelectedModel, currentSelectedBenchmark);
+            createSimpleChart();
         }
         if (timeSpentChart) {
             timeSpentChart.destroy();
@@ -1200,118 +1346,39 @@ window.addEventListener('resize', () => {
 });
 
 // Copy citation to clipboard
-document.getElementById('copy-citation').addEventListener('click', function() {
+document.getElementById('copy-citation')?.addEventListener('click', function() {
     const citationText = document.querySelector('.citation-text').textContent;
-    navigator.clipboard.writeText(citationText).then(() => {
+    const showCopiedState = () => {
         const btn = this;
         const originalText = btn.innerHTML;
-        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        btn.innerHTML = `<svg class="icon-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Copied!`;
+                        </svg>`;
+        btn.setAttribute('aria-label', 'Citation copied');
         setTimeout(() => {
             btn.innerHTML = originalText;
+            btn.setAttribute('aria-label', 'Copy citation');
         }, 2000);
-    });
-});
+    };
 
-// Custom dropdown functionality
-let currentSelectedModel = 'average';
-
-const dropdownDisplay = document.getElementById('model-select-display');
-const dropdownOptions = document.getElementById('model-select-options');
-const modelDropdown = dropdownDisplay.closest('.custom-dropdown');
-
-// Toggle dropdown
-dropdownDisplay.addEventListener('click', (e) => {
-    e.stopPropagation();
-    modelDropdown.classList.toggle('open');
-});
-
-// Handle option selection
-dropdownOptions.addEventListener('click', (e) => {
-    if (e.target.classList.contains('dropdown-option')) {
-        const selectedValue = e.target.getAttribute('data-value');
-        const selectedText = e.target.textContent;
-
-        // Update display
-        dropdownDisplay.textContent = selectedText;
-
-        // Update active state
-        dropdownOptions.querySelectorAll('.dropdown-option').forEach(opt => {
-            opt.classList.remove('active');
-        });
-        e.target.classList.add('active');
-
-        // Close dropdown
-        modelDropdown.classList.remove('open');
-
-        // Update model if changed
-        if (selectedValue !== currentSelectedModel) {
-            currentSelectedModel = selectedValue;
-            populateLeaderboard(selectedValue);
-
-            // Update charts based on selected model
-            if (performanceChart) {
-                performanceChart.destroy();
-                createSimpleChart(selectedValue);
-            }
-            if (detailedChart) {
-                detailedChart.destroy();
-                createDetailedChart(selectedValue, currentSelectedBenchmark);
-            }
-        }
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(citationText).then(showCopiedState).catch(showCopiedState);
+        return;
     }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = citationText;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+    } catch {}
+    textarea.remove();
+    showCopiedState();
 });
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    if (!modelDropdown.contains(e.target)) {
-        modelDropdown.classList.remove('open');
-    }
-});
-
-// Benchmark dropdown functionality (mobile only)
-const benchmarkDropdownDisplay = document.getElementById('benchmark-select-display');
-const benchmarkDropdownOptions = document.getElementById('benchmark-select-options');
-const benchmarkDropdown = benchmarkDropdownDisplay?.closest('.custom-dropdown');
-
-if (benchmarkDropdownDisplay && benchmarkDropdownOptions && benchmarkDropdown) {
-    benchmarkDropdownDisplay.addEventListener('click', (e) => {
-        e.stopPropagation();
-        benchmarkDropdown.classList.toggle('open');
-    });
-
-    benchmarkDropdownOptions.addEventListener('click', (e) => {
-        if (e.target.classList.contains('dropdown-option')) {
-            const selectedValue = e.target.getAttribute('data-value');
-            const selectedText = e.target.textContent;
-
-            benchmarkDropdownDisplay.textContent = selectedText;
-
-            benchmarkDropdownOptions.querySelectorAll('.dropdown-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            e.target.classList.add('active');
-
-            benchmarkDropdown.classList.remove('open');
-
-            if (selectedValue !== currentSelectedBenchmark) {
-                currentSelectedBenchmark = selectedValue;
-                if (detailedChart) {
-                    detailedChart.destroy();
-                    createDetailedChart(currentSelectedModel, selectedValue);
-                }
-            }
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!benchmarkDropdown.contains(e.target)) {
-            benchmarkDropdown.classList.remove('open');
-        }
-    });
-}
 
 // Mobile table toggle - show/hide benchmark columns
 const toggleTableBtn = document.getElementById('toggle-full-table');
@@ -1337,41 +1404,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize UI
     populateLeaderboard();
     populateTasks();
-    populateStatistics();
     createSimpleChart();
-    createDetailedChart();
     createTimeSpentChart();
 
-    // Toggle time chart between main agents and all agents
-    const toggleBtn = document.getElementById('toggleTimeAgents');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
-            showAllTimeAgents = !showAllTimeAgents;
-            toggleBtn.textContent = showAllTimeAgents ? 'Show main agents' : 'Show all agents';
-            if (timeSpentChart) {
-                timeSpentChart.destroy();
-            }
-            createTimeSpentChart();
-        });
-    }
+    // Disclosure expand/collapse animation
+    document.querySelectorAll('details.changelog, details.chart-footnotes').forEach((disclosure) => {
+        const summary = disclosure.querySelector('summary');
+        const content = disclosure.querySelector('.changelog-content, .chart-footnotes-content');
+        if (!summary || !content) {
+            return;
+        }
 
-    // Changelog expand/collapse animation
-    const changelog = document.querySelector('details.changelog');
-    if (changelog) {
-        const content = changelog.querySelector('.changelog-content');
-        changelog.addEventListener('click', (e) => {
+        summary.addEventListener('click', (e) => {
             e.preventDefault();
-            if (changelog.open) {
+            if (disclosure.open) {
                 // Closing: animate out, then remove open
                 content.classList.remove('open');
                 content.addEventListener('transitionend', () => {
-                    changelog.open = false;
+                    disclosure.open = false;
                 }, { once: true });
             } else {
                 // Opening: set open, then animate in
-                changelog.open = true;
+                disclosure.open = true;
                 requestAnimationFrame(() => content.classList.add('open'));
             }
         });
-    }
+    });
 });

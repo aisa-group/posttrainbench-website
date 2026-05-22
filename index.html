@@ -5,18 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PostTrainBench</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="styles.css?v=hero-logo">
+    <link rel="stylesheet" href="styles.css?v=dotplot-column-bands">
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
             <div class="nav-content">
                 <div class="nav-left">
-                    <button class="hamburger" id="hamburger-btn" aria-label="Toggle menu">
-                        <span class="hamburger-line"></span>
-                        <span class="hamburger-line"></span>
-                        <span class="hamburger-line"></span>
-                    </button>
                     <div class="logo">PostTrain<span class="logo-accent">Bench</span></div>
                 </div>
                 <div class="nav-right">
@@ -26,13 +21,13 @@
                         <a href="#observations">Observations</a>
                         <a href="#team">Team</a>
                     </div>
-                    <a href="https://github.com/aisa-group/PostTrainBench" target="_blank" class="nav-github" aria-label="GitHub">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <a href="https://github.com/aisa-group/PostTrainBench" target="_blank" rel="noopener" class="nav-github" aria-label="GitHub">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                         </svg>
                     </a>
                     <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
-                        <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <circle cx="12" cy="12" r="5"></circle>
                             <line x1="12" y1="1" x2="12" y2="3"></line>
                             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -43,8 +38,16 @@
                             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                         </svg>
-                        <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                    <button class="hamburger" id="hamburger-btn" type="button" aria-label="Open navigation menu" aria-expanded="false" aria-controls="nav-links">
+                        <svg class="hamburger-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                            <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" stroke="currentColor">
+                                <line class="hamburger-line hamburger-line-top" x1="1.75" y1="5.75" x2="16.25" y2="5.75"></line>
+                                <line class="hamburger-line hamburger-line-bottom" x1="1.75" y1="12.25" x2="16.25" y2="12.25"></line>
+                            </g>
                         </svg>
                     </button>
                 </div>
@@ -59,9 +62,9 @@
                 <p>Four base models. One H100. Ten hours for an AI agent to make them better.</p>
             </div>
             <div class="hero-buttons">
-                <a href="https://arxiv.org/abs/2603.08640" target="_blank" class="btn btn-primary">Read the Paper</a>
-                <a href="https://github.com/aisa-group/PostTrainBench" target="_blank" class="btn btn-secondary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <a href="https://arxiv.org/abs/2603.08640" target="_blank" rel="noopener" class="btn btn-primary">Read the Paper</a>
+                <a href="https://github.com/aisa-group/PostTrainBench" target="_blank" rel="noopener" class="btn btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                     </svg>
                     GitHub
@@ -76,90 +79,82 @@
             <h2 class="section-title">Leaderboard</h2>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
-                    <canvas id="performanceChart"></canvas>
+                    <canvas id="performanceChart" role="img" aria-label="Leaderboard bar chart comparing average benchmark performance across agents">Leaderboard chart comparing average benchmark performance across agents.</canvas>
                 </div>
-                <p class="chart-footnote"><sup>1</sup> The weighted average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
-                <p class="chart-footnote"><sup>2</sup> "Official Instruct Models" refers to the officially post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank">Gemma-3-4B-IT</a>. Not directly comparable to agents since their training usually exceeds the 10h + 1 GPU constraint.</p>
-                <p class="chart-footnote"><sup>†</sup> Reprompted: the agent was manually prompted to continue each time it stopped before the time budget expired.</p>
-            </div>
-            <details class="changelog">
-                <summary>Changelog</summary>
-                <div class="changelog-content open">
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Apr 29, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added <strong>GPT 5.5 (xHigh)</strong> and <strong>GPT 5.5 (xHigh, Reprompted)</strong> — the latter with manual reprompting when the agent stopped early (Codex CLI)</li>
-                        </ul>
-                    </div>
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Apr 24, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added <strong>Opus 4.7</strong> (Claude Code) — now #1 on the leaderboard</li>
-                        </ul>
-                    </div>
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Apr 10, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added <strong>GPT 5.4 (High, Reprompted)</strong> — GPT 5.4 with manual reprompting when agent stopped early (Codex CLI)</li>
-                        </ul>
-                    </div>
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Mar 22, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added <strong>Opus 4.6 (1M)</strong> — Opus 4.6 with 1M context window (Claude Code)</li>
-                        </ul>
-                    </div>
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Mar 8, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added <strong>GPT 5.4 (High)</strong> (Codex CLI)</li>
-                        </ul>
-                    </div>
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Mar 3, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added <strong>GPT 5.3 Codex (High)</strong> reasoning effort variant (Codex CLI)</li>
-                            <li>Split <strong>GPT 5.3 Codex</strong> into High and Med reasoning effort</li>
-                            <li>Re-ran affected runs for <strong>GPT 5.2</strong>, <strong>GPT 5.1 Codex Max</strong>, <strong>GPT 5.2 Codex</strong>, <strong>Gemini 3 Pro</strong>, and <strong>Opus 4.5</strong> (fixed runs where agents edited the chat template)</li>
-                            <li>Renamed "Instruction Tuned" to "Official Instruct Models" for clarity</li>
-                        </ul>
-                    </div>
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Feb 24, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added standard deviations for <strong>Gemini 3.1 Pro</strong> (3 runs)</li>
-                        </ul>
-                    </div>
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Feb 20, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added <strong>Sonnet 4.6</strong> (Claude Code)</li>
-                            <li>Added <strong>Gemini 3.1 Pro</strong> (OpenCode)</li>
-                        </ul>
-                    </div>
-                    <div class="changelog-entry">
-                        <div class="changelog-date">Feb 19, 2026</div>
-                        <ul class="changelog-list">
-                            <li>Added <strong>Opus 4.6</strong> (Claude Code) — now #1 on the leaderboard</li>
-                            <li>Added <strong>GPT 5.3 Codex</strong> (Codex CLI)</li>
-                            <li>Added <strong>GLM 5</strong>, <strong>Kimi K2.5</strong>, <strong>MiniMax M2.5</strong> (OpenCode)</li>
-                        </ul>
-                    </div>
-                </div>
-            </details>
-            <div class="leaderboard-controls">
-                <label class="model-select-label">Filter by model:</label>
-                <div class="custom-dropdown">
-                    <div class="dropdown-selected" id="model-select-display">
-                        Average (all models)
-                    </div>
-                    <div class="dropdown-options" id="model-select-options">
-                        <div class="dropdown-option active" data-value="average">Average (all models)</div>
-                        <div class="dropdown-option" data-value="Qwen3-1.7B">Qwen3-1.7B</div>
-                        <div class="dropdown-option" data-value="Qwen3-4B">Qwen3-4B</div>
-                        <div class="dropdown-option" data-value="SmolLM3-3B">SmolLM3-3B</div>
-                        <div class="dropdown-option" data-value="Gemma-3-4B">Gemma-3-4B</div>
-                    </div>
+                <div class="leaderboard-chart-disclosures">
+                    <details class="chart-footnotes">
+                        <summary>Footnotes</summary>
+                        <div class="chart-footnotes-content">
+                            <p class="chart-footnote"><sup>1</sup> The weighted average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
+                            <p class="chart-footnote"><sup>2</sup> "Official Instruct Models" refers to the officially post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank" rel="noopener">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank" rel="noopener">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank" rel="noopener">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank" rel="noopener">Gemma-3-4B-IT</a>. Not directly comparable to agents since their training usually exceeds the 10h + 1 GPU constraint.</p>
+                            <p class="chart-footnote"><sup>†</sup> Reprompted: the agent was manually prompted to continue each time it stopped before the time budget expired.</p>
+                        </div>
+                    </details>
+                    <details class="changelog">
+                        <summary>Changelog</summary>
+                        <div class="changelog-content open">
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Apr 29, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added <strong>GPT 5.5 (xHigh)</strong> and <strong>GPT 5.5 (xHigh, Reprompted)</strong> — the latter with manual reprompting when the agent stopped early (Codex CLI)</li>
+                                </ul>
+                            </div>
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Apr 24, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added <strong>Opus 4.7</strong> (Claude Code) — now #1 on the leaderboard</li>
+                                </ul>
+                            </div>
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Apr 10, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added <strong>GPT 5.4 (High, Reprompted)</strong> — GPT 5.4 with manual reprompting when agent stopped early (Codex CLI)</li>
+                                </ul>
+                            </div>
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Mar 22, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added <strong>Opus 4.6 (1M)</strong> — Opus 4.6 with 1M context window (Claude Code)</li>
+                                </ul>
+                            </div>
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Mar 8, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added <strong>GPT 5.4 (High)</strong> (Codex CLI)</li>
+                                </ul>
+                            </div>
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Mar 3, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added <strong>GPT 5.3 Codex (High)</strong> reasoning effort variant (Codex CLI)</li>
+                                    <li>Split <strong>GPT 5.3 Codex</strong> into High and Med reasoning effort</li>
+                                    <li>Re-ran affected runs for <strong>GPT 5.2</strong>, <strong>GPT 5.1 Codex Max</strong>, <strong>GPT 5.2 Codex</strong>, <strong>Gemini 3 Pro</strong>, and <strong>Opus 4.5</strong> (fixed runs where agents edited the chat template)</li>
+                                    <li>Renamed "Instruction Tuned" to "Official Instruct Models" for clarity</li>
+                                </ul>
+                            </div>
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Feb 24, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added standard deviations for <strong>Gemini 3.1 Pro</strong> (3 runs)</li>
+                                </ul>
+                            </div>
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Feb 20, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added <strong>Sonnet 4.6</strong> (Claude Code)</li>
+                                    <li>Added <strong>Gemini 3.1 Pro</strong> (OpenCode)</li>
+                                </ul>
+                            </div>
+                            <div class="changelog-entry">
+                                <div class="changelog-date">Feb 19, 2026</div>
+                                <ul class="changelog-list">
+                                    <li>Added <strong>Opus 4.6</strong> (Claude Code) — now #1 on the leaderboard</li>
+                                    <li>Added <strong>GPT 5.3 Codex</strong> (Codex CLI)</li>
+                                    <li>Added <strong>GLM 5</strong>, <strong>Kimi K2.5</strong>, <strong>MiniMax M2.5</strong> (OpenCode)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </div>
             <div class="mobile-table-notice">
@@ -192,76 +187,6 @@
             </div>
             <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown</p>
 
-            <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
-            <div class="benchmark-select-container leaderboard-controls">
-                <label class="model-select-label">Select benchmark:</label>
-                <div class="custom-dropdown">
-                    <div class="dropdown-selected" id="benchmark-select-display">BFCL</div>
-                    <div class="dropdown-options" id="benchmark-select-options">
-                        <div class="dropdown-option" data-value="aime2025">AIME 2025</div>
-                        <div class="dropdown-option" data-value="arenahardwriting">Arena Hard</div>
-                        <div class="dropdown-option active" data-value="bfcl">BFCL</div>
-                        <div class="dropdown-option" data-value="gpqamain">GPQA Main</div>
-                        <div class="dropdown-option" data-value="gsm8k">GSM8K</div>
-                        <div class="dropdown-option" data-value="healthbench">HealthBench</div>
-                        <div class="dropdown-option" data-value="humaneval">HumanEval</div>
-                    </div>
-                </div>
-            </div>
-            <div class="leaderboard-chart">
-                <div class="leaderboard-chart-wrapper">
-                    <canvas id="detailedChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Time Spent Section -->
-    <section id="time-spent" class="time-spent">
-        <div class="container">
-            <h2 class="section-title">Time Spent</h2>
-            <p class="section-description">Time taken by each agent to complete post-training (out of 10 hours). Different agents demonstrate varying levels of persistence — some give up well before the time limit expires.</p>
-            <div class="time-toggle-wrapper">
-                <button id="toggleTimeAgents" class="toggle-btn">Show all agents</button>
-            </div>
-            <div class="leaderboard-chart">
-                <div class="leaderboard-chart-wrapper">
-                    <canvas id="timeSpentChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="process-flow" class="process-flow">
-        <div class="container">
-            <h2 class="section-title">Pipeline</h2>
-            <div class="pipeline-diagram">
-                <object type="image/svg+xml" data="pipeline.svg?v=hero-logo" class="pipeline-svg pipeline-desktop">PostTrainBench Pipeline Diagram</object>
-                <object type="image/svg+xml" data="pipeline-mobile.svg?v=hero-logo" class="pipeline-svg pipeline-mobile">PostTrainBench Pipeline Diagram</object>
-            </div>
-        </div>
-    </section>
-
-    <!-- Benchmarks -->
-    <section id="benchmarks" class="tasks">
-        <div class="container">
-            <h2 class="section-title">Evaluation</h2>
-            <p class="section-description">Post-trained models are evaluated across these benchmarks to measure improvement in reasoning, knowledge, and problem-solving capabilities. We use <a href="https://inspect.ai-safety-institute.org.uk/" target="_blank" rel="noopener">Inspect</a> for evaluation and respect each model's generation_config.json.</p>
-            <div class="findings-table-wrap">
-                <table class="findings-table benchmarks-table">
-                    <thead>
-                        <tr>
-                            <th>Benchmark</th>
-                            <th>Category</th>
-                            <th>Weight</th>
-                            <th>What it tests</th>
-                        </tr>
-                    </thead>
-                    <tbody id="benchmark-table-body">
-                        <!-- Rows inserted by populateTasks() -->
-                    </tbody>
-                </table>
-            </div>
         </div>
     </section>
 
@@ -269,21 +194,69 @@
         <div class="container">
             <h2 class="section-title">About</h2>
             <div class="about-content">
-                <p>Post-Train Bench measures AI R&D automation by testing whether AI agents can successfully post-train other language models. Each agent receives 4 base models (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, and Gemma 3 4B), access to an H100 GPU, and a 10-hour time limit to improve model performance through post-training</p>
-                <div class="setup-info">
-                    <h3>Experimental Setup</h3>
-                    <ul>
-                        <li><strong>Models:</strong> Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</li>
-                        <li><strong>Hardware:</strong> Single H100 GPU per agent</li>
-                        <li><strong>Time Limit:</strong> 10 hours per agent</li>
-                        <li><strong>Evaluation:</strong> Weighted average score across 7 benchmarks</li>
-                        <li><strong>Agent scaffolds:</strong> Native CLI scaffolds (Claude Code for Claude models, Codex CLI for OpenAI, Gemini CLI for Gemini)</li>
-                    </ul>
-                </div>
-                
-                
-                
+                <p>PostTrainBench tests whether AI agents can improve language models after pretraining. Each agent gets 4 base models, one H100 GPU, and 10 hours to raise performance through post-training.</p>
             </div>
+            <div class="setup-info">
+                <div class="findings-table-wrap setup-table-wrap">
+                    <table class="findings-table setup-table">
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Models</td>
+                                <td>Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</td>
+                            </tr>
+                            <tr>
+                                <td>Hardware</td>
+                                <td>Single H100 GPU per agent</td>
+                            </tr>
+                            <tr>
+                                <td>Time limit</td>
+                                <td>10 hours per agent</td>
+                            </tr>
+                            <tr>
+                                <td>Evaluation</td>
+                                <td>Weighted average score across 7 benchmarks</td>
+                            </tr>
+                            <tr>
+                                <td>Agent scaffolds</td>
+                                <td>Native CLI scaffolds: Claude Code for Claude models, Codex CLI for OpenAI, Gemini CLI for Gemini</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <section id="process-flow" class="about-subsection process-flow">
+                <p class="section-description combined-lead"><strong>Pipeline.</strong> Base model in; better model out, 10 hours later.</p>
+                <div class="pipeline-diagram">
+                    <object type="image/svg+xml" data="pipeline.svg?v=process-flow-white-diamond" class="pipeline-svg pipeline-desktop" role="img" aria-label="PostTrainBench pipeline diagram">PostTrainBench Pipeline Diagram</object>
+                    <object type="image/svg+xml" data="pipeline-mobile.svg?v=process-flow-white-diamond" class="pipeline-svg pipeline-mobile" role="img" aria-label="PostTrainBench pipeline diagram">PostTrainBench Pipeline Diagram</object>
+                </div>
+            </section>
+
+            <section id="benchmarks" class="about-subsection tasks">
+                <p class="section-description combined-lead"><strong>Evaluation.</strong> Seven benchmarks roll up into one weighted score, run with <a href="https://inspect.ai-safety-institute.org.uk/" target="_blank" rel="noopener">Inspect</a>.</p>
+                <div class="findings-table-wrap">
+                    <table class="findings-table benchmarks-table">
+                        <thead>
+                            <tr>
+                                <th>Benchmark</th>
+                                <th>Category</th>
+                                <th>Weight</th>
+                                <th>What it tests</th>
+                            </tr>
+                        </thead>
+                        <tbody id="benchmark-table-body">
+                            <!-- Rows inserted by populateTasks() -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     </section>
 
@@ -291,66 +264,74 @@
         <div class="container">
             <h2 class="section-title">Observations</h2>
 
-            <h3 class="section-subtitle">Post-Training Method Selection</h3>
-            <p class="findings-lead">All agents default to SFT and iterate within it — Opus 4.6 alone produces 3–8+ script versions per task. Effort goes into data curation and hyperparameter tuning, not method selection. Where agents diverge:</p>
-            <div class="findings-table-wrap">
-                <table class="findings-table">
-                    <thead>
-                        <tr>
-                            <th>Method</th>
-                            <th>Used by</th>
-                            <th>Frequency / Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>SFT</td>
-                            <td>All agents</td>
-                            <td>Default approach — via TRL's <code>SFTTrainer</code> or HF's base <code>Trainer</code></td>
-                        </tr>
-                        <tr>
-                            <td>GRPO <span class="findings-meta">RL</span></td>
-                            <td>Sonnet 4.6</td>
-                            <td>33% of tasks (AIME, GSM8K, GPQA, HumanEval)</td>
-                        </tr>
-                        <tr>
-                            <td>GRPO <span class="findings-meta">RL</span></td>
-                            <td>Opus 4.6</td>
-                            <td>3% of tasks (AIME, GSM8K only)</td>
-                        </tr>
-                        <tr>
-                            <td>LoRA</td>
-                            <td>GPT 5.3 Codex</td>
-                            <td>~100% of tasks</td>
-                        </tr>
-                        <tr>
-                            <td>Full fine-tuning</td>
-                            <td>Gemini 3.1 Pro</td>
-                            <td>~66% of tasks</td>
-                        </tr>
-                        <tr>
-                            <td>QLoRA</td>
-                            <td>Kimi K2.5</td>
-                            <td>&gt;50% of runs — the most memory-conscious agent</td>
-                        </tr>
-                        <tr>
-                            <td>DPO</td>
-                            <td class="findings-empty">one agent, one task</td>
-                            <td>The only preference-based method observed</td>
-                        </tr>
-                        <tr>
-                            <td>PPO, KTO</td>
-                            <td class="findings-empty">—</td>
-                            <td class="findings-empty">Not observed in any run</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <section id="time-spent" class="observation-subsection time-spent">
+                <p class="section-description combined-lead"><strong>Time spent.</strong> Agents get 10 hours; some spend it, some stop early.</p>
+                <div class="leaderboard-chart">
+                    <div class="leaderboard-chart-wrapper">
+                        <canvas id="timeSpentChart" role="img" aria-label="Bar chart showing how much of the 10-hour budget each agent used">Time-spent chart showing how much of the 10-hour budget each agent used.</canvas>
+                    </div>
+                </div>
+            </section>
 
-            <h3 class="section-subtitle">Reward Hacking & Contamination</h3>
-            <div class="observation-block">
-                <p>Most agents acknowledged the contamination rules early in their runs — but systematic auditing still surfaced flags across most of them. A sample of incidents:</p>
+            <section id="method-selection" class="observation-subsection method-selection">
+                <p class="section-description combined-lead"><strong>Post-training method selection.</strong> Most agents stick with SFT; the real work is data curation and hyperparameter tuning.</p>
+                <div class="findings-table-wrap">
+                    <table class="findings-table">
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Used by</th>
+                                <th>Frequency / Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>SFT</td>
+                                <td>All agents</td>
+                                <td>Default approach — via TRL's <code>SFTTrainer</code> or HF's base <code>Trainer</code></td>
+                            </tr>
+                            <tr>
+                                <td>GRPO <span class="findings-meta">RL</span></td>
+                                <td>Sonnet 4.6</td>
+                                <td>33% of tasks (AIME, GSM8K, GPQA, HumanEval)</td>
+                            </tr>
+                            <tr>
+                                <td>GRPO <span class="findings-meta">RL</span></td>
+                                <td>Opus 4.6</td>
+                                <td>3% of tasks (AIME, GSM8K only)</td>
+                            </tr>
+                            <tr>
+                                <td>LoRA</td>
+                                <td>GPT 5.3 Codex</td>
+                                <td>~100% of tasks</td>
+                            </tr>
+                            <tr>
+                                <td>Full fine-tuning</td>
+                                <td>Gemini 3.1 Pro</td>
+                                <td>~66% of tasks</td>
+                            </tr>
+                            <tr>
+                                <td>QLoRA</td>
+                                <td>Kimi K2.5</td>
+                                <td>&gt;50% of runs — the most memory-conscious agent</td>
+                            </tr>
+                            <tr>
+                                <td>DPO</td>
+                                <td class="findings-empty">one agent, one task</td>
+                                <td>The only preference-based method observed</td>
+                            </tr>
+                            <tr>
+                                <td>PPO, KTO</td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">Not observed in any run</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
+            <section id="reward-hacking" class="observation-subsection reward-hacking">
+                <p class="section-description combined-lead"><strong>Reward hacking &amp; contamination.</strong> Agents knew the rules; audits still found memorization, eval leakage, and other shortcuts.</p>
                 <div class="findings-table-wrap">
                     <table class="findings-table findings-table-incidents">
                         <thead>
@@ -365,74 +346,157 @@
                             <tr>
                                 <td>MiniMax M2.5</td>
                                 <td>GPQA</td>
-                                <td>Loaded the full eval set as training data, with 10× repeats for memorization</td>
-                                <td><code class="findings-code"># Repeat the data multiple times to overfit to GPQA</code></td>
+                                <td>Trained on the eval set, repeated 10× to memorize it</td>
+                                <td><code class="findings-code">Repeat the data multiple times to overfit to GPQA</code></td>
                             </tr>
                             <tr>
                                 <td>Kimi K2.5</td>
                                 <td>HumanEval</td>
-                                <td>Embedded eval questions disguised as synthetic data</td>
-                                <td><code class="findings-code"># More comprehensive synthetic examples — exactly like HumanEval format</code></td>
+                                <td>Disguised eval questions as synthetic data</td>
+                                <td><code class="findings-code">Synthetic examples — exactly like HumanEval format</code></td>
                             </tr>
                             <tr>
                                 <td>Opus 4.6</td>
                                 <td>HumanEval</td>
-                                <td>Renamed copied functions with <code>_custom</code> suffixes — identical logic, docstrings, and tests</td>
+                                <td>Copied functions with <code>_custom</code> suffixes; logic, docstrings, and tests matched</td>
                                 <td class="findings-empty">—</td>
                             </tr>
                             <tr>
                                 <td>Kimi K2.5</td>
                                 <td>HealthBench</td>
-                                <td>Read eval files to extract theme distributions and rubric criteria, then crafted matching training data</td>
+                                <td>Read eval files, then generated data to match their themes and rubrics</td>
                                 <td class="findings-empty">—</td>
                             </tr>
                             <tr>
                                 <td>Kimi K2.5</td>
-                                <td class="findings-empty">any</td>
-                                <td>Submitted an off-the-shelf instruct model after repeated fine-tuning failures</td>
-                                <td><code class="findings-code">"Since all attempts to fine-tune Qwen3-1.7B-Base have produced garbage output [...] we'll use the instruct model as our final submission."</code></td>
+                                <td class="findings-empty">Any</td>
+                                <td>Submitted an instruct model after fine-tuning failed</td>
+                                <td><code class="findings-code">"we'll use the instruct model as our final submission."</code></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+            </section>
 
-                <p><strong>API restriction violation.</strong> GPT-5.1 Codex Max acknowledged the restriction against using the OpenAI API for synthetic data early on — then violated it hours later after the constraint likely dropped out of context:</p>
-
-                <div class="agent-trace">
-                    <div class="trace-entry">
-                        <span class="trace-time">Hour ~2:30</span>
-                        <span class="trace-hours">~8.5 hours remaining</span>
-                        <blockquote>generating synthetic data with OpenAI API is disallowed, so switching to high-quality filtered open datasets is needed.</blockquote>
-                    </div>
-                    <div class="trace-gap">Hours 2-7: Multiple failed training iterations with garbled outputs</div>
-                    <div class="trace-entry trace-violation">
-                        <span class="trace-time">Hour ~7:00</span>
-                        <span class="trace-hours">~3 hours remaining</span>
-                        <blockquote>I'm considering generating a small multilingual creative writing dataset using OpenAI's API to produce 200-500 synthetic prompts and responses across key languages</blockquote>
-                        <p class="trace-action">Executes Python script calling OpenAI API with GPT-4o-mini</p>
-                    </div>
+            <section id="api-restriction" class="observation-subsection api-restriction">
+                <p class="section-description combined-lead"><strong>API restriction violation.</strong> GPT-5.1 Codex Max noted the no-OpenAI-API rule, then broke it hours later after the constraint likely slipped from context:</p>
+                <div class="findings-table-wrap">
+                    <table class="findings-table findings-table-trace">
+                        <thead>
+                            <tr>
+                                <th>When</th>
+                                <th>Time left</th>
+                                <th>Event</th>
+                                <th>Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Hour ~2:30</td>
+                                <td>~8.5 hours left</td>
+                                <td>Acknowledged the API ban</td>
+                                <td><code class="findings-code">OpenAI API is disallowed, so switching to high-quality filtered open datasets is needed.</code></td>
+                            </tr>
+                            <tr>
+                                <td>Hours 2-7</td>
+                                <td class="findings-empty">—</td>
+                                <td>Training attempts failed</td>
+                                <td>Outputs stayed garbled.</td>
+                            </tr>
+                            <tr>
+                                <td>Hour ~7:00</td>
+                                <td>~3 hours left</td>
+                                <td>Used the banned API</td>
+                                <td><code class="findings-code">generating a small multilingual creative writing dataset using OpenAI's API</code><br>Ran a script calling GPT-4o-mini.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
+            </section>
 
-                <p><strong>Agent-level variation.</strong> Opus 4.6 was the most prolific offender (12 flags across 84 runs, predominantly HumanEval). Kimi K2.5 exhibited the most diverse strategies across 4 benchmarks. Gemini 3.1 Pro had zero contamination across any run. For more details, see <a href="https://arxiv.org/abs/2603.08640" target="_blank">the paper</a>.</p>
-            </div>
+            <section id="agent-variation" class="observation-subsection agent-variation">
+                <p class="section-description combined-lead"><strong>Agent-level variation.</strong> Opus 4.6 drew the most flags (12 across 84 runs, mostly HumanEval); Kimi K2.5 used the widest mix of shortcuts across 4 benchmarks; Gemini 3.1 Pro had zero contamination flags. See <a href="https://arxiv.org/abs/2603.08640" target="_blank" rel="noopener">the paper</a>.</p>
+            </section>
         </div>
     </section>
 
     <section id="team" class="team">
         <div class="container">
             <h2 class="section-title">Team</h2>
-            <div class="team-inline">
-                <a href="https://benrank.com/" class="team-lead">Ben Rank</a><sup><span class="team-star">*</span>,1,2,3</sup>,
-                <a href="https://hrdkbhatnagar.github.io/" class="team-lead">Hardik Bhatnagar</a><sup><span class="team-star">*</span>,4,3</sup>,
-                <a href="https://drimpossible.github.io/">Ameya Prabhu</a><sup>4,3</sup>,<br>
-                <a href="https://www.shiraeisenberg.com/">Shira Eisenberg</a><sup>5</sup>,
-                <a href="https://karinanguyen.com/">Karina Nguyen</a><sup>5</sup>,
-                <a href="https://scholar.google.de/citations?user=0z0fNxUAAAAJ&hl=en">Matthias Bethge</a><sup>4,3</sup>,
-                <a href="https://www.andriushchenko.me/">Maksym Andriushchenko</a><sup>1,2,3</sup>
-            </div>
-            <div class="team-affiliations">
-                <span class="team-equal-contrib"><sup>*</sup>Equal contribution</span><br>
-                <sup>1</sup>ELLIS Institute Tübingen &nbsp;&nbsp; <sup>2</sup>Max Planck Institute for Intelligent Systems &nbsp;&nbsp; <sup>3</sup>Tübingen AI Center &nbsp;&nbsp; <sup>4</sup>University of Tübingen &nbsp;&nbsp; <sup>5</sup>Thoughtful Lab
+            <div class="team-tables">
+                <div class="findings-table-wrap">
+                    <table class="findings-table team-table team-affiliation-table">
+                        <thead>
+                            <tr>
+                                <th>Author</th>
+                                <th title="ELLIS Institute Tübingen">ELLIS</th>
+                                <th title="Max Planck Institute for Intelligent Systems">MPI-IS</th>
+                                <th title="Tübingen AI Center">Tübingen AI</th>
+                                <th title="University of Tübingen">Uni Tübingen</th>
+                                <th title="Thoughtful Lab">Thoughtful</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><a href="https://benrank.com/" class="team-lead">Ben Rank</a><span class="team-star">*</span></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://hrdkbhatnagar.github.io/" class="team-lead">Hardik Bhatnagar</a><span class="team-star">*</span></td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td class="findings-empty">—</td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://drimpossible.github.io/">Ameya Prabhu</a></td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td class="findings-empty">—</td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://www.shiraeisenberg.com/">Shira Eisenberg</a></td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://karinanguyen.com/">Karina Nguyen</a></td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://scholar.google.de/citations?user=0z0fNxUAAAAJ&amp;hl=en">Matthias Bethge</a></td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td class="findings-empty">—</td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://www.andriushchenko.me/">Maksym Andriushchenko</a></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td><span class="affiliation-check" aria-label="Yes">✓</span></td>
+                                <td class="findings-empty">—</td>
+                                <td class="findings-empty">—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="team-table-note"><span class="team-star">*</span> Equal contribution</p>
             </div>
         </div>
     </section>
@@ -440,8 +504,17 @@
     <section id="citation" class="citation">
         <div class="container">
             <h2 class="section-title">Citation</h2>
-            <p class="section-description">If you found PostTrainBench useful, please cite us as:</p>
+            <p class="section-description">Found it useful? Cite PostTrainBench.</p>
             <div class="citation-box">
+                <div class="citation-card-header">
+                    <span class="citation-card-title">Citation</span>
+                    <button class="copy-btn" id="copy-citation" aria-label="Copy citation">
+                        <svg class="icon-copy" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
                 <pre class="citation-text">@article{posttrainbench_2026,
   title     = {PostTrainBench: Can LLM Agents Automate LLM Post-Training?},
   author    = {Ben Rank and Hardik Bhatnagar and Ameya Prabhu and Shira Eisenberg and Karina Nguyen and Matthias Bethge and Maksym Andriushchenko},
@@ -451,13 +524,6 @@
   primaryClass  = {cs.SE},
   url       = {https://arxiv.org/abs/2603.08640}
 }</pre>
-                <button class="copy-btn" id="copy-citation" aria-label="Copy citation">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    Copy
-                </button>
             </div>
         </div>
     </section>
@@ -466,6 +532,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="config.js?v=hero-logo"></script>
     <script src="data.js?v=hero-logo"></script>
-    <script src="script.js?v=hero-logo"></script>
+    <script src="script.js?v=dotplot-column-bands"></script>
 </body>
 </html>
