@@ -81,32 +81,6 @@ if (hamburgerBtn && navLinks) {
     });
 }
 
-// Theme Toggle
-const themeToggle = document.getElementById('theme-toggle');
-const html = document.documentElement;
-
-// Load saved theme or default to light
-const savedTheme = localStorage.getItem('theme') || 'light';
-html.setAttribute('data-theme', savedTheme);
-
-themeToggle.addEventListener('click', () => {
-    const currentTheme = html.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-    html.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-
-    // Recreate charts with new theme colors
-    if (performanceChart) {
-        performanceChart.destroy();
-        createSimpleChart();
-    }
-    if (timeSpentChart) {
-        timeSpentChart.destroy();
-        createTimeSpentChart();
-    }
-});
-
 // Get heatmap color from the displayed percentage.
 // Example: 51.14% renders as sky blue at 51.14% opacity.
 function getHeatmapColor(percentage) {
@@ -268,7 +242,7 @@ function populateLeaderboard() {
         row.innerHTML = `
             <td><span class="rank-badge ${rankClass}">${rankDisplay}</span></td>
             <td><strong>${agentNameHtml}</strong></td>
-            <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
+            <td class="avg-col" style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
             <td class="benchmark-col" style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
             <td class="benchmark-col" style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
             <td class="benchmark-col" style="background-color: ${bfclColor}">${formatBenchmarkValue(entry.benchmarkScores.bfcl, showMarkers, showStd)}</td>
@@ -506,7 +480,7 @@ function createSimpleChart() {
                 backgroundColor: chartColors,
                 borderColor: chartColors,
                 borderWidth: 0,
-                borderRadius: isMobile ? 4 : 8,
+                borderRadius: Number.MAX_VALUE,
                 borderSkipped: false,
                 barPercentage: isMobile ? 0.7 : 0.8,
                 categoryPercentage: isMobile ? 0.8 : 0.9
@@ -550,15 +524,23 @@ function createSimpleChart() {
                 },
                 datalabels: {
                     display: !isMobile,
-                    color: function(context) {
-                        const entry = reversedData[context.dataIndex];
-                        return entry.agent === 'Base Models' || entry.agent === 'Official Instruct Models'
-                            ? chartLabelOnBar
-                            : textPrimary;
-                    },
-                    anchor: 'start',
+                    color: textSecondary,
+                    anchor: 'end',
                     align: 'end',
-                    offset: 4,
+                    offset: function(context) {
+                        // Sit above the upper error-bar cap (if any) with a
+                        // small gap so the label never overlaps the whiskers.
+                        const value = context.dataset.data[context.dataIndex];
+                        const error = errorBars[context.dataIndex];
+                        const yScale = context.chart.scales.y;
+                        let errorOffset = 0;
+                        if (error && error > 0 && yScale && typeof value === 'number') {
+                            const barTopPx = yScale.getPixelForValue(value);
+                            const errorTopPx = yScale.getPixelForValue(value + error);
+                            errorOffset = Math.max(0, barTopPx - errorTopPx);
+                        }
+                        return errorOffset + 6;
+                    },
                     font: {
                         family: chartFont,
                         size: fontSizes.axisTicks,
@@ -637,350 +619,6 @@ function createSimpleChart() {
             }
         }
     });
-}
-
-// Current selected benchmark for mobile view
-let currentSelectedBenchmark = 'bfcl';
-
-// Benchmark display names
-const benchmarkDisplayNames = {
-    'aime2025': 'AIME 2025',
-    'arenahardwriting': 'Arena Hard',
-    'bfcl': 'BFCL',
-    'gpqamain': 'GPQA Main',
-    'gsm8k': 'GSM8K',
-    'healthbench': 'HealthBench',
-    'humaneval': 'HumanEval'
-};
-
-// Create Detailed Chart (dot plot matrix on desktop, single-benchmark dot plot on mobile)
-function createDetailedChart(benchmarkKey = null) {
-    const ctx = document.getElementById('detailedChart');
-
-    // Get theme colors
-    const {
-        textPrimary,
-        textSecondary,
-        borderColor,
-        chartFont,
-        chartTooltipBg,
-        chartTooltipText,
-        chartTooltipMuted,
-        chartTooltipBorder,
-        chartDot,
-        chartDotReference,
-        chartDotReferenceStrong,
-        chartLaneGuide,
-        chartLaneFill,
-        chartWinnerLabel
-    } = getChartTheme();
-
-    // Check if mobile
-    const isMobile = window.innerWidth <= 768;
-
-    // Set wrapper dimensions based on screen size
-    const wrapper = ctx.closest('.leaderboard-chart-wrapper');
-    const data = leaderboardData.filter(d => d.showInChart !== false);
-    const orderedData = [...data].sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore));
-    const fontSizes = calculateFontSizes(ctx);
-    const axisTickSize = isMobile ? 9 : 11;
-    const tooltipTitleSize = fontSizes.tooltipTitle;
-    const tooltipBodySize = fontSizes.tooltipBody;
-
-    if (isMobile) {
-        wrapper.style.minWidth = '';
-        wrapper.style.height = `${Math.max(360, orderedData.length * 26 + 96)}px`;
-    } else {
-        wrapper.style.minWidth = '';
-        wrapper.style.height = `${Math.max(540, orderedData.length * 32 + 128)}px`;
-    }
-
-    const theme = {
-        chartDot,
-        chartDotReference,
-        chartDotReferenceStrong
-    };
-
-    const benchmarkMeta = [
-        { label: 'AIME 2025', key: 'aime2025' },
-        { label: 'Arena Hard', key: 'arenahardwriting' },
-        { label: 'BFCL', key: 'bfcl' },
-        { label: 'GPQA Main', key: 'gpqamain' },
-        { label: 'GSM8K', key: 'gsm8k' },
-        { label: 'HealthBench', key: 'healthbench' },
-        { label: 'HumanEval', key: 'humaneval' }
-    ];
-
-    const fallbackLabel = fallbackType => {
-        if (fallbackType === 'not_stored') return 'Model not submitted - base model score shown';
-        if (fallbackType === 'error') return 'Evaluation error - base model score shown';
-        return null;
-    };
-
-    if (isMobile) {
-        // Mobile: Single benchmark, agents on Y-axis and score on X-axis.
-        const selectedBenchmark = benchmarkKey || currentSelectedBenchmark;
-        const benchmark = benchmarkMeta.find(item => item.key === selectedBenchmark) || benchmarkMeta[0];
-
-        const mobileData = [...data].sort((a, b) => {
-            const scoreA = getBenchmarkValue(a.benchmarkScores[selectedBenchmark]);
-            const scoreB = getBenchmarkValue(b.benchmarkScores[selectedBenchmark]);
-            return scoreB - scoreA;
-        });
-
-        const points = mobileData.map((entry, agentIndex) => {
-            const score = getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]);
-            return {
-                x: score,
-                y: agentIndex,
-                score,
-                benchmark,
-                entry,
-                fallbackType: getFallbackType(entry.benchmarkScores[selectedBenchmark])
-            };
-        });
-        const highlightCandidates = points.filter(canHighlightDetailedPoint);
-        const topMobileScore = highlightCandidates.length
-            ? Math.max(...highlightCandidates.map(point => point.score))
-            : null;
-        points.forEach(point => {
-            point.isWinner = topMobileScore !== null && canHighlightDetailedPoint(point) && point.score === topMobileScore;
-        });
-
-        detailedChart = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [createDetailedScatterDataset(points, theme, {
-                    label: benchmarkDisplayNames[selectedBenchmark]
-                })]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: prefersReducedMotion() ? 0 : 420,
-                    easing: 'easeOutQuart'
-                },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: chartTooltipBg,
-                        titleColor: chartTooltipText,
-                        bodyColor: chartTooltipMuted,
-                        borderColor: chartTooltipBorder,
-                        borderWidth: 1,
-                        cornerRadius: 10,
-                        displayColors: false,
-                        padding: 8,
-                        titleFont: { family: chartFont, size: 10, weight: 500 },
-                        bodyFont: { family: chartFont, size: 9 },
-                        callbacks: {
-                            title: function(context) {
-                                return context[0]?.raw?.benchmark?.label || benchmarkDisplayNames[selectedBenchmark];
-                            },
-                            label: function(context) {
-                                const raw = context.raw;
-                                const label = `${formatDetailedAgentLabel(raw.entry)}: ${raw.score.toFixed(2)}%`;
-                                return withRepromptedTooltip(label, raw.entry);
-                            },
-                            afterLabel: function(context) {
-                                return fallbackLabel(context.raw?.fallbackType);
-                            }
-                        }
-                    },
-                    datalabels: { display: false }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        min: 0,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Benchmark Score (%)',
-                            color: textPrimary,
-                            font: { family: chartFont, size: 11, weight: 500 }
-                        },
-                        grid: {
-                            color: borderColor,
-                            drawTicks: false,
-                            borderDash: [2, 4]
-                        },
-                        border: { display: false },
-                        ticks: {
-                            color: textSecondary,
-                            padding: 8,
-                            font: { family: chartFont, size: axisTickSize, weight: 500 },
-                            stepSize: 20,
-                            callback: value => value + '%'
-                        }
-                    },
-                    y: {
-                        min: -0.5,
-                        max: mobileData.length - 0.5,
-                        reverse: true,
-                        afterBuildTicks: axis => {
-                            axis.ticks = mobileData.map((_, index) => ({ value: index }));
-                        },
-                        afterFit: scale => {
-                            scale.width = Math.min(scale.width, 112);
-                        },
-                        title: { display: false },
-                        grid: {
-                            color: borderColor,
-                            drawTicks: false,
-                            borderDash: [2, 4]
-                        },
-                        border: { display: false },
-                        ticks: {
-                            color: textSecondary,
-                            padding: 8,
-                            font: { family: chartFont, size: axisTickSize, weight: 500 },
-                            callback: value => {
-                                const index = Math.round(value);
-                                return mobileData[index] ? formatCompactAgentLabel(mobileData[index]) : '';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    } else {
-        // Desktop: benchmark lanes with each score positioned inside its lane.
-        const layout = {
-            laneWidth: 116,
-            scoreWidth: 92,
-            lanePadding: 12
-        };
-        const points = [];
-        const winners = [];
-
-        benchmarkMeta.forEach((benchmark, benchmarkIndex) => {
-            let winner = null;
-
-            orderedData.forEach((entry, agentIndex) => {
-                const score = getBenchmarkValue(entry.benchmarkScores[benchmark.key]);
-                const point = createDetailedPoint(entry, benchmark, benchmarkIndex, agentIndex, score, layout);
-                points.push(point);
-
-                if (canHighlightDetailedPoint(point) && (!winner || point.score > winner.score)) {
-                    winner = point;
-                }
-            });
-
-            if (winner) winners.push(winner);
-        });
-        winners.forEach(point => {
-            point.isWinner = true;
-        });
-
-        detailedChart = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [createDetailedScatterDataset(points, theme)]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: prefersReducedMotion() ? 0 : 520,
-                    easing: 'easeOutQuart'
-                },
-                plugins: {
-                    legend: { display: false },
-                    detailedDotPlotGuides: {
-                        benchmarks: benchmarkMeta,
-                        layout,
-                        winners,
-                        laneGuideColor: chartLaneGuide,
-                        laneFillColor: chartLaneFill,
-                        winnerLabelColor: chartWinnerLabel,
-                        font: chartFont,
-                        labelSize: 10
-                    },
-                    tooltip: {
-                        backgroundColor: chartTooltipBg,
-                        titleColor: chartTooltipText,
-                        bodyColor: chartTooltipMuted,
-                        borderColor: chartTooltipBorder,
-                        borderWidth: 1,
-                        cornerRadius: 10,
-                        padding: 12,
-                        displayColors: false,
-                        titleFont: { family: chartFont, size: tooltipTitleSize, weight: 500 },
-                        bodyFont: { family: chartFont, size: tooltipBodySize },
-                        callbacks: {
-                            title: function(context) {
-                                return context[0]?.raw?.benchmark?.label || '';
-                            },
-                            label: function(context) {
-                                const raw = context.raw;
-                                const label = `${formatDetailedAgentLabel(raw.entry)}: ${raw.score.toFixed(2)}%`;
-                                return withRepromptedTooltip(label, raw.entry);
-                            },
-                            afterLabel: function(context) {
-                                return fallbackLabel(context.raw?.fallbackType);
-                            }
-                        }
-                    },
-                    datalabels: { display: false }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        min: 0,
-                        max: benchmarkMeta.length * layout.laneWidth,
-                        afterBuildTicks: axis => {
-                            axis.ticks = benchmarkMeta.map((_, index) => ({
-                                value: index * layout.laneWidth + layout.laneWidth / 2
-                            }));
-                        },
-                        title: { display: false },
-                        grid: { display: false },
-                        border: { display: false },
-                        ticks: {
-                            color: textSecondary,
-                            padding: 8,
-                            font: { family: chartFont, size: axisTickSize, weight: 500 },
-                            maxRotation: 0,
-                            minRotation: 0,
-                            callback: value => {
-                                const index = benchmarkMeta.findIndex((_, benchmarkIndex) =>
-                                    Math.abs(value - (benchmarkIndex * layout.laneWidth + layout.laneWidth / 2)) < 1
-                                );
-                                return index >= 0 ? benchmarkMeta[index].label : '';
-                            }
-                        }
-                    },
-                    y: {
-                        min: -0.5,
-                        max: orderedData.length - 0.5,
-                        reverse: true,
-                        afterBuildTicks: axis => {
-                            axis.ticks = orderedData.map((_, index) => ({ value: index }));
-                        },
-                        title: { display: false },
-                        grid: {
-                            color: borderColor,
-                            drawTicks: false,
-                            borderDash: [2, 4]
-                        },
-                        border: { display: false },
-                        ticks: {
-                            color: textSecondary,
-                            padding: 8,
-                            font: { family: chartFont, size: axisTickSize, weight: 500 },
-                            callback: value => {
-                                const index = Math.round(value);
-                                return orderedData[index] ? formatDetailedAgentLabel(orderedData[index]) : '';
-                            }
-                        }
-                    }
-                }
-            },
-            plugins: [detailedDotPlotPlugin]
-        });
-    }
 }
 
 // Create Time Spent Chart
@@ -1196,7 +834,7 @@ function createTimeSpentChart() {
                 backgroundColor: timeBarColors,
                 borderColor: chartBar,
                 borderWidth: 0,
-                borderRadius: isMobile ? 4 : 8,
+                borderRadius: Number.MAX_VALUE,
                 borderSkipped: false,
                 barPercentage: isMobile ? 0.6 : 0.8,
                 categoryPercentage: isMobile ? 0.8 : 0.9,

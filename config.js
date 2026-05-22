@@ -121,7 +121,7 @@ const agentInfo = {
 
 // Benchmark metadata (weights are loaded from scores.json)
 const benchmarkInfo = {
-    aime2025: { title: "AIME 2025", version: "", difficulty: "hard", category: "Mathematics", description: "American Invitational Mathematics Examination - tests advanced mathematical problem-solving and reasoning capabilities." },
+    aime2025: { title: "AIME 2025", version: "", difficulty: "hard", category: "Mathematics", description: "American Invitational Mathematics Examination - advanced competition math problem-solving." },
     arenahardwriting: { title: "Arena Hard", version: "Writing", difficulty: "medium", category: "Writing", description: "Arena Hard Writing benchmark - evaluates writing quality and instruction following." },
     bfcl: { title: "BFCL", version: "", difficulty: "medium", category: "Function Calling", description: "Berkeley Function Calling Leaderboard - evaluates function calling and tool use capabilities." },
     gpqamain: { title: "GPQA", version: "Main", difficulty: "hard", category: "Knowledge", description: "Graduate-level Google-Proof Q&A - tests expert-level knowledge across science domains." },

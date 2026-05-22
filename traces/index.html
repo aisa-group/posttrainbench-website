@@ -1,35 +1,17 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PostTrainBench · traces</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
-  <link rel="stylesheet" href="assets/styles.css" />
-  <script>
-    (function () {
-      var t = localStorage.getItem('theme') || 'light';
-      document.documentElement.setAttribute('data-theme', t);
-    })();
-  </script>
+  <link rel="stylesheet" href="assets/styles.css?v=restyle-2026-05" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
       <a href="https://posttrainbench.com" class="logo">PostTrain<span class="logo-accent">Bench</span></a>
       <a href="index.html" class="logo-sub">/ traces</a>
-      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
-        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      </button>
     </div>
   </header>
 
@@ -39,13 +21,14 @@
        set the (benchmark, base-model) filter pair. -->
   <section class="page-head">
     <div class="container page-head-inner">
-      <h1>Agent traces</h1>
+      <div class="hero-header">
+        <h1>Agent traces</h1>
+        <aside class="hero-stats" id="hero-stats" aria-label="Corpus stats"></aside>
+      </div>
       <div class="hero-body">
         <div id="matrix-wrap" class="matrix-wrap" aria-label="Runs by task and base model">
           <div id="matrix" class="matrix"></div>
-          <div class="matrix-legend" id="matrix-legend" aria-hidden="true"></div>
         </div>
-        <aside class="hero-stats" id="hero-stats" aria-label="Corpus stats"></aside>
       </div>
     </div>
   </section>
@@ -112,7 +95,6 @@
   </main>
 
   <script src="config.js"></script>
-  <script src="assets/theme.js"></script>
   <script src="assets/tooltip.js"></script>
   <script src="assets/index.js"></script>
 </body>

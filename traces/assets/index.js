@@ -20,7 +20,6 @@ const els = {
   emptyReset: document.getElementById('empty-reset'),
   heroStats: document.getElementById('hero-stats'),
   matrix: document.getElementById('matrix'),
-  matrixLegend: document.getElementById('matrix-legend'),
 };
 
 let DATA = { runs: [], experiments: [], benchmarks: [], build_ts: null };
@@ -203,20 +202,20 @@ function renderMatrix() {
         cellEl.disabled = true;
         cellEl.setAttribute('aria-label', `${prettyBenchmark(b)} · ${prettyTrainedModel(tm)}: no runs`);
       } else {
-        const intensity = max > 0 && c.bestAcc != null ? c.bestAcc / max : 0;
-        cellEl.style.setProperty('--cell-intensity', intensity.toFixed(3));
+        // Intensity is the absolute best accuracy (0..1) so the heatmap
+        // reads on the same scale as the main site's leaderboard cells:
+        // 16.7% renders as the chart blue at 16.7% opacity, 71.5% at 71.5%.
+        const intensity = c.bestAcc != null ? Math.max(0, Math.min(1, c.bestAcc)) : 0;
+        cellEl.style.setProperty('--cell-intensity', intensity.toFixed(4));
         const accLabel = c.bestAcc != null
           ? `${(c.bestAcc * 100).toFixed(1)}%`
           : '—';
-        // Cell face shows only the best accuracy + shade — keeps a clean
-        // heatmap read. Best agent name lives in the tooltip.
         cellEl.innerHTML = `<span class="matrix-acc">${accLabel}</span>`;
-        const tip = c.bestAcc != null
-          ? `best ${accLabel}${c.bestRun ? ' (' + prettyAgentForRun(c.bestRun) + ')' : ''}`
-          : 'no accuracy data';
-        cellEl.setAttribute('data-tip', tip);
+        // aria-label still gives screen readers the row/column + value
+        // context, but the on-hover tooltip is intentionally omitted —
+        // the visible value plus blue shade carry the same information.
         cellEl.setAttribute('aria-label',
-          `${prettyBenchmark(b)} · ${prettyTrainedModel(tm)}: ${tip}`);
+          `${prettyBenchmark(b)} · ${prettyTrainedModel(tm)}: best ${accLabel}`);
         cellEl.addEventListener('click', () => filterToCell(b, tm));
       }
       grid.appendChild(cellEl);
@@ -225,18 +224,6 @@ function renderMatrix() {
 
   els.matrix.innerHTML = '';
   els.matrix.appendChild(grid);
-
-  // Legend.
-  els.matrixLegend.innerHTML = `
-    <span class="legend-label">shade = best accuracy (within task)</span>
-    <span class="legend-scale" aria-hidden="true">
-      <span class="legend-step" style="--cell-intensity:0.15"></span>
-      <span class="legend-step" style="--cell-intensity:0.40"></span>
-      <span class="legend-step" style="--cell-intensity:0.65"></span>
-      <span class="legend-step" style="--cell-intensity:0.90"></span>
-      <span class="legend-step" style="--cell-intensity:1"></span>
-    </span>
-    <span class="legend-label legend-label-right">low → high</span>`;
 }
 
 function filterToCell(benchmark, model) {

@@ -807,14 +807,15 @@ function setChartDefaults() {
 
 function paletteColor(palette) {
   const css = getComputedStyle(document.documentElement);
-  const map = {
-    accent:    css.getPropertyValue('--accent-primary').trim() || '#a66b4f',
-    'session-1': css.getPropertyValue('--session-1').trim() || '#8a7240',
-    'session-2': css.getPropertyValue('--session-2').trim() || '#6f7d45',
-    'session-3': css.getPropertyValue('--session-3').trim() || '#80526a',
-    'session-4': css.getPropertyValue('--session-4').trim() || '#97553a',
-  };
-  return map[palette] || map.accent;
+  // System-metric mini-charts share the main site's chart-blue for every
+  // metric. Different metrics live in separate cards with their own
+  // titles, so we don't need a qualitative palette to tell them apart.
+  // Using a single hue keeps the rail consistent with the leaderboard
+  // bars on the main page.
+  const blue = css.getPropertyValue('--chart-bar').trim()
+    || css.getPropertyValue('--accent-primary').trim()
+    || '#54C1F0';
+  return blue;
 }
 
 function metricCardHtml(def, where) {
@@ -849,7 +850,10 @@ function buildChart(canvasId, def) {
         label: def.title,
         data: def.data,
         borderColor: color,
-        backgroundColor: color + '22',
+        // Pale tint under the line so the area read stays subtle on a
+        // light surface (the dense saturated fills the previous palette
+        // produced looked like leftover dark-mode chrome).
+        backgroundColor: color + '1f',
         fill: 'origin',
       }],
     },
