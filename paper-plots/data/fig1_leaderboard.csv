@@ -1,15 +1,15 @@
 Method,Avg,StdDev
 Official Instruct Models,51.1,
-"GPT 5.4 (High, Reprompted)",28.2,
-Opus 4.6 (1M),24.8,0.5
-Opus 4.6,23.2,1.8
-Gemini 3.1 Pro,21.6,1.1
-GPT-5.2,21.4,2.4
-GPT 5.4 (High),20.2,2.4
-GPT-5.1 Codex Max,19.7,2.5
-Gemini 3 Pro,18.1,2.4
-GPT 5.3 Codex (High),17.8,3.6
-Opus 4.5,17.1,4.5
-Sonnet 4.6,16.4,
-GLM-5,13.9,
+Opus 4.7,27.9,1.0
+Opus 4.6,16.3,3.2
+Opus 4.6 (1M),17.7,1.9
+Opus 4.5,15.8,5.1
+GPT 5.3 Codex (High),17.4,2.8
+GPT 5.4 (High),18.3,3.3
+"GPT 5.4 (High, Reprompted)",23.4,
+GPT 5.5 (xHigh),24.0,0.7
+"GPT 5.5 (xHigh, Reprompted)",20.1,
+Sonnet 4.6,14.5,
+Gemini 3.1 Pro,21.0,1.8
+GLM-5,13.8,
 Base Model,7.5,

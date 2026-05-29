@@ -105,6 +105,10 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
             labels.append("GPT 5.4\n(High)")
         elif method == "GPT 5.4 (High, Reprompted)":
             labels.append("GPT 5.4\n(High)$^\\dagger$")
+        elif method == "GPT 5.5 (xHigh)":
+            labels.append("GPT 5.5\n(xHigh)")
+        elif method == "GPT 5.5 (xHigh, Reprompted)":
+            labels.append("GPT 5.5\n(xHigh)$^\\dagger$")
         elif method == "Opus 4.6 (1M)":
             labels.append("Opus 4.6\n(1M)")
         elif method == "Gemini 3.1 Pro":
