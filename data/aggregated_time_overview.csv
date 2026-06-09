@@ -16,3 +16,4 @@ claude_non_api_claude-sonnet-4-6_10h,6:50:01,68.3%
 opencode_opencode_gemini-3.1-pro_10h_run2,4:15:06,42.5%
 codex_non_api_high_reprompt_gpt-5.4_10h,8:19:05,83.2%
 codex_non_api_xhigh_reprompt_gpt-5.5_10h,9:14:31,92.4%
+claude_non_api_max_claude-opus-4-8_10h_run1,8:57:58,89.7%

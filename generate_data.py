@@ -24,6 +24,7 @@ AGGREGATED_NAME_TO_KEY = {
     "Opus-4.6-1M": "opus-4.6-1m",
     "Opus-4.7": "opus-4.7",
     "GPT-5.5-xHigh": "gpt-5.5-xhigh",
+    "Opus-4.8": "opus-4.8",
 }
 
 CSV_TO_AGENT = {
@@ -40,6 +41,7 @@ CSV_TO_AGENT = {
     "aggregated_avg_Opus-4.6-1M.csv": "opus-4.6-1m",
     "aggregated_avg_Opus-4.7.csv": "opus-4.7",
     "aggregated_avg_GPT-5.5-xHigh.csv": "gpt-5.5-xhigh",
+    "aggregated_avg_Opus-4.8.csv": "opus-4.8",
 }
 
 STD_CSV_TO_AGENT = {
@@ -56,13 +58,15 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_Opus-4.6-1M.csv": "opus-4.6-1m",
     "aggregated_std_Opus-4.7.csv": "opus-4.7",
     "aggregated_std_GPT-5.5-xHigh.csv": "gpt-5.5-xhigh",
+    "aggregated_std_Opus-4.8.csv": "opus-4.8",
 }
 
-# Single-run reprompted variants: per-model scores from a final_*.csv,
+# Single-run variants: per-model scores from a final_*.csv,
 # time from aggregated_time_overview.csv. No std data, no aggregatedScores entry.
-REPROMPTED_FINAL_TO_KEY = {
+SINGLE_RUN_FINAL_TO_KEY = {
     "final_codex_non_api_high_reprompt_gpt-5.4_10h.csv": "gpt-5.4-high-reprompted",
     "final_codex_non_api_xhigh_reprompt_gpt-5.5_10h.csv": "gpt-5.5-xhigh-reprompted",
+    "final_claude_non_api_max_claude-opus-4-8_10h_run1.csv": "opus-4.8-max",
 }
 
 OPENCODE_CSV_TO_AGENT = {
@@ -99,6 +103,7 @@ TIME_OVERVIEW_TO_KEY = {
     "opencode_opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
     "codex_non_api_high_reprompt_gpt-5.4_10h": "gpt-5.4-high-reprompted",
     "codex_non_api_xhigh_reprompt_gpt-5.5_10h": "gpt-5.5-xhigh-reprompted",
+    "claude_non_api_max_claude-opus-4-8_10h_run1": "opus-4.8-max",
 }
 
 TIME_AGGREGATED_TO_KEY = {
@@ -115,6 +120,7 @@ TIME_AGGREGATED_TO_KEY = {
     "Opus-4.6-1M": "opus-4.6-1m",
     "Opus-4.7": "opus-4.7",
     "GPT-5.5-xHigh": "gpt-5.5-xhigh",
+    "Opus-4.8": "opus-4.8",
 }
 
 
@@ -289,7 +295,7 @@ def generate_scores_json():
 
                 model_benchmark_data[QWEN3MAX_KEY][model][bm] = {"value": final_val, "fallbackType": fallback_type}
 
-    for csv_file, agent_key in REPROMPTED_FINAL_TO_KEY.items():
+    for csv_file, agent_key in SINGLE_RUN_FINAL_TO_KEY.items():
         filepath = DATA_DIR / csv_file
         if filepath.exists():
             agent_data = read_csv(filepath)
