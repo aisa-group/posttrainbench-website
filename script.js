@@ -383,8 +383,10 @@ function createSimpleChart(modelName = "average") {
     // Reasoning effort is not shown in the main bar chart (only the dagger for reprompted)
     const chartLabels = reversedData.map(d => {
         const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
+        const isMax = d.reasoningEffort === 'Max';
         const dagger = isReprompted ? '†' : '';
-        const displayName = `${d.agent}${dagger}`;
+        const maxSuffix = isMax ? ' (Max)' : '';
+        const displayName = `${d.agent}${dagger}${maxSuffix}`;
         if (isMobile) {
             // Abbreviated labels for mobile
             if (d.agent === 'Base Models') return 'Base Models';
@@ -404,6 +406,10 @@ function createSimpleChart(modelName = "average") {
         }
         if (d.agent === 'Official Instruct Models') {
             return ['Official', 'Instruct', 'Models²'];
+        }
+        // Max-reasoning variants: keep name on line 1, "(Max)" on line 2
+        if (isMax) {
+            return [`${d.agent}${dagger}`, '(Max)'];
         }
         const words = d.agent.split(' ');
         if (words.length >= 3) {
