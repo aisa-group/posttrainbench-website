@@ -15,25 +15,27 @@ const modelDisplayNames = {
 // Agents to show in main chart (others appear in table only)
 const chartAgentKeys = [
     "human",
+    "opus-4.8",
+    "opus-4.8-max",
     "opus-4.7",
     "opus-4.6",
     "opus-4.6-1m",
     // "gpt-5.2",
     // "gpt-5.1-codex-max",
     "opus-4.5",
-    "gpt-5.3-codex-high",
     "gpt-5.4-high",
     "gpt-5.4-high-reprompted",
     "gpt-5.5-xhigh",
     "gpt-5.5-xhigh-reprompted",
     "sonnet-4.6",
     "gemini-3.1-pro",
-    "glm-5",
     "base-model"
 ];
 
 // Agents to show in time spent chart
 const timeChartAgentKeys = [
+    "opus-4.8",
+    "opus-4.8-max",
     "opus-4.7",
     "opus-4.6",
     "opus-4.6-1m",
@@ -63,6 +65,8 @@ const timeChartAgentKeys = [
 // All agents (for table) - order determines display order before sorting by score
 const allAgentKeys = [
     "human",
+    "opus-4.8",
+    "opus-4.8-max",
     "opus-4.7",
     "opus-4.6",
     "gpt-5.2",
@@ -119,6 +123,8 @@ const agentInfo = {
     "opus-4.6": { name: "Opus 4.6", description: "Claude Opus 4.6 agent", scaffold: "Claude Code" },
     "opus-4.6-1m": { name: "Opus 4.6 (1M)", description: "Claude Opus 4.6 with 1M context window", scaffold: "Claude Code" },
     "opus-4.7": { name: "Opus 4.7", description: "Claude Opus 4.7 extra-high reasoning agent", scaffold: "Claude Code", reasoningEffort: "xHigh" },
+    "opus-4.8": { name: "Opus 4.8", description: "Claude Opus 4.8 high reasoning agent", scaffold: "Claude Code", reasoningEffort: "High" },
+    "opus-4.8-max": { name: "Opus 4.8", description: "Claude Opus 4.8 max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max" },
     "gpt-5.3-codex-high": { name: "GPT 5.3 Codex", description: "GPT 5.3 Codex high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "High" },
     "gpt-5.3-codex-med": { name: "GPT 5.3 Codex", description: "GPT 5.3 Codex medium reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Med" },
     "gpt-5.4-high": { name: "GPT 5.4", description: "GPT 5.4 high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "High" },
