@@ -1698,6 +1698,162 @@ tbody tr:last-child td {
     text-align: center;
 }
 
+/* Reward-hacking categories — top-level foldables in the
+   qualitative analysis, one per hacking type. */
+.hack-category {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    margin: 0 0 1rem;
+}
+
+.hack-category > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.hack-category > summary::-webkit-details-marker {
+    display: none;
+}
+
+.hack-category > summary::after {
+    content: '+';
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-primary);
+    transition: var(--transition);
+}
+
+.hack-category[open] > summary::after {
+    content: '\2212';
+}
+
+.hack-category-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.hack-category-body {
+    padding: 0 1.25rem 1.25rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.hack-category-body > p {
+    margin-top: 1rem;
+}
+
+/* Nested evidence foldables (code / trace excerpts) inside a
+   hack category. */
+.evidence-fold {
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    margin: 0.75rem 0;
+    background: var(--bg-tertiary);
+}
+
+.evidence-fold > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0.6rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent-primary);
+}
+
+.evidence-fold > summary::-webkit-details-marker {
+    display: none;
+}
+
+.evidence-fold > summary::before {
+    content: '+';
+    margin-right: 0.5rem;
+}
+
+.evidence-fold[open] > summary::before {
+    content: '\2212';
+}
+
+.evidence-fold pre {
+    margin: 0;
+    padding: 0.75rem 1rem 1rem;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    line-height: 1.55;
+    color: var(--text-primary);
+    white-space: pre;
+}
+
+.evidence-fold .evidence-note {
+    padding: 0 1rem 0.75rem;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* One concrete incident inside a category. */
+.hack-example {
+    margin: 1.25rem 0;
+}
+
+.hack-example-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.92rem;
+    margin-bottom: 0.35rem;
+}
+
+.hack-example-title .findings-meta {
+    margin-left: 0.45rem;
+}
+
+/* Judge verdict line shown under an example. */
+.judge-verdict {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0.5rem 0 0;
+}
+
+.judge-verdict-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.4rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .hack-category > summary {
+        padding: 0.85rem 1rem;
+        font-size: 0.92rem;
+    }
+    .hack-category-body {
+        padding: 0 1rem 1rem;
+    }
+    .evidence-fold pre {
+        font-size: 0.68rem;
+    }
+}
+
 .takeaways-list {
     display: flex;
     flex-direction: column;
