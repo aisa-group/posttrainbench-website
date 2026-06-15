@@ -15,6 +15,7 @@ const modelDisplayNames = {
 // Agents to show in main chart (others appear in table only)
 const chartAgentKeys = [
     "human",
+    "fable-5",
     "opus-4.8",
     "opus-4.8-max",
     "opus-4.7",
@@ -34,6 +35,7 @@ const chartAgentKeys = [
 
 // Agents to show in time spent chart
 const timeChartAgentKeys = [
+    "fable-5",
     "opus-4.8",
     "opus-4.8-max",
     "opus-4.7",
@@ -65,6 +67,7 @@ const timeChartAgentKeys = [
 // All agents (for table) - order determines display order before sorting by score
 const allAgentKeys = [
     "human",
+    "fable-5",
     "opus-4.8",
     "opus-4.8-max",
     "opus-4.7",
@@ -131,7 +134,8 @@ const agentInfo = {
     "gpt-5.4-high-reprompted": { name: "GPT 5.4", description: "GPT 5.4 high reasoning agent (reprompted)", scaffold: "Codex CLI", reasoningEffort: "High, Reprompted" },
     "gpt-5.5-xhigh": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "xHigh" },
     "gpt-5.5-xhigh-reprompted": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent (reprompted)", scaffold: "Codex CLI", reasoningEffort: "xHigh, Reprompted" },
-    "qwen3-max": { name: "Qwen3 Max", description: "Qwen3 Max agent", isOpenCode: true, scaffold: "Claude Code" }
+    "qwen3-max": { name: "Qwen3 Max", description: "Qwen3 Max agent", isOpenCode: true, scaffold: "Claude Code" },
+    "fable-5": { name: "Fable 5 (1M)", description: "Claude Fable 5 with 1M context, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max" }
 };
 
 // Benchmark metadata (weights are loaded from scores.json)

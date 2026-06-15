@@ -67,6 +67,7 @@ SINGLE_RUN_FINAL_TO_KEY = {
     "final_codex_non_api_high_reprompt_gpt-5.4_10h.csv": "gpt-5.4-high-reprompted",
     "final_codex_non_api_xhigh_reprompt_gpt-5.5_10h.csv": "gpt-5.5-xhigh-reprompted",
     "final_claude_non_api_max_claude-opus-4-8_10h_run1.csv": "opus-4.8-max",
+    "final_claude_non_api_max_claude-fable-5_1m__10h_run2.csv": "fable-5",
 }
 
 OPENCODE_CSV_TO_AGENT = {
@@ -104,6 +105,7 @@ TIME_OVERVIEW_TO_KEY = {
     "codex_non_api_high_reprompt_gpt-5.4_10h": "gpt-5.4-high-reprompted",
     "codex_non_api_xhigh_reprompt_gpt-5.5_10h": "gpt-5.5-xhigh-reprompted",
     "claude_non_api_max_claude-opus-4-8_10h_run1": "opus-4.8-max",
+    "claude_non_api_max_claude-fable-5_1m__10h_run2": "fable-5",
 }
 
 TIME_AGGREGATED_TO_KEY = {
