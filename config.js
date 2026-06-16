@@ -16,6 +16,7 @@ const modelDisplayNames = {
 const chartAgentKeys = [
     "human",
     "fable-5",
+    "glm-5.2",
     "opus-4.8",
     "opus-4.8-max",
     "opus-4.7",
@@ -28,7 +29,6 @@ const chartAgentKeys = [
     "gpt-5.4-high-reprompted",
     "gpt-5.5-xhigh",
     "gpt-5.5-xhigh-reprompted",
-    "sonnet-4.6",
     "gemini-3.1-pro",
     "base-model"
 ];
@@ -36,6 +36,7 @@ const chartAgentKeys = [
 // Agents to show in time spent chart
 const timeChartAgentKeys = [
     "fable-5",
+    "glm-5.2",
     "opus-4.8",
     "opus-4.8-max",
     "opus-4.7",
@@ -68,6 +69,7 @@ const timeChartAgentKeys = [
 const allAgentKeys = [
     "human",
     "fable-5",
+    "glm-5.2",
     "opus-4.8",
     "opus-4.8-max",
     "opus-4.7",
@@ -123,6 +125,7 @@ const agentInfo = {
     "kimi-k2.5": { name: "Kimi K2.5", description: "Kimi K2.5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "minimax-m2.5": { name: "MiniMax M2.5", description: "MiniMax M2.5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "glm-5": { name: "GLM 5", description: "GLM 5 agent", isOpenCode: true, scaffold: "OpenCode" },
+    "glm-5.2": { name: "GLM 5.2", description: "GLM 5.2 agent", scaffold: "Claude Code" },
     "opus-4.6": { name: "Opus 4.6", description: "Claude Opus 4.6 agent", scaffold: "Claude Code" },
     "opus-4.6-1m": { name: "Opus 4.6 (1M)", description: "Claude Opus 4.6 with 1M context window", scaffold: "Claude Code" },
     "opus-4.7": { name: "Opus 4.7", description: "Claude Opus 4.7 extra-high reasoning agent", scaffold: "Claude Code", reasoningEffort: "xHigh" },

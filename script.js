@@ -618,7 +618,7 @@ function createSimpleChart(modelName = "average") {
                         color: textSecondary,
                         font: {
                             family: "'JetBrains Mono', monospace",
-                            size: isMobile ? 9 : Math.max(9, fontSizes.axisTicks - 1)
+                            size: isMobile ? 9 : Math.max(8, fontSizes.axisTicks - 2)
                         },
                         maxRotation: isMobile ? 55 : 0,
                         minRotation: isMobile ? 55 : 0,

@@ -25,6 +25,7 @@ AGGREGATED_NAME_TO_KEY = {
     "Opus-4.7": "opus-4.7",
     "GPT-5.5-xHigh": "gpt-5.5-xhigh",
     "Opus-4.8": "opus-4.8",
+    "GLM 5.2": "glm-5.2",
 }
 
 CSV_TO_AGENT = {
@@ -42,6 +43,7 @@ CSV_TO_AGENT = {
     "aggregated_avg_Opus-4.7.csv": "opus-4.7",
     "aggregated_avg_GPT-5.5-xHigh.csv": "gpt-5.5-xhigh",
     "aggregated_avg_Opus-4.8.csv": "opus-4.8",
+    "aggregated_avg_GLM_5.2.csv": "glm-5.2",
 }
 
 STD_CSV_TO_AGENT = {
@@ -59,6 +61,7 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_Opus-4.7.csv": "opus-4.7",
     "aggregated_std_GPT-5.5-xHigh.csv": "gpt-5.5-xhigh",
     "aggregated_std_Opus-4.8.csv": "opus-4.8",
+    "aggregated_std_GLM_5.2.csv": "glm-5.2",
 }
 
 # Single-run variants: per-model scores from a final_*.csv,
@@ -123,6 +126,7 @@ TIME_AGGREGATED_TO_KEY = {
     "Opus-4.7": "opus-4.7",
     "GPT-5.5-xHigh": "gpt-5.5-xhigh",
     "Opus-4.8": "opus-4.8",
+    "GLM 5.2": "glm-5.2",
 }
 
 
