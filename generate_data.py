@@ -25,6 +25,7 @@ AGGREGATED_NAME_TO_KEY = {
     "Opus-4.7": "opus-4.7",
     "GPT-5.5-xHigh": "gpt-5.5-xhigh",
     "Opus-4.8": "opus-4.8",
+    "Opus-4.8 (Max)": "opus-4.8-max",
     "GLM 5.2": "glm-5.2",
 }
 
@@ -43,6 +44,7 @@ CSV_TO_AGENT = {
     "aggregated_avg_Opus-4.7.csv": "opus-4.7",
     "aggregated_avg_GPT-5.5-xHigh.csv": "gpt-5.5-xhigh",
     "aggregated_avg_Opus-4.8.csv": "opus-4.8",
+    "aggregated_avg_Opus-4.8_(Max).csv": "opus-4.8-max",
     "aggregated_avg_GLM_5.2.csv": "glm-5.2",
 }
 
@@ -61,6 +63,7 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_Opus-4.7.csv": "opus-4.7",
     "aggregated_std_GPT-5.5-xHigh.csv": "gpt-5.5-xhigh",
     "aggregated_std_Opus-4.8.csv": "opus-4.8",
+    "aggregated_std_Opus-4.8_(Max).csv": "opus-4.8-max",
     "aggregated_std_GLM_5.2.csv": "glm-5.2",
 }
 
@@ -69,7 +72,6 @@ STD_CSV_TO_AGENT = {
 SINGLE_RUN_FINAL_TO_KEY = {
     "final_codex_non_api_high_reprompt_gpt-5.4_10h.csv": "gpt-5.4-high-reprompted",
     "final_codex_non_api_xhigh_reprompt_gpt-5.5_10h.csv": "gpt-5.5-xhigh-reprompted",
-    "final_claude_non_api_max_claude-opus-4-8_10h_run1.csv": "opus-4.8-max",
     "final_claude_non_api_max_claude-fable-5_1m__10h_run2.csv": "fable-5",
 }
 
@@ -107,7 +109,6 @@ TIME_OVERVIEW_TO_KEY = {
     "opencode_opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
     "codex_non_api_high_reprompt_gpt-5.4_10h": "gpt-5.4-high-reprompted",
     "codex_non_api_xhigh_reprompt_gpt-5.5_10h": "gpt-5.5-xhigh-reprompted",
-    "claude_non_api_max_claude-opus-4-8_10h_run1": "opus-4.8-max",
     "claude_non_api_max_claude-fable-5_1m__10h_run2": "fable-5",
 }
 
@@ -126,6 +127,7 @@ TIME_AGGREGATED_TO_KEY = {
     "Opus-4.7": "opus-4.7",
     "GPT-5.5-xHigh": "gpt-5.5-xhigh",
     "Opus-4.8": "opus-4.8",
+    "Opus-4.8 (Max)": "opus-4.8-max",
     "GLM 5.2": "glm-5.2",
 }
 
