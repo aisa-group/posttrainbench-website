@@ -4,6 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PostTrainBench</title>
+    <script>
+        // Run before first paint:
+        // 1. Apply the saved theme to avoid a light->dark flash on load.
+        // 2. Mark the leaderboard as loading so its JS-populated table (and the
+        //    content below it) stays hidden until the rows are inserted, instead
+        //    of briefly flashing an empty table and the "Detailed Breakdown"
+        //    heading. The timeout is a failsafe so the content always reveals
+        //    even if initialization fails.
+        (function () {
+            var root = document.documentElement;
+            try {
+                var t = localStorage.getItem('theme');
+                if (t) root.setAttribute('data-theme', t);
+            } catch (e) {}
+            root.classList.add('leaderboard-loading');
+            setTimeout(function () { root.classList.remove('leaderboard-loading'); }, 3000);
+        })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -101,6 +119,7 @@
                 <p class="chart-footnote"><sup>1</sup> The weighted average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
                 <p class="chart-footnote"><sup>2</sup> "Official Instruct Models" refers to the officially post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank">Gemma-3-4B-IT</a>. Not directly comparable to agents since their training usually exceeds the 10h + 1 GPU constraint.</p>
                 <p class="chart-footnote"><sup>†</sup> Reprompted: the agent was manually prompted to continue each time it stopped before the time budget expired.</p>
+                <p class="chart-footnote"><sup>‡</sup> Fable 5's SmolLM3-3B runs failed on AIME 2025, Arena Hard, GSM8K, HealthBench, and HumanEval; those cells use Opus 4.8 (Max) results as a substitute.</p>
             </div>
             <details class="changelog" open>
                 <summary>Changelog</summary>
@@ -229,7 +248,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown</p>
+            <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown &nbsp;&nbsp; <sup>‡</sup> Fable 5's failed SmolLM3-3B runs (AIME 2025, Arena Hard, GSM8K, HealthBench, HumanEval) use Opus 4.8 (Max) results as a substitute</p>
 
             <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
             <div class="benchmark-select-container leaderboard-controls">
@@ -504,6 +523,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="config.js"></script>
+    <script src="scores.js"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
     <script src="photo-mode.js"></script>

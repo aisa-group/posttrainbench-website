@@ -172,6 +172,8 @@ function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
             valueStr += '<sup>*</sup>';
         } else if (fallbackType === 'error') {
             valueStr += '<sup>†</sup>';
+        } else if (fallbackType === 'substituted') {
+            valueStr += '<sup>‡</sup>';
         }
     }
 
@@ -257,10 +259,12 @@ function populateLeaderboard(modelName = "average") {
         if (entry.agent === 'Official Instruct Models' && modelName !== 'average') {
             displayAgent = 'Official Instruct Model';
         }
-        let agentNameHtml = displayAgent;
+        const footnoteMarker = agentInfo[entry.agentKey]?.footnoteMarker || '';
+        const markerHtml = footnoteMarker ? `<sup>${footnoteMarker}</sup>` : '';
+        let agentNameHtml = `${displayAgent}${markerHtml}`;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
-            agentNameHtml = `${displayAgent}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
+            agentNameHtml = `${displayAgent}${markerHtml}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
         }
 
         row.innerHTML = `
@@ -385,8 +389,9 @@ function createSimpleChart(modelName = "average") {
         const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
         const isMax = d.reasoningEffort === 'Max';
         const dagger = isReprompted ? '†' : '';
+        const note = agentInfo[d.agentKey]?.footnoteMarker || '';
         const maxSuffix = isMax ? ' (Max)' : '';
-        const displayName = `${d.agent}${dagger}${maxSuffix}`;
+        const displayName = `${d.agent}${dagger}${note}${maxSuffix}`;
         if (isMobile) {
             // Abbreviated labels for mobile
             if (d.agent === 'Base Models') return 'Base Models';
@@ -409,7 +414,7 @@ function createSimpleChart(modelName = "average") {
         }
         // Max-reasoning variants: keep name on line 1, "(Max)" on line 2
         if (isMax) {
-            return [`${d.agent}${dagger}`, '(Max)'];
+            return [`${d.agent}${dagger}${note}`, '(Max)'];
         }
         const words = d.agent.split(' ');
         if (words.length >= 3) {
@@ -467,48 +472,62 @@ function createSimpleChart(modelName = "average") {
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
 
-    // Custom plugin for error bars
+    // Custom plugin for error bars.
+    // The caps ride each bar's animated top (rather than floating at the final
+    // position while the bar is still growing) and fade in proportionally as the
+    // bar reaches full height, so they build in together with the bars.
     const errorBarPlugin = {
         id: 'errorBars',
         afterDatasetsDraw(chart) {
-            const { ctx, scales: { x, y } } = chart;
-            const dataset = chart.data.datasets[0];
+            const { ctx, scales: { y } } = chart;
+            const meta = chart.getDatasetMeta(0);
+            const data = chart.data.datasets[0].data;
 
             ctx.save();
             ctx.strokeStyle = '#704028'; // Dark terracotta for error bars
             ctx.lineWidth = isMobile ? 1 : 1.5;
 
-            dataset.data.forEach((value, index) => {
+            meta.data.forEach((bar, index) => {
                 const error = errorBars[index];
-                if (error !== null && error > 0) {
-                    const xPos = x.getPixelForValue(index);
-                    const yPos = y.getPixelForValue(value);
-                    const errorTop = y.getPixelForValue(value + error);
-                    const errorBottom = y.getPixelForValue(value - error);
-                    const capWidth = isMobile ? 3 : 6;
+                if (error === null || !(error > 0)) return;
 
-                    // Vertical line
-                    ctx.beginPath();
-                    ctx.moveTo(xPos, errorTop);
-                    ctx.lineTo(xPos, errorBottom);
-                    ctx.stroke();
+                // Pixels spanned by `error` units (the y scale is static during
+                // the bar animation, so this conversion is constant per frame).
+                const errPx = Math.abs(y.getPixelForValue(error) - y.getPixelForValue(0));
+                const finalTop = y.getPixelForValue(data[index]);
+                const span = bar.base - finalTop; // full bar height in px
+                const grow = span > 0 ? Math.min(1, Math.max(0, (bar.base - bar.y) / span)) : 1;
 
-                    // Top cap
-                    ctx.beginPath();
-                    ctx.moveTo(xPos - capWidth, errorTop);
-                    ctx.lineTo(xPos + capWidth, errorTop);
-                    ctx.stroke();
+                const xPos = bar.x;
+                const errorTop = bar.y - errPx; // centered on the animated bar top
+                const errorBottom = bar.y + errPx;
+                const capWidth = isMobile ? 3 : 6;
 
-                    // Bottom cap
-                    ctx.beginPath();
-                    ctx.moveTo(xPos - capWidth, errorBottom);
-                    ctx.lineTo(xPos + capWidth, errorBottom);
-                    ctx.stroke();
-                }
+                ctx.globalAlpha = grow; // fade the caps in as the bar grows
+
+                // Vertical line
+                ctx.beginPath();
+                ctx.moveTo(xPos, errorTop);
+                ctx.lineTo(xPos, errorBottom);
+                ctx.stroke();
+
+                // Top cap
+                ctx.beginPath();
+                ctx.moveTo(xPos - capWidth, errorTop);
+                ctx.lineTo(xPos + capWidth, errorTop);
+                ctx.stroke();
+
+                // Bottom cap
+                ctx.beginPath();
+                ctx.moveTo(xPos - capWidth, errorBottom);
+                ctx.lineTo(xPos + capWidth, errorBottom);
+                ctx.stroke();
             });
             ctx.restore();
         }
     };
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     performanceChart = new Chart(ctx, {
         type: 'bar',
@@ -529,6 +548,13 @@ function createSimpleChart(modelName = "average") {
         options: {
             responsive: true,
             maintainAspectRatio: !isMobile,
+            // Staggered build: bars grow in rank order (data is ascending, so the
+            // reveal climbs toward #1). Disabled when the user prefers reduced motion.
+            animation: reduceMotion ? { duration: 0 } : {
+                duration: 450,
+                easing: 'easeOutCubic',
+                delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 28 : 0,
+            },
             plugins: {
                 legend: {
                     display: false
@@ -694,6 +720,14 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
 
     const fontSizes = calculateFontSizes(ctx);
 
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const buildAnimation = reduceMotion ? { duration: 0 } : {
+        duration: 450,
+        easing: 'easeOutCubic',
+        // Cascade bars/groups in left-to-right, matching the main chart's build.
+        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 45 : 0,
+    };
+
     if (isMobile) {
         // Mobile: Single benchmark, agents on X-axis
         const selectedBenchmark = benchmarkKey || currentSelectedBenchmark;
@@ -738,6 +772,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: buildAnimation,
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -814,6 +849,7 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                animation: buildAnimation,
                 plugins: {
                     legend: {
                         display: true,
@@ -914,20 +950,38 @@ function createTimeSpentChart() {
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
 
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const buildAnimation = reduceMotion ? { duration: 0 } : {
+        duration: 450,
+        easing: 'easeOutCubic',
+        // Cascade the horizontal bars in from the top.
+        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 22 : 0,
+    };
+
     const timeErrorBarPlugin = {
         id: 'timeErrorBars',
         afterDatasetsDraw(chart) {
             const { ctx, scales } = chart;
             const dataset = chart.data.datasets[0];
+            const meta = chart.getDatasetMeta(0);
 
             ctx.save();
 
             dataset.data.forEach((value, index) => {
                 const dataItem = sortedData[index];
-                const meta = chart.getDatasetMeta(0);
                 const bar = meta.data[index];
                 const yPos = bar.y;
                 const barHeight = bar.height;
+
+                // The bar grows horizontally (bar.x animates from its base to the
+                // final value). Ride the error caps and the time label on the
+                // animated end and fade them in as the bar reaches full length, so
+                // they build in with the bar instead of floating ahead of it.
+                const finalX = scales.x.getPixelForValue(value);
+                const grow = finalX !== bar.base
+                    ? Math.min(1, Math.max(0, (bar.x - bar.base) / (finalX - bar.base)))
+                    : 1;
+                ctx.globalAlpha = grow;
 
                 let labelX;
 
@@ -936,8 +990,10 @@ function createTimeSpentChart() {
                     ctx.lineWidth = isMobile ? 1 : 2;
 
                     const capSize = Math.min(barHeight * 0.3, isMobile ? 4 : 6);
-                    const xMin = scales.x.getPixelForValue(value - dataItem.stdHours);
-                    const xMax = scales.x.getPixelForValue(value + dataItem.stdHours);
+                    const stdRightPx = scales.x.getPixelForValue(value + dataItem.stdHours) - finalX;
+                    const stdLeftPx = finalX - scales.x.getPixelForValue(value - dataItem.stdHours);
+                    const xMax = bar.x + stdRightPx;
+                    const xMin = bar.x - stdLeftPx;
 
                     ctx.beginPath();
                     ctx.moveTo(xMin, yPos);
@@ -950,7 +1006,7 @@ function createTimeSpentChart() {
 
                     labelX = xMax + (isMobile ? 4 : 8);
                 } else {
-                    labelX = scales.x.getPixelForValue(value) + (isMobile ? 4 : 8);
+                    labelX = bar.x + (isMobile ? 4 : 8);
                 }
 
                 ctx.fillStyle = textSecondary;
@@ -1104,6 +1160,7 @@ function createTimeSpentChart() {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            animation: buildAnimation,
             // Padding gives the budget label (top) and right-side data
             // labels (e.g. "9:39 ± 0:53") room without colliding with
             // the chart's own canvas edges.
@@ -1382,16 +1439,34 @@ window.addEventListener('scroll', handleNavbarLogoVisibility);
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
     // Load scores data from JSON
-    const loaded = await loadScoresData();
-    if (!loaded) {
-        console.error('Failed to initialize: could not load scores data');
-        return;
+    // The leaderboard is normally rendered synchronously at the end of the body
+    // (from the inlined scores.js), before first paint. Fall back to the async
+    // path only if that didn't happen (e.g. scores.js missing).
+    if (!window.__ptbDataReady) {
+        const loaded = await loadScoresData();
+        if (!loaded) {
+            console.error('Failed to initialize: could not load scores data');
+            document.documentElement.classList.remove('leaderboard-loading');
+            return;
+        }
+        populateLeaderboard();
+        populateTasks();
+        populateStatistics();
+        document.documentElement.classList.remove('leaderboard-loading');
     }
 
-    // Initialize UI
-    populateLeaderboard();
-    populateTasks();
-    populateStatistics();
+    // Wait for the chart font (JetBrains Mono) before drawing the charts so bar
+    // labels don't render in a fallback face and reflow mid-animation. Cap the
+    // wait so a slow font CDN never blocks the charts indefinitely.
+    if (document.fonts && document.fonts.ready) {
+        try {
+            await Promise.race([
+                document.fonts.ready,
+                new Promise((resolve) => setTimeout(resolve, 1500)),
+            ]);
+        } catch (e) { /* render anyway */ }
+    }
+
     createSimpleChart();
     createDetailedChart();
     createTimeSpentChart();
@@ -1430,3 +1505,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 });
+
+// Render the leaderboard synchronously from the inlined data (scores.js) as soon
+// as this script runs at the end of <body> — before first paint — so the table
+// exists in its final position immediately. This removes the async fetch gap
+// that flashed an empty table (and pulled the next section up) on reload. The
+// charts and event listeners still initialize in the DOMContentLoaded handler.
+if (typeof loadScoresDataSync === 'function' && loadScoresDataSync()) {
+    populateLeaderboard();
+    populateTasks();
+    populateStatistics();
+    document.documentElement.classList.remove('leaderboard-loading');
+    window.__ptbDataReady = true;
+}

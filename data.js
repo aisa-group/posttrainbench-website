@@ -161,25 +161,40 @@ function buildTimeSpentData() {
         }));
 }
 
+function applyScoresData(data) {
+    benchmarkWeights = data.benchmarkWeights;
+    modelBenchmarkData = data.modelBenchmarkData;
+    aggregatedScores = data.aggregatedScores || {};
+    stdData = data.stdData || {};
+    timeData = data.timeData || {};
+
+    buildLeaderboardData();
+    buildTaskData();
+    buildStatistics();
+    buildTimeSpentData();
+}
+
+// Synchronous init from the inlined scores.js (window.SCORES_DATA). Lets the
+// leaderboard render before first paint. Returns false if the global is absent.
+function loadScoresDataSync() {
+    if (typeof window !== 'undefined' && window.SCORES_DATA) {
+        applyScoresData(window.SCORES_DATA);
+        return true;
+    }
+    return false;
+}
+
 async function loadScoresData() {
     try {
+        if (typeof window !== 'undefined' && window.SCORES_DATA) {
+            applyScoresData(window.SCORES_DATA);
+            return true;
+        }
         const response = await fetch('scores.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-
-        benchmarkWeights = data.benchmarkWeights;
-        modelBenchmarkData = data.modelBenchmarkData;
-        aggregatedScores = data.aggregatedScores || {};
-        stdData = data.stdData || {};
-        timeData = data.timeData || {};
-
-        buildLeaderboardData();
-        buildTaskData();
-        buildStatistics();
-        buildTimeSpentData();
-
+        applyScoresData(await response.json());
         return true;
     } catch (error) {
         console.error('Failed to load scores.json:', error);

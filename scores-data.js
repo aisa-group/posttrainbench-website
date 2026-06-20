@@ -1,4 +1,4 @@
-{
+window.SCORES_DATA = {
   "benchmarkWeights": {
     "aime2025": 0.226536549919078,
     "arenahardwriting": 0.0903518275042778,
@@ -5062,4 +5062,4 @@
       "n": 1
     }
   }
-}
+};
