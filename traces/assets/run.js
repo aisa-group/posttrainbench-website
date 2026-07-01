@@ -105,6 +105,18 @@ function computeTraceStart() {
       if (!isNaN(t)) { TRACE_START_MS = t; return; }
     }
   }
+  // Some traces (e.g. codex stream-JSON) have events without timestamps —
+  // every ev.ts is null. Without a start, the metric chart's labels would
+  // fall back to raw ISO strings ("2026-04-06T14:30:05Z") jammed onto the
+  // x-axis. Fall back to the first system_monitor sample's ts so the
+  // chart still renders as HH:MM:SS relative time.
+  const samples = RECORD.system_monitor || [];
+  for (const s of samples) {
+    if (s.ts) {
+      const t = parseTraceTs(s.ts);
+      if (!isNaN(t)) { TRACE_START_MS = t; return; }
+    }
+  }
 }
 
 function whenChartReady(fn) {
