@@ -98,7 +98,8 @@ def get_available_font(font_style: str) -> str:
     return font_style
 
 
-def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") -> None:
+def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia", nudges: dict | None = None,
+                  figsize: tuple = FIGURE_SIZE, annot_fontsize: float = FONT_SIZES["annotation"]) -> None:
     bg_color = COLORS["bg_sepia"] if background == "sepia" else COLORS["bg_white"]
 
     font_name = get_available_font(FONT_STYLE)
@@ -117,20 +118,13 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
         "savefig.pad_inches": 0.15,
     })
 
-    fig, ax = plt.subplots(figsize=FIGURE_SIZE)
+    fig, ax = plt.subplots(figsize=figsize)
     fig.patch.set_facecolor(bg_color)
     ax.set_facecolor(bg_color)
 
     # Manual nudges applied AFTER adjustText (in data coordinates: dx_hours, dy_percent)
-    # Edit these to fine-tune individual label positions
-    MANUAL_NUDGES = {
-        # "Agent Name": (dx, dy),
-        "MiniMax M2.5": (0.0, -1.0),
-        "Sonnet 4.6": (0.0, -1.5),
-        "GPT-5.1 Codex Max" : (0.0, -0.2),
-        "Opus 4.6": (0.0, 0.2),
-        "Gemini 3.1 Pro": (0.0, 0.2)
-    }
+    # Passed in per-variant from main(); edit there to fine-tune label positions.
+    MANUAL_NUDGES = nudges or {}
 
     texts = []
     text_names = []
@@ -153,7 +147,7 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
 
         texts.append(ax.text(
             x + 0.2, y + 0.4, row["Agent"],
-            fontsize=FONT_SIZES["annotation"],
+            fontsize=annot_fontsize,
             color=COLORS["text_primary"],
         ))
         text_names.append(row["Agent"])
@@ -267,18 +261,51 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
     plt.close(fig)
 
 
+# Variants to render: (data csv basename, output figure basename, manual label nudges).
+# Nudges are (dx_hours, dy_percent) added AFTER adjustText, keyed by the exact
+# label in the CSV. Tune these to resolve residual label overlaps.
+VARIANTS = [
+    # The "all" plot is dense (29 agents), so it gets a larger canvas + smaller
+    # labels; that gives adjustText room to separate labels with minimal nudging.
+    ("fig2_time_vs_performance_all", "fig2_time_vs_performance_all", {
+        "figsize": (13, 9),
+        "annot_fontsize": 9.5,
+        "nudges": {},
+    }),
+    ("fig2_time_vs_performance_fig1", "fig2_time_vs_performance_fig1", {
+        "figsize": (8, 6),
+        "annot_fontsize": 10.5,
+        "nudges": {
+            "GLM 5.2 (Max)": (-2.6, 0.6),
+            "Opus 4.8 (Max)": (0.3, 0.7),
+            "Opus 4.8 (High)": (0.6, -1.6),
+            "Opus 4.6": (0.4, 0.0),
+            "Opus 4.6 (1M)": (0.0, 0.5),
+        },
+    }),
+]
+
+
 def main():
-    print(f"Loading data from: {DATA_PATH}")
-    df = load_data(DATA_PATH)
-    print(f"Loaded {len(df)} agents")
-    print(df[["Agent", "AvgTimeHours", "AvgPerf"]].to_string(index=False))
-    print(f"\nBackground style: {BACKGROUND}")
-    print()
+    for data_name, out_name, opts in VARIANTS:
+        data_path = SCRIPT_DIR / "data" / f"{data_name}.csv"
+        print(f"Loading data from: {data_path}")
+        df = load_data(data_path)
+        print(f"Loaded {len(df)} agents")
+        print(df[["Agent", "AvgTimeHours", "AvgPerf"]].to_string(index=False))
+        print(f"\nBackground style: {BACKGROUND}")
+        print()
 
-    output_path = OUTPUT_DIR / "fig2_time_vs_performance"
-    create_figure(df, output_path, background=BACKGROUND)
+        output_path = OUTPUT_DIR / out_name
+        create_figure(
+            df, output_path, background=BACKGROUND,
+            nudges=opts.get("nudges"),
+            figsize=opts.get("figsize", FIGURE_SIZE),
+            annot_fontsize=opts.get("annot_fontsize", FONT_SIZES["annotation"]),
+        )
+        print()
 
-    print("\nDone!")
+    print("Done!")
 
 
 if __name__ == "__main__":

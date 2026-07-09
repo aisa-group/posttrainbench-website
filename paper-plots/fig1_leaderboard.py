@@ -89,30 +89,25 @@ def create_figure(df: pd.DataFrame, save_path: Path, background: str = "sepia") 
     df_plot = df.sort_values("Avg", ascending=True).reset_index(drop=True)
     x_pos = np.arange(len(df_plot))
 
-    labels = []
-    for method in df_plot["Method"]:
-        if method == "Base Model":
-            labels.append("Base Models\n(baseline)")
-        elif method == "Official Instruct Models":
-            labels.append("Official\nInstruct\nModels")
-        elif method == "GPT-5.1 Codex Max":
-            labels.append("GPT 5.1\nCodex Max")
-        elif method == "GPT-5.2 Codex":
-            labels.append("GPT 5.2\nCodex")
-        elif method == "GPT 5.3 Codex (High)":
-            labels.append("GPT 5.3\nCodex (High)")
-        elif method == "GPT 5.4 (High)":
-            labels.append("GPT 5.4\n(High)")
-        elif method == "GPT 5.4 (High, Reprompted)":
-            labels.append("GPT 5.4\n(High)$^\\dagger$")
-        elif method == "Opus 4.6 (1M)":
-            labels.append("Opus 4.6\n(1M)")
-        elif method == "Gemini 3.1 Pro":
-            labels.append("Gemini 3.1\nPro")
-        elif method == "Gemini 3 Pro":
-            labels.append("Gemini 3\nPro")
-        else:
-            labels.append(method)
+    # Two-line display labels for each method (reprompted variants marked with a dagger)
+    LABELS = {
+        "Base Model": "Base Models\n(baseline)",
+        "Official Instruct Models": "Official\nInstruct\nModels",
+        "GLM 5.2 (Max)": "GLM 5.2\n(Max)",
+        "Opus 4.8 (Max)": "Opus 4.8\n(Max)",
+        "Opus 4.8 (High)": "Opus 4.8\n(High)",
+        "Fable 5 (Max)": "Fable 5\n(Max)",
+        "Opus 4.7 (xHigh)": "Opus 4.7\n(xHigh)",
+        "GPT 5.5 (xHigh Reprompted)": "GPT 5.5\n(xHigh)$^\\dagger$",
+        "GPT 5.4 (High Reprompted)": "GPT 5.4\n(High)$^\\dagger$",
+        "GPT 5.5 (xHigh)": "GPT 5.5\n(xHigh)",
+        "Opus 4.6 (1M)": "Opus 4.6\n(1M)",
+        "Opus 4.6": "Opus 4.6",
+        "Gemini 3.1 Pro": "Gemini 3.1\nPro",
+        "GPT 5.4 (High)": "GPT 5.4\n(High)",
+        "Opus 4.5": "Opus 4.5",
+    }
+    labels = [LABELS.get(method, method) for method in df_plot["Method"]]
 
     bar_colors = []
     for method in df_plot["Method"]:

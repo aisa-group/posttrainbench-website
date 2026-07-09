@@ -1,0 +1,13 @@
+Label,Scaffold,Hours,StdHours,Reprompted
+Opus 4.6,Claude Code,9.662,0.371,0
+Opus 4.8 (High),Claude Code,9.271,0.079,0
+GPT 5.5 (xHigh),Codex CLI,9.242,,1
+Opus 4.8 (Max),Claude Code,8.931,0.049,0
+Opus 4.6 (1M),Claude Code,8.801,0.941,0
+GLM 5.2 (Max),Claude Code,8.35,0.104,0
+GPT 5.4 (High),Codex CLI,8.318,,1
+Opus 4.5,Claude Code,7.878,0.467,0
+Opus 4.7 (xHigh),Claude Code,7.57,0.567,0
+GPT 5.5 (xHigh),Codex CLI,4.979,0.124,0
+Gemini 3.1 Pro,OpenCode,4.051,0.211,0
+GPT 5.4 (High),Codex CLI,1.774,0.232,0
