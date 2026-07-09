@@ -261,10 +261,13 @@ function populateLeaderboard(modelName = "average") {
         }
         const footnoteMarker = agentInfo[entry.agentKey]?.footnoteMarker || '';
         const markerHtml = footnoteMarker ? `<sup>${footnoteMarker}</sup>` : '';
-        let agentNameHtml = `${displayAgent}${markerHtml}`;
+        const prelim = agentInfo[entry.agentKey]?.preliminary;
+        const prelimNote = agentInfo[entry.agentKey]?.preliminaryNote || 'Preliminary — these numbers will change soon.';
+        const prelimBadge = prelim ? ` <span class="preliminary-badge" data-tip="${prelimNote}">Preliminary</span>` : '';
+        let agentNameHtml = `${displayAgent}${markerHtml}${prelimBadge}`;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
-            agentNameHtml = `${displayAgent}${markerHtml}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
+            agentNameHtml = `${displayAgent}${markerHtml}${prelimBadge}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
         }
 
         row.innerHTML = `
@@ -359,6 +362,9 @@ function createSimpleChart(modelName = "average") {
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
+    // X-axis label rotation: horizontal on wide desktop, tilt 45° at narrower
+    // widths so the ~15 labels don't collide, fixed 55° on mobile.
+    const xLabelRotation = isMobile ? 55 : (window.innerWidth < 1250 ? 45 : 0);
 
     // Set wrapper dimensions based on screen size
     const wrapper = document.querySelector('.leaderboard-chart-wrapper');
@@ -412,9 +418,17 @@ function createSimpleChart(modelName = "average") {
         if (d.agent === 'Official Instruct Models') {
             return ['Official', 'Instruct', 'Models²'];
         }
-        // Max-reasoning variants: keep name on line 1, "(Max)" on line 2
+        // Max-reasoning variants: name first, then "(Max)" on the last line.
+        // Split multi-word names (e.g. "Fable 5 (1M)") so a trailing "(1M)"
+        // gets its own line instead of colliding with the neighbour.
         if (isMax) {
-            return [`${d.agent}${dagger}${note}`, '(Max)'];
+            const maxWords = d.agent.split(' ');
+            const nameLines = maxWords.length >= 3
+                ? [maxWords.slice(0, Math.ceil(maxWords.length / 2)).join(' '), maxWords.slice(Math.ceil(maxWords.length / 2)).join(' ')]
+                : [d.agent];
+            nameLines[nameLines.length - 1] += `${dagger}${note}`;
+            nameLines.push('(Max)');
+            return nameLines;
         }
         const words = d.agent.split(' ');
         if (words.length >= 3) {
@@ -586,10 +600,17 @@ function createSimpleChart(modelName = "average") {
                     anchor: 'start',
                     align: 'end',
                     offset: 4,
-                    font: {
-                        family: "'JetBrains Mono', monospace",
-                        size: fontSizes.axisTicks,
-                        weight: 500
+                    // Size each label off the ACTUAL rendered bar width so
+                    // "XX.X%" fits inside its bar. Keeps the normal size on wide
+                    // bars, shrinks only when a bar is too narrow to hold it.
+                    font: function(context) {
+                        const meta = context.chart.getDatasetMeta(context.datasetIndex);
+                        const bar = meta && meta.data && meta.data[context.dataIndex];
+                        const barWidth = (bar && bar.width) ? bar.width : 40;
+                        // Monospace char ≈ 0.6em; "XX.X%" is 5 chars, keep within ~90% of the bar.
+                        const fit = Math.floor((barWidth * 0.9) / (5 * 0.6));
+                        const size = Math.max(8, Math.min(fontSizes.axisTicks, fit));
+                        return { family: "'JetBrains Mono', monospace", size: size, weight: 500 };
                     },
                     formatter: function(value) {
                         return value.toFixed(1) + '%';
@@ -646,8 +667,8 @@ function createSimpleChart(modelName = "average") {
                             family: "'JetBrains Mono', monospace",
                             size: isMobile ? 9 : Math.max(8, fontSizes.axisTicks - 2)
                         },
-                        maxRotation: isMobile ? 55 : 0,
-                        minRotation: isMobile ? 55 : 0,
+                        maxRotation: xLabelRotation,
+                        minRotation: xLabelRotation,
                         autoSkip: false
                     }
                 }

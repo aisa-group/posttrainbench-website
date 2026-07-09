@@ -800,6 +800,77 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     vertical-align: middle;
 }
 
+/* Preliminary/unstable results badge (e.g. Fable 5 pending re-run) */
+.preliminary-badge {
+    display: inline-block;
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #f0a94a;
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    border-radius: 3px;
+    padding: 0.05rem 0.35rem;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+    white-space: nowrap;
+    cursor: help;
+}
+
+[data-theme="light"] .preliminary-badge {
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.14);
+    border-color: rgba(180, 83, 9, 0.45);
+}
+
+/* Custom instant tooltip (see tooltip.js) — a single floating div at the
+   <body> level, triggered by data-tip. Replaces slow native title hovers. */
+.tt-pop {
+    position: fixed;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.45;
+    text-align: left;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.4rem;
+    box-shadow: 0 10px 28px rgba(20, 16, 11, 0.32);
+    max-width: 280px;
+    width: max-content;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(3px);
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    --tt-arrow-x: 50%;
+}
+.tt-pop.tt-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.tt-pop::before {
+    content: '';
+    position: absolute;
+    left: var(--tt-arrow-x);
+    width: 8px;
+    height: 8px;
+    background: var(--bg-tertiary);
+    transform: translateX(-50%) rotate(45deg);
+}
+.tt-pop[data-arrow-pos="below"]::before {
+    bottom: -5px;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+.tt-pop[data-arrow-pos="above"]::before {
+    top: -5px;
+    border-left: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color);
+}
+
 table {
     width: 100%;
     border-collapse: collapse;

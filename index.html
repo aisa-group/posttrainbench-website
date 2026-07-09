@@ -119,7 +119,7 @@
                 <p class="chart-footnote"><sup>1</sup> The weighted average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
                 <p class="chart-footnote"><sup>2</sup> "Official Instruct Models" refers to the officially post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank">Gemma-3-4B-IT</a>. Not directly comparable to agents since their training usually exceeds the 10h + 1 GPU constraint.</p>
                 <p class="chart-footnote"><sup>†</sup> Reprompted: the agent was manually prompted to continue each time it stopped before the time budget expired.</p>
-                <p class="chart-footnote"><sup>‡</sup> Fable 5's SmolLM3-3B runs failed on AIME 2025, Arena Hard, GSM8K, HealthBench, and HumanEval; those cells use Opus 4.8 (Max) results as a substitute.</p>
+                <p class="chart-footnote"><sup>‡</sup> <strong>Fable 5 results are preliminary and will change.</strong> These numbers are from Fable 5's initial limited availability period, when many runs failed due to rate limits and model refusals. In particular, Fable 5's SmolLM3-3B runs failed on AIME 2025, Arena Hard, GSM8K, HealthBench, and HumanEval; those cells currently fall back to Opus 4.8 (Max) results as a substitute. We are now re-running these evaluations with multiple runs for standard deviation.</p>
             </div>
             <details class="changelog" open>
                 <summary>Changelog</summary>
@@ -248,7 +248,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown &nbsp;&nbsp; <sup>‡</sup> Fable 5's failed SmolLM3-3B runs (AIME 2025, Arena Hard, GSM8K, HealthBench, HumanEval) use Opus 4.8 (Max) results as a substitute</p>
+            <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown &nbsp;&nbsp; <sup>‡</sup> <strong>Fable 5 results are preliminary and will change</strong> — these are from Fable 5's initial limited availability period, when many runs failed due to rate limits and model refusals; affected SmolLM3-3B runs (AIME 2025, Arena Hard, GSM8K, HealthBench, HumanEval) currently fall back to Opus 4.8 (Max) results while we re-run them with multiple runs for standard deviation</p>
 
             <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
             <div class="benchmark-select-container leaderboard-controls">
@@ -527,5 +527,6 @@
     <script src="data.js"></script>
     <script src="script.js"></script>
     <script src="photo-mode.js"></script>
+    <script src="tooltip.js"></script>
 </body>
 </html>
