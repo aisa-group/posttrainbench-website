@@ -355,18 +355,8 @@
                         </tr>
                         <tr>
                             <td>GRPO <span class="findings-meta">RL</span></td>
-                            <td>Sonnet 4.6</td>
-                            <td>33% of tasks (AIME, GSM8K, GPQA, HumanEval)</td>
-                        </tr>
-                        <tr>
-                            <td>GRPO <span class="findings-meta">RL</span></td>
-                            <td>Opus 4.6</td>
-                            <td>3% of tasks (AIME, GSM8K only)</td>
-                        </tr>
-                        <tr>
-                            <td>GRPO <span class="findings-meta">RL</span></td>
-                            <td>Opus 4.8, GLM 5.2</td>
-                            <td>Chained after SFT + rejection fine-tuning on math; both independently added a KL anchor after unregularized GRPO collapsed small models to gibberish</td>
+                            <td>Sonnet 4.6, Opus 4.6, Opus 4.8, GLM 5.2</td>
+                            <td>From 33% of tasks (Sonnet 4.6) down to 3% (Opus 4.6). Opus 4.8 and GLM 5.2 chain it after SFT + rejection fine-tuning; both independently added a KL anchor after unregularized GRPO collapsed small models</td>
                         </tr>
                         <tr>
                             <td>RFT / STaR</td>
@@ -405,7 +395,7 @@
             <!-- Distillation findings sourced from the Opus 4.7 / 4.8 / GLM 5.2
                  trace analysis (280 runs; see ptb_opus47_opus48_glm52_analysis.md). -->
             <h3 class="section-subtitle">Where the Training Signal Comes From</h3>
-            <p class="findings-lead">A deep trace analysis of the three newest agents — Opus 4.7, Opus 4.8, and GLM 5.2, 280 runs in total — shows that most "post-training" is really distillation. Agents rarely rely on human-authored data alone; they source their training signal from a stronger model, directly or indirectly:</p>
+            <p class="findings-lead">A deep trace analysis of the three newest agents — Opus 4.7, Opus 4.8, and GLM 5.2, 280 runs in total — shows that most "post-training" is really distillation: agents source their training signal from a stronger model, directly or indirectly. These runs predate the v1.1 judges — hosted-API teacher use is now flagged as disallowed (see Reward Hacking below).</p>
             <div class="findings-table-wrap">
                 <table class="findings-table">
                     <thead>
@@ -424,7 +414,7 @@
                             <td class="num">~29%</td>
                         </tr>
                         <tr>
-                            <td>Hosted-API teacher<span class="cell-detail"> — call a commercial LLM API for completions</span></td>
+                            <td>Hosted-API teacher<span class="cell-detail"> — call a commercial LLM API for completions</span> <span class="findings-meta">now disallowed</span></td>
                             <td class="num">6%</td>
                             <td class="num">~9%</td>
                             <td class="num">5%</td>
@@ -454,40 +444,9 @@
             <details class="evidence-fold">
                 <summary>What are "R1 traces" — the most-used training signal in the benchmark?</summary>
                 <div class="evidence-body">
-                    <p>R1 traces are chain-of-thought generations produced by DeepSeek-R1, packaged into public HuggingFace datasets: <code>open-r1/OpenR1-Math-220k</code>, <code>open-r1/Mixture-of-Thoughts</code>, <code>bespokelabs/Bespoke-Stratos-17k</code>, <code>simplescaling/s1K</code>, and AIME-specific collections. The traces are long (~5k–15k tokens of explicit step-by-step reasoning per example), high-quality on math and science, and cost no GPU budget to obtain.</p>
-                    <p>Training on them is effectively distilling DeepSeek-R1 into the small base model — indirectly, via a pre-baked dataset, without the agent ever running R1. All three agents instinctively reach for R1 corpora on math and science benchmarks; every single AIME run across all 280 analyzed runs trains on them.</p>
+                    <p>Chain-of-thought generations from DeepSeek-R1, packaged into public HuggingFace datasets (<code>OpenR1-Math-220k</code>, <code>Mixture-of-Thoughts</code>, <code>Bespoke-Stratos-17k</code>, <code>s1K</code>). They're long, high-quality on math and science, and cost no GPU budget to obtain — so training on them effectively distills R1 into the base model without ever running it. Every analyzed AIME run trains on them.</p>
                 </div>
             </details>
-
-            <p class="findings-lead">The three agents have distinct, consistent personalities in how they source that signal:</p>
-            <div class="findings-table-wrap">
-                <table class="findings-table">
-                    <thead>
-                        <tr>
-                            <th>Agent</th>
-                            <th>Profile</th>
-                            <th>Signature behavior</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Opus 4.7</td>
-                            <td>The cautious one</td>
-                            <td>Rarely spins up a live teacher even when one would obviously help; substitutes pre-distilled R1 corpora instead. Zero RL jobs completed end-to-end across 84 runs.</td>
-                        </tr>
-                        <tr>
-                            <td>Opus 4.8</td>
-                            <td>The ML engineer</td>
-                            <td>3× the live-teacher rate of 4.7, and the only agent to reliably chain distillation → rejection fine-tuning → GRPO in one pipeline. Also the most aggressive hosted-API user.</td>
-                        </tr>
-                        <tr>
-                            <td>GLM 5.2</td>
-                            <td>The playbook agent</td>
-                            <td>Highest live-teacher rate, but runs the same canonical recipe per benchmark across every seed. Keeps 52–116M cached input tokens in its 1M context instead of re-reading files.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
 
             <div class="observation-block">
                 <p><strong>The single biggest accuracy lever isn't training at all.</strong> Opus 4.8 discovered that forcing greedy decoding — <code>temperature=0.0, do_sample=false</code> via <code>generation_config.json</code> — massively outperforms the base models' shipped sampling defaults, and applied it in 15+ runs. One GSM8K run jumped 42.7% → 78% from this change alone. GLM 5.2 made the same class of discovery independently: on BFCL, greedy decoding lifted a SmolLM3 run 17% → 91% after the agent traced corrupted tool-call tokens to a sampling issue. Both agents treat the base model's <code>generation_config.json</code> as a first-order bug to fix before any training starts.</p>

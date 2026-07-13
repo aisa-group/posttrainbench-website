@@ -1553,6 +1553,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Observation foldables (.hack-category / .evidence-fold): a bare
+    // <details> collapses instantly when [open] drops, so closing would skip
+    // the entrance animation's counterpart. Fade the content out first
+    // (120ms — exits beat the 180ms entrance), then close. Opening stays
+    // pure CSS via the [open] fold-in rule.
+    document.querySelectorAll('details.hack-category, details.evidence-fold').forEach((fold) => {
+        const summary = fold.querySelector(':scope > summary');
+        if (!summary) return;
+        summary.addEventListener('click', (e) => {
+            if (!fold.open || fold.dataset.closing) return; // opening: browser default
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            e.preventDefault();
+            fold.dataset.closing = '1';
+            const parts = [...fold.children].filter((el) => el !== summary);
+            parts.forEach((el) => el.classList.add('folding-out'));
+            setTimeout(() => {
+                fold.open = false;
+                delete fold.dataset.closing;
+                parts.forEach((el) => el.classList.remove('folding-out'));
+            }, 120);
+        });
+    });
+
     // Changelog expand/collapse animation
     const changelog = document.querySelector('details.changelog');
     if (changelog) {

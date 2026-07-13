@@ -17,7 +17,10 @@
     --border-color: #3d3728;
     --success: #10b981;
     --warning: #f59e0b;
-    --danger: #ef4444;
+    /* Violation/flag red — a warm clay rather than neon #ef4444, so the
+       reward-hacking badges and trace highlights sit inside the sepia
+       palette instead of jumping out of it. */
+    --danger: #de7261;
 
     /* Motion — strong ease-out; hover/press micro-interactions stay under
        ~150ms so frequently-seen transitions read as instant. */
@@ -62,6 +65,7 @@
     --border-color: #d9d4c8;
     --accent-primary: #a66b4f;
     --accent-secondary: #8d5d45;
+    --danger: #b04a3c;
 
     /* Chart bar colors - light mode (existing values) */
     --chart-bar: #a66b4f;
@@ -1768,7 +1772,7 @@ tbody tr:last-child td {
 
 .trace-entry.trace-violation {
     border-left: 3px solid var(--danger);
-    background: color-mix(in srgb, var(--danger) 5%, var(--bg-tertiary));
+    background: color-mix(in srgb, var(--danger) 8%, var(--bg-tertiary));
 }
 
 .trace-time {
@@ -1882,14 +1886,28 @@ tbody tr:last-child td {
     margin-top: 1rem;
 }
 
-/* Content fades in when a category opens — entrance only; closing is
-   instant so dismissal always feels faster than opening. */
-.hack-category[open] > .hack-category-body {
+/* Fold motion. Entrance is pure CSS on [open]; the exit half is applied
+   by script.js just before closing (a bare <details> collapses instantly
+   when [open] drops). Exit runs faster than entrance — dismissal should
+   always feel snappier than opening. */
+.hack-category[open] > .hack-category-body,
+.evidence-fold[open] > :not(summary) {
     animation: fold-in 180ms var(--ease-out);
+}
+
+.folding-out {
+    animation: fold-out 120ms var(--ease-out) forwards;
 }
 
 @keyframes fold-in {
     from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes fold-out {
+    to {
         opacity: 0;
         transform: translateY(-3px);
     }
@@ -2328,7 +2346,9 @@ html[data-photo-clean] .ptb-photo-caption {
         transform: none;
     }
 
-    .hack-category[open] > .hack-category-body {
+    .hack-category[open] > .hack-category-body,
+    .evidence-fold[open] > :not(summary),
+    .folding-out {
         animation: none;
     }
 }
