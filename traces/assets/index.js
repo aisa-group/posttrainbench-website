@@ -490,7 +490,12 @@ function buildTable(rows, accMax) {
       <td class="col-verdict">${verdictDots(r)}</td>`;
     tbody.appendChild(tr);
   }
-  return t;
+  // Wrap in a horizontal scroller so the wide table scrolls within itself on
+  // narrow screens instead of stretching the whole page past the viewport.
+  const scroller = document.createElement('div');
+  scroller.className = 'runtable-scroll';
+  scroller.appendChild(t);
+  return scroller;
 }
 
 function navigateRun(id) {

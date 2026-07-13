@@ -333,6 +333,18 @@ function prettyAgentFromMeta(name, meta) {
 function setupTraceControls() {
   els.expandOutputs.addEventListener('change', renderTrace);
 
+  // Per-block output expand: clicking a badged Output header toggles just
+  // that card between the height-capped view and full height. Only cards
+  // whose output actually overflows the cap get the badge + click handling
+  // (see markClippedOutputs), so short outputs never present a dead toggle.
+  // The global "expand outputs" checkbox re-renders and supersedes these.
+  els.trace.addEventListener('click', e => {
+    const head = e.target.closest('.tool-result-head');
+    if (!head || !head.querySelector('.clip-more')) return;
+    const card = head.closest('.tool-call');
+    if (card) card.classList.toggle('expanded');
+  });
+
   // Jump to turn N: Enter or input commit scrolls to that turn anchor.
   const jump = () => {
     const n = parseInt(els.jumpTurn.value, 10);
@@ -467,6 +479,37 @@ function renderTrace() {
     out.push(renderEvent(ev, resultByUseId, expandResults, turnNumByUuid.get(ev)));
   }
   els.trace.innerHTML = out.join('');
+  markClippedOutputs();
+}
+
+// Badge the tool cards whose output actually overflows the 280px height cap
+// with a "show all" affordance in the Output header — short outputs get no
+// badge and no toggle, so the affordance is never a dead control. Runs a
+// frame after render so heights are measurable; a single read-only layout
+// pass is cheap even on 2k-event traces. When the global "expand outputs"
+// checkbox is on, nothing overflows and no badges appear — correct, since
+// everything is already full height.
+function markClippedOutputs() {
+  requestAnimationFrame(() => {
+    document.querySelectorAll('#trace .tool-call').forEach(card => {
+      const body = card.querySelector('.tool-result-body');
+      const head = card.querySelector('.tool-result-head');
+      if (!body || !head) return;
+      const clipped = body.scrollHeight > body.clientHeight + 4;
+      const badge = head.querySelector('.clip-more');
+      if (clipped && !badge) {
+        card.classList.add('clipped');
+        const b = document.createElement('span');
+        b.className = 'clip-more';
+        head.appendChild(b);
+        head.setAttribute('data-tip', 'Toggle full output');
+      } else if (!clipped && badge && !card.classList.contains('expanded')) {
+        card.classList.remove('clipped');
+        badge.remove();
+        head.removeAttribute('data-tip');
+      }
+    });
+  });
 }
 
 function renderSessionBanner(ev) {
@@ -601,9 +644,9 @@ function renderBlock(block, resultByUseId, expandResults) {
   switch (block.type) {
     case 'text':
       // Agent message — bordered card, same shape as other blocks.
-      return `<div class="block-card agent-text">${escapeHtml(block.text || '')}</div>`;
+      return `<div class="block-card agent-text">${mdLite(block.text || '')}</div>`;
     case 'thinking':
-      return `<details class="block-card agent-thinking" ${SHOW_THINKING ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${escapeHtml(block.thinking || '')}</div></details>`;
+      return `<details class="block-card agent-thinking" ${SHOW_THINKING ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(block.thinking || '')}</div></details>`;
     case 'tool_use': {
       const pair = resultByUseId.get(block.id);
       return renderToolCall(block, pair, expandResults);
@@ -680,10 +723,10 @@ function renderCodexItem(item, expandResults) {
   switch (item.type) {
     case 'reasoning':
     case 'agent_reasoning':
-      return `<details class="block-card agent-thinking" ${SHOW_THINKING ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${escapeHtml(item.text || '')}</div></details>`;
+      return `<details class="block-card agent-thinking" ${SHOW_THINKING ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(item.text || '')}</div></details>`;
     case 'agent_message':
     case 'assistant_message':
-      return `<div class="block-card agent-text">${escapeHtml(item.text || '')}</div>`;
+      return `<div class="block-card agent-text">${mdLite(item.text || '')}</div>`;
     case 'todo_list':
       return `<div class="standalone-output"><div class="block-label">Todo list</div>${renderTodos(item.items || [])}</div>`;
     case 'command_execution': {
@@ -1001,7 +1044,7 @@ function renderMiniTokens() {
 function renderJudge() {
   renderJudgeVerdicts();
   if (!RECORD.judge || !RECORD.judge.events || !RECORD.judge.events.length) {
-    els.judge.innerHTML = '<p class="muted">No judge_output.json for this run.</p>';
+    els.judge.innerHTML = '<p class="muted">No detailed judge report is available for this run.</p>';
     return;
   }
   // Re-use the trace renderer's codex-item path so the judge gets exactly
@@ -1155,6 +1198,10 @@ function setupTabs() {
     history.replaceState(null, '', '#tab=' + encodeURIComponent(name));
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (name === 'workspace') loadWorkspace();
+    // If the trace rendered while its section was hidden (page opened on
+    // ?tab=judge), every output measured 0×0 and got no "show all" badge —
+    // re-measure now that it's visible.
+    if (name === 'trace') markClippedOutputs();
   }
 }
 
@@ -1167,6 +1214,18 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
+}
+
+// Minimal markdown for agent prose (thought + message cards). Agents emit
+// **bold** and `code` constantly; showing the raw asterisks/backticks reads
+// as a rendering bug, but a full markdown parser is overkill (and risky on
+// untrusted trace text). Escape first, then upgrade just those two forms.
+// Code spans are converted before bold so `**args` inside backticks stays
+// literal.
+function mdLite(s) {
+  return escapeHtml(s)
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
 }
 function fmtNum(v) {
   if (typeof v !== 'number') return escapeHtml(String(v));

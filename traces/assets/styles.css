@@ -16,7 +16,6 @@
   --success: #10b981;
   --warning: #f59e0b;
   --danger:  #ef4444;
-  --transition: all 0.2s ease;
 
   --tag-bg: rgba(193, 125, 90, 0.14);
   --tag-border: rgba(193, 125, 90, 0.4);
@@ -76,6 +75,11 @@ a:hover { text-decoration: underline; color: var(--accent-secondary); }
 code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
 .muted { color: var(--text-secondary); }
 
+::selection {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
 /* ---------- Custom tooltip ---------------------------------------- */
 /* Floating panel rendered at the body level by assets/tooltip.js so it
    ALWAYS escapes ancestor `overflow: hidden / auto` clipping contexts
@@ -95,20 +99,20 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   text-align: left;
   padding: 0.5rem 0.7rem;
   border: 1px solid var(--border-color);
-  border-radius: 0.4rem;
+  border-radius: 0.375rem;
   box-shadow: 0 10px 28px rgba(20, 16, 11, 0.32);
   max-width: 280px;
   width: max-content;
   z-index: 9999;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(3px);
+  transform: translateY(3px) scale(0.98);
   transition: opacity 0.12s ease, transform 0.12s ease;
   --tt-arrow-x: 50%;
 }
 .tt-pop.tt-show {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 .tt-pop::before {
   content: '';
@@ -306,7 +310,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   padding: 0.3rem;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: var(--transition);
+  transition: background-color 0.15s ease, transform 0.15s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -475,7 +479,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   color: var(--text-secondary);
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 0.35rem;
+  border-radius: 0.375rem;
   padding: 0.05rem 0.35rem 0.05rem 0.45rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -595,7 +599,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   padding: 0.4rem 0.5rem;
   border-radius: 0.375rem;
   width: max-content;
-  transition: var(--transition);
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 .back-link:hover {
   color: var(--accent-primary);
@@ -891,12 +895,17 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
-  transition: var(--transition);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   border: 1px solid var(--border-color);
   background: transparent;
   color: var(--text-primary);
 }
 .btn:hover { background-color: var(--bg-tertiary); border-color: var(--accent-primary); text-decoration: none; }
+
+/* Press feedback — same reflex as the main site's buttons. */
+:where(.btn, .theme-toggle, .metrics-btn):active {
+  transform: scale(0.97);
+}
 .btn-primary {
   background-color: var(--accent-primary);
   color: var(--bg-primary);
@@ -1177,10 +1186,25 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 
 @media (max-width: 760px) {
-  .matrix-colhead { font-size: 0.64rem; }
+  /* Reclaim horizontal room — 2rem side padding is a lot on a phone. */
+  .container { padding-left: 1rem; padding-right: 1rem; }
+  /* Wrap instead of ellipsize: truncation made "Qwen 3 4B" and
+     "Qwen 3 1.7B" both read "Qwen 3 …" — two different models with
+     identical headers. Two short lines are unambiguous. */
+  .matrix-colhead {
+    font-size: 0.64rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    padding: 0 0.2rem 0.4rem;
+    line-height: 1.3;
+  }
   .matrix-rowhead { font-size: 0.72rem; padding-right: 0.4rem; }
   .matrix-cell { min-height: 24px; padding: 0.25rem 0.2rem; }
   .matrix-acc { font-size: 0.68rem; }
+  /* "updated Nd ago" always gets its own line under the stat tiles
+     instead of landing wherever flex wrap drops it. */
+  .hero-stats .stat-meta { flex-basis: 100%; }
 }
 
 /* ---------- Filter dock ---------------------------------------------- */
@@ -1260,6 +1284,32 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   align-items: baseline;
   gap: 0.8rem;
   font-size: 0.78rem;
+}
+
+/* Phone layout for the control chips. Placed AFTER the base .filter-group /
+   .view-controls-left rules — same specificity, so source order decides.
+   Content-width pills wrap into ragged rows on phones; snap them to a 2×2
+   grid of equal-width triggers with the caret pinned right, so the chips
+   read as a matched set. */
+@media (max-width: 760px) {
+  .filter-group,
+  .view-controls-left {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .filter-group .cs,
+  .view-controls-left .cs { width: 100%; }
+  .filter-group .cs-trigger,
+  .view-controls-left .cs-trigger { width: 100%; justify-content: space-between; }
+  /* The result count drops to its own right-aligned line. */
+  .view-controls-right { width: 100%; justify-content: flex-end; }
+  /* Search takes its own full-width line below the filter chips. (This
+     rule lived in the earlier media block for months without effect —
+     the base .filter-search rules are defined later in the file and won
+     on source order.) */
+  .filter-search { margin-left: 0; max-width: none; flex-basis: 100%; }
 }
 
 /* ---------- Custom dropdown (built on top of <select>) -------------- */
@@ -1409,6 +1459,16 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   color: var(--text-secondary);
 }
 
+/* Horizontal scroller so the table can exceed the viewport on narrow
+   screens without widening the whole page. No effect on desktop where the
+   table already fits (overflow stays hidden with no scrollbar). Tooltips
+   are position:fixed at the body level, so this clipping context is fine. */
+.runtable-scroll {
+  overflow-x: auto;
+  margin-top: 0.4rem;
+  -webkit-overflow-scrolling: touch;
+}
+
 .runtable {
   width: 100%;
   border-collapse: separate;
@@ -1418,7 +1478,9 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   border-radius: 0.5rem;
   /* Don't clip — tooltips need to escape the table edges. Rounded
      corners are applied to the corner cells instead. */
-  margin-top: 0.4rem;
+  margin-top: 0;
+  /* Keep columns legible when the table scrolls rather than crushing them. */
+  min-width: 44rem;
 }
 .runtable thead th {
   background-color: color-mix(in srgb, var(--bg-secondary) 70%, var(--bg-tertiary));
@@ -1475,6 +1537,32 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 .runtable .col-acc     { width: 14rem; }
 .runtable .col-num     { width: 1%; text-align: right; font-variant-numeric: tabular-nums; }
 .runtable .col-verdict { width: 1%; text-align: right; }
+
+/* Phone widths: keep the decision-making columns (task / agent / accuracy)
+   and drop the detail columns — duration, turns, cost and judge are one tap
+   away on the run page. Without them the table fits the viewport, so the
+   horizontal scroll (which clipped the accuracy numbers mid-digit with no
+   affordance that more existed) disappears entirely. */
+@media (max-width: 640px) {
+  .runtable { min-width: 0; }
+  .runtable .col-num,
+  .runtable .col-verdict { display: none; }
+  .runtable .col-agent { min-width: 0; white-space: normal; }
+  .runtable .col-acc { width: auto; }
+  .runtable th, .runtable td { padding: 0.5rem 0.6rem; }
+  .acc-bar { min-width: 3rem; }
+}
+
+/* Actual phones (~390px): the three remaining columns still overflow by a
+   few px with the ± stderr attached. Drop the stderr (tertiary detail —
+   it's on the run page) and let long task names wrap, so the accuracy
+   value is never clipped mid-digit. */
+@media (max-width: 480px) {
+  .runtable th, .runtable td { padding: 0.45rem 0.5rem; }
+  .runtable .col-task { white-space: normal; }
+  .acc-cell { gap: 0.4rem; }
+  .acc-err { display: none; }
+}
 
 /* ---------- Task cell (benchmark / model / seed combined) ------------ */
 .task-cell { display: flex; flex-direction: column; gap: 0.15rem; line-height: 1.3; }
@@ -1966,6 +2054,25 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   color: var(--text-primary);
 }
 .tool-call.expanded .tool-result-body { max-height: none; }
+
+/* Output headers double as per-card expand toggles, but ONLY on cards
+   whose output overflows the height cap (run.js adds .clipped + the
+   .clip-more badge after measuring). Short outputs stay inert. */
+.tool-result-head { user-select: none; }
+.tool-call.clipped .tool-result-head { cursor: pointer; }
+.clip-more {
+  margin-left: auto;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.clip-more::after { content: '+ show all'; }
+.tool-call.expanded .clip-more::after { content: '− collapse'; }
+@media (hover: hover) and (pointer: fine) {
+  .tool-call.clipped .tool-result-head:hover .tool-result-label { color: var(--accent-primary); }
+}
 .tool-result-body.error {
   background-color: rgba(239, 68, 68, 0.07);
   color: var(--danger);
@@ -2276,7 +2383,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   flex-direction: column;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 0.6rem;
+  border-radius: 0.5rem;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
@@ -2564,7 +2671,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: var(--transition);
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .metrics-btn:hover {
   border-color: var(--accent-primary);
