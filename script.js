@@ -349,6 +349,50 @@ function calculateFontSizes(canvas) {
     };
 }
 
+// Shared tooltip config for all charts. Themed like the site's DOM tooltip
+// (.tt-pop) instead of Chart.js's default black box, no per-line color
+// swatches (every chart here has one series), a fast 150ms fade so the
+// tooltip feels attached to the cursor, and caret padding so it floats
+// clear of the mark it describes.
+// Sized to whisper, not headline: 12px pins it to the axis-tick/.tt-pop
+// scale — transient reference UI should sit below the table's 14px, and
+// the old "adaptive" fontSizes.tooltip* always computed ~17px anyway
+// (calculateFontSizes runs before Chart.js sizes the canvas, so it reads
+// the 300px <canvas> default).
+function chartTooltipOptions(style, isMobile, overrides = {}) {
+    return Object.assign({
+        backgroundColor: style.getPropertyValue('--bg-tertiary').trim(),
+        titleColor: style.getPropertyValue('--text-primary').trim(),
+        bodyColor: style.getPropertyValue('--text-primary').trim(),
+        borderColor: style.getPropertyValue('--border-color').trim(),
+        borderWidth: 1,
+        cornerRadius: 6,
+        padding: isMobile ? 8 : 10,
+        displayColors: false,
+        caretPadding: 10,
+        caretSize: 6,
+        titleFont: {
+            family: "'JetBrains Mono', monospace",
+            size: isMobile ? 11 : 12,
+            weight: 700
+        },
+        bodyFont: {
+            family: "'JetBrains Mono', monospace",
+            size: isMobile ? 10 : 12
+        },
+        animation: { duration: 150, easing: 'easeOutQuart' }
+    }, overrides);
+}
+
+// Default tooltip title for category charts: multi-line axis labels are
+// arrays, which Chart.js would otherwise join with a comma ("Fable 5‡,(Max)").
+function chartTooltipTitle(items) {
+    if (!items.length) return '';
+    const labels = items[0].chart.data.labels;
+    const raw = labels ? labels[items[0].dataIndex] : items[0].label;
+    return Array.isArray(raw) ? raw.join(' ') : raw;
+}
+
 // Create Simple Performance Chart (average view)
 function createSimpleChart(modelName = "average") {
     const ctx = document.getElementById('performanceChart');
@@ -569,31 +613,27 @@ function createSimpleChart(modelName = "average") {
                 easing: 'easeOutCubic',
                 delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 28 : 0,
             },
+            // Tooltip only while actually over a bar — intersect: false would
+            // keep a tooltip active anywhere in the plot area, which reads as
+            // "stuck" when sweeping across empty space.
+            interaction: {
+                mode: 'index',
+                intersect: true
+            },
             plugins: {
                 legend: {
                     display: false
                 },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 12,
-                    titleFont: {
-                        family: "'JetBrains Mono', monospace",
-                        size: fontSizes.tooltipTitle
-                    },
-                    bodyFont: {
-                        family: "'JetBrains Mono', monospace",
-                        size: fontSizes.tooltipBody
-                    },
-                    borderColor: accentPrimary,
-                    borderWidth: 1,
+                tooltip: chartTooltipOptions(style, isMobile, {
                     callbacks: {
+                        title: chartTooltipTitle,
                         label: function(context) {
                             const std = errorBars[context.dataIndex];
                             const stdText = std ? ` ± ${std}%` : '';
-                            return `Average Score: ${context.parsed.y.toFixed(1)}%${stdText}`;
+                            return `Average score: ${context.parsed.y.toFixed(1)}%${stdText}`;
                         }
                     }
-                },
+                }),
                 datalabels: {
                     display: !isMobile,
                     color: '#ffffff',
@@ -1182,6 +1222,12 @@ function createTimeSpentChart() {
             responsive: true,
             maintainAspectRatio: false,
             animation: buildAnimation,
+            // Tooltip only while actually over a bar (see main chart note).
+            interaction: {
+                mode: 'index',
+                axis: 'y',
+                intersect: true
+            },
             // Padding gives the budget label (top) and right-side data
             // labels (e.g. "9:39 ± 0:53") room without colliding with
             // the chart's own canvas edges.
@@ -1195,20 +1241,18 @@ function createTimeSpentChart() {
                 legend: {
                     display: false
                 },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: isMobile ? 8 : 12,
-                    titleFont: {
-                        family: "'JetBrains Mono', monospace",
-                        size: isMobile ? 11 : fontSizes.tooltipTitle
-                    },
-                    bodyFont: {
-                        family: "'JetBrains Mono', monospace",
-                        size: isMobile ? 10 : fontSizes.tooltipBody
-                    },
-                    borderColor: accentPrimary,
-                    borderWidth: 1,
+                tooltip: chartTooltipOptions(style, isMobile, {
                     callbacks: {
+                        // The axis labels are drawn by customLabelsPlugin (the
+                        // built-in ticks are transparent and sometimes hold the
+                        // scaffold name instead), so build the title from data.
+                        title: function(items) {
+                            const d = sortedData[items[0].dataIndex];
+                            const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
+                            const cleanEffort = isReprompted ? d.reasoningEffort.replace(', Reprompted', '').trim() : d.reasoningEffort;
+                            const dagger = isReprompted ? '†' : '';
+                            return cleanEffort ? `${d.agent} (${cleanEffort})${dagger}` : d.agent;
+                        },
                         label: function(context) {
                             const dataItem = sortedData[context.dataIndex];
                             let label = `Time: ${dataItem.time} (${context.parsed.x.toFixed(2)} hours)`;
@@ -1218,7 +1262,7 @@ function createTimeSpentChart() {
                             return label;
                         }
                     }
-                },
+                }),
                 datalabels: {
                     display: false
                 }
