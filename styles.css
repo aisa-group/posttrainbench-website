@@ -18,7 +18,17 @@
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
-    --transition: all 0.3s ease;
+
+    /* Motion — strong ease-out; hover/press micro-interactions stay under
+       ~150ms so frequently-seen transitions read as instant. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+    /* Shape & elevation tokens */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-panel: 0 10px 28px rgba(20, 16, 11, 0.32);
 
     /* Chart bar colors - darker/more muted in dark mode */
     --chart-bar: #95593f;
@@ -75,12 +85,23 @@
     --rank-3-text: #2d2a23;
 }
 
+html {
+    /* Anchor links land below the sticky navbar instead of underneath it. */
+    scroll-padding-top: 5rem;
+}
+
 body {
     font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
-    transition: var(--transition);
+    /* Colors only — the theme toggle crossfades as one coordinated change. */
+    transition: background-color 200ms ease, color 200ms ease;
+}
+
+::selection {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
 }
 
 .container {
@@ -140,11 +161,7 @@ body {
     color: var(--text-secondary);
     text-decoration: none;
     font-size: 0.875rem;
-    transition: var(--transition);
-}
-
-.nav-links a:hover {
-    color: var(--text-primary);
+    transition: color 120ms var(--ease-out);
 }
 
 .nav-github {
@@ -153,13 +170,19 @@ body {
     justify-content: center;
     color: var(--text-secondary);
     padding: 0.5rem;
-    border-radius: 0.375rem;
-    transition: var(--transition);
+    border-radius: var(--radius-md);
+    transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out);
 }
 
-.nav-github:hover {
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
+@media (hover: hover) and (pointer: fine) {
+    .nav-links a:hover {
+        color: var(--text-primary);
+    }
+
+    .nav-github:hover {
+        color: var(--text-primary);
+        background: var(--bg-tertiary);
+    }
 }
 
 /* Hamburger Menu */
@@ -179,7 +202,7 @@ body {
     width: 24px;
     height: 2px;
     background-color: var(--text-primary);
-    transition: all 0.3s ease;
+    transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out);
 }
 
 .hamburger.active .hamburger-line:nth-child(1) {
@@ -199,16 +222,18 @@ body {
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     padding: 0.5rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: var(--transition);
+    transition: background-color 120ms var(--ease-out), transform 140ms var(--ease-out);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.theme-toggle:hover {
-    background-color: var(--bg-tertiary);
+@media (hover: hover) and (pointer: fine) {
+    .theme-toggle:hover {
+        background-color: var(--bg-tertiary);
+    }
 }
 
 .theme-icon {
@@ -239,7 +264,8 @@ body {
     font-weight: 700;
     margin-bottom: 1.5rem;
     line-height: 1.1;
-    letter-spacing: -0.03em;
+    /* Keep tracking gentle — negative tracking fights a monospace grid. */
+    letter-spacing: -0.01em;
 }
 
 .title-main {
@@ -281,61 +307,17 @@ body {
     flex-wrap: wrap;
 }
 
-.btn-wrapper {
-    position: relative;
-    display: inline-flex;
-    align-items: stretch;
-}
-
-.tooltip {
-    position: absolute;
-    bottom: -2.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transition: var(--transition);
-    pointer-events: none;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.tooltip::before {
-    content: '';
-    position: absolute;
-    top: -0.25rem;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-    width: 0.5rem;
-    height: 0.5rem;
-    background-color: var(--bg-tertiary);
-    border-left: 1px solid var(--border-color);
-    border-top: 1px solid var(--border-color);
-}
-
-.btn-wrapper:hover .tooltip,
-.btn-wrapper .btn:focus + .tooltip {
-    opacity: 1;
-    visibility: visible;
-}
-
 /* Buttons */
 .btn {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     font-family: inherit;
     font-size: 0.875rem;
     cursor: pointer;
-    transition: var(--transition);
+    transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
     border: none;
     font-weight: 500;
     text-decoration: none;
@@ -351,19 +333,27 @@ body {
     color: var(--bg-primary);
 }
 
-.btn-primary:hover {
-    background-color: var(--accent-secondary);
-}
-
 .btn-secondary {
     background-color: transparent;
     color: var(--text-primary);
     border: 1px solid var(--border-color);
 }
 
-.btn-secondary:hover {
-    background-color: var(--bg-secondary);
-    border-color: var(--accent-primary);
+@media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover {
+        background-color: var(--accent-secondary);
+    }
+
+    .btn-secondary:hover {
+        background-color: var(--bg-secondary);
+        border-color: var(--accent-primary);
+    }
+}
+
+/* Press feedback — every pressable element scales down slightly so clicks
+   feel acknowledged the instant they happen. */
+:where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .toggle-table-btn):active {
+    transform: scale(0.97);
 }
 
 /* Section Styles */
@@ -409,7 +399,7 @@ section {
 .changelog {
     margin: 1rem 0;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     padding: 0.75rem 1rem;
 }
 
@@ -500,9 +490,10 @@ section {
     color: var(--text-primary);
 }
 
-/* Leaderboard */
+/* Leaderboard — the star section gets extra vertical room. */
 .leaderboard {
     background-color: var(--bg-secondary);
+    padding: 5rem 0;
 }
 
 .chart-controls {
@@ -523,20 +514,26 @@ section {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     padding: 0.5rem 2rem 0.5rem 1rem;
     font-family: inherit;
     font-size: 0.875rem;
     cursor: pointer;
-    transition: var(--transition);
+    transition: border-color 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23aca595' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
 }
 
-.chart-view-select:hover {
-    border-color: var(--accent-primary);
+[data-theme="light"] .chart-view-select {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b655a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .chart-view-select:hover {
+        border-color: var(--accent-primary);
+    }
 }
 
 .chart-view-select:focus {
@@ -548,7 +545,7 @@ section {
 .leaderboard-chart {
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     padding: 2rem;
     margin-bottom: 2rem;
     overflow-x: auto;
@@ -619,38 +616,45 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     padding: 0.5rem 2rem 0.5rem 1rem;
     font-family: inherit;
     font-size: 0.875rem;
     cursor: pointer;
-    transition: var(--transition);
+    transition: border-color 140ms var(--ease-out);
     position: relative;
     user-select: none;
 }
 
+/* Same chevron as .chart-view-select, so the two selects read as one control. */
 .dropdown-selected::after {
     content: '';
     position: absolute;
     right: 0.75rem;
     top: 50%;
-    transform: translateY(-50%);
-    width: 0;
-    height: 0;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 5px solid var(--text-secondary);
-    transition: var(--transition);
+    width: 12px;
+    height: 8px;
+    margin-top: -4px;
+    background: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23aca595' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+    transition: transform 150ms var(--ease-out);
 }
 
-.dropdown-selected:hover {
-    border-color: var(--accent-primary);
+[data-theme="light"] .dropdown-selected::after {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b655a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .dropdown-selected:hover {
+        border-color: var(--accent-primary);
+    }
 }
 
 .custom-dropdown.open .dropdown-selected::after {
-    transform: translateY(-50%) rotate(180deg);
+    transform: rotate(180deg);
 }
 
+/* Opens as an origin-aware scale/fade from the trigger (transform + opacity
+   are GPU-composited; the old max-height animation thrashed layout). */
 .dropdown-options {
     position: absolute;
     top: calc(100% + 0.5rem);
@@ -658,19 +662,22 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     right: 0;
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.375rem;
-    max-height: 0;
-    overflow: hidden;
+    border-radius: var(--radius-md);
+    max-height: 300px;
+    overflow-y: auto;
     opacity: 0;
-    transition: all 0.2s ease;
+    visibility: hidden;
+    transform: translateY(-4px) scale(0.98);
+    transform-origin: top center;
+    transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out), visibility 150ms;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-popover);
 }
 
 .custom-dropdown.open .dropdown-options {
-    max-height: 300px;
     opacity: 1;
-    overflow-y: auto;
+    visibility: visible;
+    transform: none;
 }
 
 .dropdown-option {
@@ -678,7 +685,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     font-size: 0.875rem;
     color: var(--text-primary);
     cursor: pointer;
-    transition: var(--transition);
+    transition: background-color 100ms var(--ease-out), color 100ms var(--ease-out);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -686,8 +693,10 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     border-bottom: none;
 }
 
-.dropdown-option:hover {
-    background-color: var(--bg-secondary);
+@media (hover: hover) and (pointer: fine) {
+    .dropdown-option:hover {
+        background-color: var(--bg-secondary);
+    }
 }
 
 .dropdown-option.active {
@@ -696,9 +705,13 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     font-weight: 500;
 }
 
+/* Border + radius live on the wrapper (not the table): border-radius is
+   ignored on border-collapse tables, and a border on the table itself would
+   get clipped at the rounded corners. */
 .leaderboard-table {
     overflow-x: auto;
-    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
 }
 
 /* Mobile table toggle notice - hidden on desktop */
@@ -709,7 +722,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     padding: 0.75rem 1rem;
     margin-bottom: 0.75rem;
     background-color: var(--bg-tertiary);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -720,16 +733,18 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     color: var(--bg-primary);
     border: none;
     padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     font-family: inherit;
     font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
-    transition: var(--transition);
+    transition: background-color 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 
-.toggle-table-btn:hover {
-    background: var(--accent-secondary);
+@media (hover: hover) and (pointer: fine) {
+    .toggle-table-btn:hover {
+        background: var(--accent-secondary);
+    }
 }
 
 .toggle-table-btn .hide-text {
@@ -794,7 +809,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     color: var(--tag-color);
     background: var(--tag-bg);
     border: 1px solid var(--tag-border);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     padding: 0 0.3rem;
     margin-left: 0.35rem;
     vertical-align: middle;
@@ -810,7 +825,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     color: #f0a94a;
     background: rgba(245, 158, 11, 0.16);
     border: 1px solid rgba(245, 158, 11, 0.5);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     padding: 0.05rem 0.35rem;
     margin-left: 0.4rem;
     vertical-align: middle;
@@ -836,20 +851,20 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     text-align: left;
     padding: 0.5rem 0.7rem;
     border: 1px solid var(--border-color);
-    border-radius: 0.4rem;
-    box-shadow: 0 10px 28px rgba(20, 16, 11, 0.32);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-panel);
     max-width: 280px;
     width: max-content;
     z-index: 9999;
     pointer-events: none;
     opacity: 0;
-    transform: translateY(3px);
-    transition: opacity 0.12s ease, transform 0.12s ease;
+    transform: translateY(3px) scale(0.98);
+    transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out);
     --tt-arrow-x: 50%;
 }
 .tt-pop.tt-show {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
 }
 .tt-pop::before {
     content: '';
@@ -875,8 +890,6 @@ table {
     width: 100%;
     border-collapse: collapse;
     background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
     min-width: 1000px;
 }
 
@@ -885,7 +898,7 @@ thead {
 }
 
 th, td {
-    padding: 1rem;
+    padding: 0.7rem 0.9rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
@@ -901,7 +914,8 @@ th {
 
 td {
     font-size: 0.875rem;
-    transition: background-color 0.3s ease;
+    line-height: 1.45;
+    transition: background-color 200ms ease;
     white-space: nowrap;
 }
 
@@ -912,15 +926,17 @@ tbody td[style*="background-color"] {
 }
 
 tbody tr {
-    transition: var(--transition);
+    transition: background-color 100ms var(--ease-out);
 }
 
-tbody tr:hover {
-    background-color: var(--bg-secondary);
-}
+@media (hover: hover) and (pointer: fine) {
+    tbody tr:hover {
+        background-color: var(--bg-secondary);
+    }
 
-tbody tr:hover td[style*="background-color"] {
-    filter: brightness(1.1);
+    tbody tr:hover td[style*="background-color"] {
+        filter: brightness(1.1);
+    }
 }
 
 tbody tr:last-child td {
@@ -934,7 +950,7 @@ tbody tr:last-child td {
     padding: 0.1rem 0.35rem;
     background-color: var(--accent-primary);
     color: var(--bg-primary);
-    border-radius: 0.2rem;
+    border-radius: var(--radius-sm);
     text-transform: uppercase;
     vertical-align: middle;
 }
@@ -979,7 +995,7 @@ tbody tr:last-child td {
 .setup-info {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     padding: 2rem;
     margin-bottom: 3rem;
 }
@@ -1015,7 +1031,7 @@ tbody tr:last-child td {
 .stat-card {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     padding: 2rem;
     text-align: center;
 }
@@ -1034,9 +1050,10 @@ tbody tr:last-child td {
     letter-spacing: 0.05em;
 }
 
-/* Team Section */
+/* Team Section — quieter sections get less vertical room than the data
+   sections, so spacing carries hierarchy. */
 .team {
-    padding: 4rem 0;
+    padding: 3rem 0;
     background-color: var(--bg-secondary);
 }
 
@@ -1052,7 +1069,7 @@ tbody tr:last-child td {
     color: var(--accent-primary);
     text-decoration: none;
     font-weight: 600;
-    transition: var(--transition);
+    transition: color 120ms var(--ease-out);
 }
 
 .team-inline a.team-lead {
@@ -1096,7 +1113,7 @@ tbody tr:last-child td {
 
 /* Citation Section */
 .citation {
-    padding: 4rem 0;
+    padding: 3rem 0;
     background-color: var(--bg-primary);
 }
 
@@ -1105,7 +1122,7 @@ tbody tr:last-child td {
     margin: 0 auto;
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     padding: 2rem;
     position: relative;
 }
@@ -1131,16 +1148,18 @@ tbody tr:last-child td {
     background-color: var(--accent-primary);
     color: var(--bg-primary);
     border: none;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     font-family: inherit;
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
-    transition: var(--transition);
+    transition: background-color 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 
-.copy-btn:hover {
-    background-color: var(--accent-secondary);
+@media (hover: hover) and (pointer: fine) {
+    .copy-btn:hover {
+        background-color: var(--accent-secondary);
+    }
 }
 
 /* Footer */
@@ -1319,7 +1338,7 @@ tbody tr:last-child td {
 
     /* On mobile these charts use an explicit JS-set height, not a 2:1 ratio. */
     .leaderboard-chart-wrapper:has(#performanceChart),
-    .leaderboard-chart-wrapper:has(#detailedChart) {
+    .leaderboard-chart-wrapper:has(#paretoChart) {
         aspect-ratio: auto;
     }
 
@@ -1481,15 +1500,17 @@ tbody tr:last-child td {
     color: var(--accent-primary);
     background: transparent;
     border: 1px solid var(--accent-primary);
-    border-radius: 0.35rem;
+    border-radius: var(--radius-md);
     padding: 0.4rem 0.9rem;
     cursor: pointer;
-    transition: var(--transition);
+    transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 
-.toggle-btn:hover {
-    background: var(--accent-primary);
-    color: white;
+@media (hover: hover) and (pointer: fine) {
+    .toggle-btn:hover {
+        background: var(--accent-primary);
+        color: var(--bg-primary);
+    }
 }
 
 /* Process Flow Section */
@@ -1505,7 +1526,7 @@ tbody tr:last-child td {
     padding: 2rem;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     overflow-x: auto;
 }
 
@@ -1562,7 +1583,7 @@ tbody tr:last-child td {
     border-collapse: collapse;
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     font-size: 0.85rem;
     overflow: hidden;
 }
@@ -1597,8 +1618,10 @@ tbody tr:last-child td {
     border-bottom: none;
 }
 
-.findings-table tbody tr:hover {
-    background: var(--bg-secondary);
+@media (hover: hover) and (pointer: fine) {
+    .findings-table tbody tr:hover {
+        background: var(--bg-secondary);
+    }
 }
 
 /* Identifier columns stay tight so prose columns (tactic/evidence)
@@ -1629,7 +1652,7 @@ tbody tr:last-child td {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     padding: 0.2rem 0.45rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     white-space: pre-wrap;
     word-break: break-word;
     line-height: 1.5;
@@ -1665,7 +1688,7 @@ tbody tr:last-child td {
 .observation-block {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     padding: 1.5rem 2rem;
     margin-bottom: 2rem;
 }
@@ -1702,14 +1725,14 @@ tbody tr:last-child td {
     background: var(--bg-tertiary);
     color: var(--accent-primary);
     padding: 0.15rem 0.4rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.85rem;
 }
 
 .observation-block a {
     color: var(--accent-primary);
     text-decoration: underline;
-    transition: var(--transition);
+    transition: color 120ms var(--ease-out);
 }
 
 .observation-block a:hover {
@@ -1721,7 +1744,7 @@ tbody tr:last-child td {
     margin: 1rem 0;
     padding: 0.75rem 1.25rem;
     background: var(--bg-tertiary);
-    border-radius: 0 0.25rem 0.25rem 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     font-style: italic;
     color: var(--text-secondary);
 }
@@ -1757,7 +1780,7 @@ tbody tr:last-child td {
 
 .trace-entry {
     background: var(--bg-tertiary);
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     padding: 0.75rem 1rem;
     position: relative;
 }
@@ -1812,7 +1835,7 @@ tbody tr:last-child td {
     gap: 1rem;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     padding: 1.25rem 1.5rem;
 }
 
@@ -1971,8 +1994,8 @@ html[data-photo-clean] .ptb-photo-caption {
     padding: 0.9rem 1rem;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 0.6rem;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-panel);
     font-size: 0.8rem;
     color: var(--text-primary);
 }
@@ -2032,15 +2055,77 @@ html[data-photo-clean] .ptb-photo-caption {
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    border-radius: 0.35rem;
+    border-radius: var(--radius-md);
     padding: 0.4rem 0.6rem;
     font-family: inherit;
     font-size: 0.75rem;
     cursor: pointer;
-    transition: var(--transition);
+    transition: border-color 120ms var(--ease-out), color 120ms var(--ease-out);
 }
 
 .ptb-photo-btns button:hover {
     border-color: var(--accent-primary);
     color: var(--accent-primary);
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+   Themed scrollbars on horizontal-overflow containers, so scroll chrome
+   matches the page instead of the OS default.
+   ─────────────────────────────────────────────────────────────────────── */
+.leaderboard-table,
+.leaderboard-chart,
+.findings-table-wrap,
+.pipeline-diagram,
+.citation-text,
+.dropdown-options {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.leaderboard-table::-webkit-scrollbar,
+.leaderboard-chart::-webkit-scrollbar,
+.findings-table-wrap::-webkit-scrollbar,
+.pipeline-diagram::-webkit-scrollbar,
+.citation-text::-webkit-scrollbar,
+.dropdown-options::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.leaderboard-table::-webkit-scrollbar-thumb,
+.leaderboard-chart::-webkit-scrollbar-thumb,
+.findings-table-wrap::-webkit-scrollbar-thumb,
+.pipeline-diagram::-webkit-scrollbar-thumb,
+.citation-text::-webkit-scrollbar-thumb,
+.dropdown-options::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.leaderboard-table::-webkit-scrollbar-track,
+.leaderboard-chart::-webkit-scrollbar-track,
+.findings-table-wrap::-webkit-scrollbar-track,
+.pipeline-diagram::-webkit-scrollbar-track,
+.citation-text::-webkit-scrollbar-track,
+.dropdown-options::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Reduced motion: keep the opacity/color changes that aid comprehension,
+   drop the movement. (Chart.js animations are disabled in script.js.) */
+@media (prefers-reduced-motion: reduce) {
+    .dropdown-options,
+    .tt-pop {
+        transform: none;
+        transition-duration: 60ms;
+    }
+
+    .hamburger-line,
+    .dropdown-selected::after {
+        transition-duration: 0ms;
+    }
+
+    :where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .toggle-table-btn):active {
+        transform: none;
+    }
 }
