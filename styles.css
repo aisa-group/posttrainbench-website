@@ -1804,6 +1804,224 @@ tbody tr:last-child td {
     text-align: center;
 }
 
+/* Numeric columns in findings tables (e.g. the distillation tally). */
+.findings-table th.num,
+.findings-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Explanatory tails inside table cells — dropped on phones so the
+   numeric columns stay on-screen instead of forcing a crush/scroll.
+   Same for the run-count metas in numeric column headers. */
+@media (max-width: 640px) {
+    .findings-table .cell-detail,
+    .findings-table th.num .findings-meta {
+        display: none;
+    }
+}
+
+/* Reward-hacking categories — top-level foldables in the qualitative
+   analysis, one per hacking type. The +/− marker mirrors the changelog
+   toggle so "there's more here" reads the same everywhere on the site. */
+.hack-category {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin: 0 0 1rem;
+}
+
+.hack-category > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.hack-category > summary::-webkit-details-marker {
+    display: none;
+}
+
+.hack-category > summary::after {
+    content: '+';
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-primary);
+}
+
+.hack-category[open] > summary::after {
+    content: '\2212';
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .hack-category > summary:hover::after {
+        color: var(--accent-secondary);
+    }
+}
+
+.hack-category-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.hack-category-body {
+    padding: 0 1.25rem 1.25rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.hack-category-body > p {
+    margin-top: 1rem;
+}
+
+/* Content fades in when a category opens — entrance only; closing is
+   instant so dismissal always feels faster than opening. */
+.hack-category[open] > .hack-category-body {
+    animation: fold-in 180ms var(--ease-out);
+}
+
+@keyframes fold-in {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+}
+
+/* Nested evidence foldables (code / trace excerpts / explainers) inside
+   observation content. */
+.evidence-fold {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin: 0.75rem 0;
+    background: var(--bg-tertiary);
+}
+
+.evidence-fold > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0.6rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent-primary);
+    transition: color 120ms var(--ease-out);
+}
+
+.evidence-fold > summary::-webkit-details-marker {
+    display: none;
+}
+
+.evidence-fold > summary::before {
+    content: '+';
+    margin-right: 0.5rem;
+}
+
+.evidence-fold[open] > summary::before {
+    content: '\2212';
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .evidence-fold > summary:hover {
+        color: var(--accent-secondary);
+    }
+}
+
+.evidence-fold pre {
+    margin: 0;
+    padding: 0.75rem 1rem 1rem;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    line-height: 1.55;
+    color: var(--text-primary);
+    white-space: pre;
+}
+
+.evidence-fold .evidence-note {
+    padding: 0 1rem 0.75rem;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Prose body variant for explainer folds (e.g. the R1-traces note). */
+.evidence-fold .evidence-body {
+    padding: 0 1rem 0.9rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.evidence-fold .evidence-body p + p {
+    margin-top: 0.6rem;
+}
+
+/* A standalone evidence fold outside an observation block sits on the
+   section background, so give the R1 explainer some breathing room. */
+.observations > .container > .evidence-fold {
+    margin: 0.25rem 0 2rem;
+}
+
+/* One concrete incident inside a category. */
+.hack-example {
+    margin: 1.25rem 0;
+}
+
+.hack-example-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.92rem;
+    margin-bottom: 0.35rem;
+}
+
+.hack-example-title .findings-meta {
+    margin-left: 0.45rem;
+}
+
+/* Judge verdict line shown under an example. */
+.judge-verdict {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0.5rem 0 0;
+}
+
+.judge-verdict-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 0.1rem 0.4rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .hack-category > summary {
+        padding: 0.85rem 1rem;
+        font-size: 0.92rem;
+    }
+    .hack-category-body {
+        padding: 0 1rem 1rem;
+    }
+    .evidence-fold pre {
+        font-size: 0.68rem;
+    }
+}
+
 .takeaways-list {
     display: flex;
     flex-direction: column;
@@ -2108,5 +2326,9 @@ html[data-photo-clean] .ptb-photo-caption {
 
     :where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .toggle-table-btn):active {
         transform: none;
+    }
+
+    .hack-category[open] > .hack-category-body {
+        animation: none;
     }
 }
