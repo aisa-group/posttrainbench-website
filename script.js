@@ -6,7 +6,7 @@ if (typeof ChartDataLabels !== 'undefined') {
 
 // Global chart instances
 let performanceChart = null;
-let detailedChart = null;
+let paretoChart = null;
 
 // Hamburger Menu Toggle
 const hamburgerBtn = document.getElementById('hamburger-btn');
@@ -53,9 +53,9 @@ themeToggle.addEventListener('click', () => {
         performanceChart.destroy();
         createSimpleChart(currentSelectedModel);
     }
-    if (detailedChart) {
-        detailedChart.destroy();
-        createDetailedChart(currentSelectedModel, currentSelectedBenchmark);
+    if (paretoChart) {
+        paretoChart.destroy();
+        createParetoChart();
     }
     if (timeSpentChart) {
         timeSpentChart.destroy();
@@ -717,23 +717,14 @@ function createSimpleChart(modelName = "average") {
     });
 }
 
-// Current selected benchmark for mobile view
-let currentSelectedBenchmark = 'bfcl';
-
-// Benchmark display names
-const benchmarkDisplayNames = {
-    'aime2025': 'AIME 2025',
-    'arenahardwriting': 'Arena Hard',
-    'bfcl': 'BFCL',
-    'gpqamain': 'GPQA Main',
-    'gsm8k': 'GSM8K',
-    'healthbench': 'HealthBench',
-    'humaneval': 'HumanEval'
-};
-
-// Create Detailed Chart (grouped by benchmark on desktop, single benchmark on mobile)
-function createDetailedChart(modelName = "average", benchmarkKey = null) {
-    const ctx = document.getElementById('detailedChart');
+// Create Performance vs. Time scatter with Pareto frontier.
+// One point per main-chart agent (baselines excluded); x = average time spent
+// (hours), y = average benchmark performance (%). The dashed line steps along
+// the Pareto frontier: down to the x-axis at the fastest frontier agent, and
+// out to the right edge at the best-performing one.
+function createParetoChart() {
+    const ctx = document.getElementById('paretoChart');
+    if (!ctx) return;
 
     // Get theme colors
     const style = getComputedStyle(document.documentElement);
@@ -741,236 +732,293 @@ function createDetailedChart(modelName = "average", benchmarkKey = null) {
     const textSecondary = style.getPropertyValue('--text-secondary').trim();
     const accentPrimary = style.getPropertyValue('--accent-primary').trim();
     const borderColor = style.getPropertyValue('--border-color').trim();
+    const bgPrimary = style.getPropertyValue('--bg-primary').trim();
+    const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
 
-    // Check if mobile
     const isMobile = window.innerWidth <= 768;
 
-    // Set wrapper dimensions based on screen size
     const wrapper = ctx.closest('.leaderboard-chart-wrapper');
     if (isMobile) {
         wrapper.style.minWidth = '';
-        wrapper.style.height = '300px';
+        wrapper.style.height = '320px';
     } else {
         wrapper.style.minWidth = '';
         wrapper.style.height = '';
     }
 
-    const agentColors = {
-        'human': '#6b655a',
-        'base-model': '#9a9590',
-        'gpt-5.1-codex-max': '#6a7a5a',
-        'gpt-5.2': '#7a8a6a',
-        'gpt-5.2-codex': '#8a9a7a',
-        'gpt-5.3-codex-high': '#5a6a4a',
-        'gpt-5.3-codex-med': '#7a8a6a',
-        'gpt-5.4-high': '#4a5a3a',
-        'opus-4.5': '#c17d5a',
-        'opus-4.6': '#d48a60',
-        'opus-4.6-1m': '#e09770',
-        'sonnet-4.5': '#a66b4f',
-        'sonnet-4.6': '#b8785a',
-        'gemini-3-pro': '#6a7a85',
-        'gemini-3.1-pro': '#5a6a75',
-        'glm-4.7': '#6a8078',
-        'glm-5': '#5a7068',
-        'minimax-m2.1': '#8a7078'
+    const fontSizes = calculateFontSizes(ctx);
+
+    // Join average score with time spent. Sorted by time so the entrance
+    // animation cascades fastest-agent-first, left to right.
+    const points = leaderboardData
+        .filter(d => !d.isBaseline && d.showInChart && timeData[d.agentKey])
+        .map(d => {
+            const t = timeData[d.agentKey];
+            const isReprompted = !!(d.reasoningEffort && d.reasoningEffort.includes('Reprompted'));
+            const cleanEffort = isReprompted
+                ? d.reasoningEffort.replace(', Reprompted', '').trim()
+                : d.reasoningEffort;
+            const label = (cleanEffort ? `${d.agent} (${cleanEffort})` : d.agent) + (isReprompted ? '†' : '');
+            return {
+                x: t.hours,
+                y: parseFloat(d.averageScore),
+                label: label,
+                agentKey: d.agentKey,
+                scaffold: d.scaffold,
+                time: t.time,
+                stdTime: t.stdHours ? t.stdTime : null,
+                stdDev: d.stdDev ? parseFloat(d.stdDev) : null
+            };
+        })
+        .sort((a, b) => a.x - b.x);
+
+    if (points.length === 0) return;
+
+    // Pareto frontier: points no other point beats on both time and score.
+    const frontier = points
+        .filter(p => !points.some(q =>
+            q !== p && q.x <= p.x && q.y >= p.y && (q.x < p.x || q.y > p.y)))
+        .sort((a, b) => a.x - b.x);
+    const frontierKeys = new Set(frontier.map(p => p.agentKey));
+
+    // Axis bounds: x runs to just past the 10h budget; y brackets the data.
+    const xMax = 10.5;
+    const perfs = points.map(p => p.y);
+    const yMin = Math.max(0, Math.floor((Math.min(...perfs) - 3) / 5) * 5);
+    const yMax = Math.ceil((Math.max(...perfs) + 3) / 5) * 5;
+
+    // Frontier polyline with edge extensions (paper fig. 2 style).
+    const frontierLine = [
+        { x: frontier[0].x, y: yMin },
+        ...frontier.map(p => ({ x: p.x, y: p.y })),
+        { x: xMax, y: frontier[frontier.length - 1].y }
+    ];
+
+    const pointRadius = isMobile ? 4 : 5.5;
+
+    // Direct labels with greedy collision avoidance: frontier points get
+    // priority (and primary ink); a label that can't find a clear spot is
+    // dropped — the tooltip still identifies its point.
+    const labelPlugin = {
+        id: 'paretoLabels',
+        afterDatasetsDraw(chart) {
+            const { ctx: c, chartArea, scales } = chart;
+            const fontSize = isMobile ? 8 : Math.max(9, fontSizes.axisTicks - 1);
+            c.save();
+            c.font = `500 ${fontSize}px 'JetBrains Mono', monospace`;
+
+            const pts = points.map(p => ({
+                px: scales.x.getPixelForValue(p.x),
+                py: scales.y.getPixelForValue(p.y),
+                p: p
+            }));
+
+            // Points themselves are obstacles for label placement.
+            const placed = pts.map(({ px, py }) => ({
+                left: px - pointRadius - 2, right: px + pointRadius + 2,
+                top: py - pointRadius - 2, bottom: py + pointRadius + 2
+            }));
+
+            const ordered = [...pts].sort((a, b) =>
+                (frontierKeys.has(b.p.agentKey) ? 1 : 0) - (frontierKeys.has(a.p.agentKey) ? 1 : 0));
+
+            ordered.forEach(({ px, py, p }) => {
+                if (isMobile && !frontierKeys.has(p.agentKey)) return;
+                const w = c.measureText(p.label).width;
+                const h = fontSize;
+                // Must clear the point's own obstacle rect (radius + 2px pad +
+                // 3px separation margin), or every candidate self-collides.
+                const gap = pointRadius + 8;
+                const diag = gap * 0.8;
+                const candidates = [
+                    { x: px + gap, y: py, align: 'left', baseline: 'middle' },
+                    { x: px, y: py - gap, align: 'center', baseline: 'bottom' },
+                    { x: px, y: py + gap, align: 'center', baseline: 'top' },
+                    { x: px - gap, y: py, align: 'right', baseline: 'middle' },
+                    { x: px + diag, y: py - diag, align: 'left', baseline: 'bottom' },
+                    { x: px - diag, y: py - diag, align: 'right', baseline: 'bottom' },
+                    { x: px + diag, y: py + diag, align: 'left', baseline: 'top' },
+                    { x: px - diag, y: py + diag, align: 'right', baseline: 'top' }
+                ];
+                for (const cand of candidates) {
+                    const left = cand.align === 'left' ? cand.x
+                        : cand.align === 'center' ? cand.x - w / 2 : cand.x - w;
+                    const top = cand.baseline === 'top' ? cand.y
+                        : cand.baseline === 'middle' ? cand.y - h / 2 : cand.y - h;
+                    const rect = { left: left, right: left + w, top: top, bottom: top + h };
+                    if (rect.left < chartArea.left || rect.right > chartArea.right ||
+                        rect.top < chartArea.top || rect.bottom > chartArea.bottom) continue;
+                    const collides = placed.some(o =>
+                        !(rect.right < o.left - 3 || rect.left > o.right + 3 ||
+                          rect.bottom < o.top - 3 || rect.top > o.bottom + 3));
+                    if (collides) continue;
+                    c.textAlign = cand.align;
+                    c.textBaseline = cand.baseline;
+                    // Surface-colored halo keeps labels readable where they
+                    // cross gridlines or the dashed frontier/budget lines.
+                    c.strokeStyle = bgPrimary;
+                    c.lineWidth = 3;
+                    c.lineJoin = 'round';
+                    c.strokeText(p.label, cand.x, cand.y);
+                    c.fillStyle = frontierKeys.has(p.agentKey) ? textPrimary : textSecondary;
+                    c.fillText(p.label, cand.x, cand.y);
+                    placed.push(rect);
+                    break;
+                }
+            });
+            c.restore();
+        }
     };
 
-    const allData = getLeaderboardDataForModel(modelName);
-    const data = allData.filter(d => d.showInChart !== false);
-
-    const fontSizes = calculateFontSizes(ctx);
+    // Vertical dashed line at x=10 marking the budget, same motif as the
+    // time chart. Drawn BEFORE the datasets so points and their labels sit
+    // on top of it. Label sits in the top layout padding.
+    const budgetLinePlugin = {
+        id: 'paretoBudgetLine',
+        beforeDatasetsDraw(chart) {
+            const { ctx: c, scales, chartArea } = chart;
+            const xPos = scales.x.getPixelForValue(10);
+            c.save();
+            c.strokeStyle = accentPrimary;
+            c.lineWidth = 1.5;
+            c.setLineDash([4, 4]);
+            c.beginPath();
+            c.moveTo(xPos, chartArea.top);
+            c.lineTo(xPos, chartArea.bottom);
+            c.stroke();
+            c.setLineDash([]);
+            c.fillStyle = accentPrimary;
+            c.font = `600 ${isMobile ? 9 : 10}px 'JetBrains Mono', monospace`;
+            c.textAlign = 'center';
+            c.textBaseline = 'bottom';
+            c.fillText('10h budget', xPos, chartArea.top - 4);
+            c.restore();
+        }
+    };
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const buildAnimation = reduceMotion ? { duration: 0 } : {
         duration: 450,
         easing: 'easeOutCubic',
-        // Cascade bars/groups in left-to-right, matching the main chart's build.
-        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 45 : 0,
+        // Points pop in fastest-agent-first (data is sorted by time).
+        delay: (c) => (c.type === 'data' && c.mode === 'default' && c.datasetIndex === 0)
+            ? c.dataIndex * 40 : 0,
     };
 
-    if (isMobile) {
-        // Mobile: Single benchmark, agents on X-axis
-        const selectedBenchmark = benchmarkKey || currentSelectedBenchmark;
-
-        // Sort by the selected benchmark score ascending (lowest to highest)
-        const orderedData = [...data].sort((a, b) => {
-            const scoreA = getBenchmarkValue(a.benchmarkScores[selectedBenchmark]);
-            const scoreB = getBenchmarkValue(b.benchmarkScores[selectedBenchmark]);
-            return scoreA - scoreB;
-        });
-
-        const scores = orderedData.map(entry => getBenchmarkValue(entry.benchmarkScores[selectedBenchmark]));
-        const labels = orderedData.map(d => d.agent);
-        const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
-        const chartBarBaseline1 = style.getPropertyValue('--chart-bar-baseline-1').trim() || '#9a9590';
-        const chartBarBaseline2 = style.getPropertyValue('--chart-bar-baseline-2').trim() || '#6b655a';
-
-        const colors = orderedData.map(d => {
-            if (d.agentKey === 'base-model') return chartBarBaseline1;
-            if (d.agentKey === 'human') return chartBarBaseline2;
-            return chartBar;
-        });
-
-        const maxScore = Math.max(...scores);
-        const yAxisMax = Math.ceil(maxScore / 10) * 10 + 10;
-
-        detailedChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: benchmarkDisplayNames[selectedBenchmark],
-                    data: scores,
-                    backgroundColor: colors,
-                    borderColor: colors,
-                    borderWidth: 1,
-                    borderRadius: 3,
-                    barPercentage: 0.7,
-                    categoryPercentage: 0.85
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: buildAnimation,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        padding: 8,
-                        titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
-                        bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
-                        borderColor: accentPrimary,
-                        borderWidth: 1,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.parsed.y.toFixed(2)}%`;
-                            }
-                        }
-                    },
-                    datalabels: { display: false }
+    paretoChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Agents',
+                    data: points,
+                    backgroundColor: chartBar,
+                    borderColor: bgPrimary,
+                    borderWidth: 2,
+                    pointRadius: pointRadius,
+                    pointHoverRadius: pointRadius + 2,
+                    pointHoverBorderWidth: 2,
+                    // Small forgiveness margin around the 11px dot — enough to
+                    // not demand pixel aim, small enough that the tooltip never
+                    // fires while visibly off the point.
+                    pointHitRadius: 4
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: yAxisMax,
-                        title: { display: false },
-                        grid: { color: borderColor },
-                        ticks: {
-                            color: textSecondary,
-                            font: { family: "'JetBrains Mono', monospace", size: 9 },
-                            stepSize: 20,
-                            callback: value => value + '%'
-                        }
-                    },
-                    x: {
-                        title: { display: false },
-                        grid: { display: false },
-                        ticks: {
-                            color: textSecondary,
-                            font: { family: "'JetBrains Mono', monospace", size: 9 },
-                            maxRotation: 55,
-                            minRotation: 55
+                {
+                    label: 'Pareto frontier',
+                    type: 'line',
+                    data: frontierLine,
+                    borderColor: textSecondary,
+                    borderWidth: 1.5,
+                    borderDash: [6, 4],
+                    pointRadius: 0,
+                    pointHitRadius: 0,
+                    fill: false,
+                    tension: 0,
+                    animation: false
+                }
+            ]
+        },
+        plugins: [labelPlugin, budgetLinePlugin],
+        options: {
+            responsive: true,
+            maintainAspectRatio: !isMobile,
+            animation: buildAnimation,
+            layout: {
+                padding: { top: isMobile ? 14 : 18 }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: chartTooltipOptions(style, isMobile, {
+                    callbacks: {
+                        title: (items) => items[0].raw.label,
+                        label: (item) => {
+                            const p = item.raw;
+                            const lines = [
+                                `Avg score: ${p.y.toFixed(1)}%${p.stdDev ? ` ± ${p.stdDev.toFixed(1)}%` : ''}`,
+                                `Time: ${p.time}${p.stdTime ? ` ± ${p.stdTime}` : ''}`
+                            ];
+                            if (p.scaffold) lines.push(`Scaffold: ${p.scaffold}`);
+                            if (frontierKeys.has(p.agentKey)) lines.push('On the Pareto frontier');
+                            return lines;
                         }
                     }
-                }
-            }
-        });
-    } else {
-        // Desktop: Grouped bar chart - benchmarks on X-axis, agents as different bars
-        const benchmarks = ['AIME 2025', 'Arena Hard', 'BFCL', 'GPQA Main', 'GSM8K', 'HealthBench', 'HumanEval'];
-        const benchmarkKeys = ['aime2025', 'arenahardwriting', 'bfcl', 'gpqamain', 'gsm8k', 'healthbench', 'humaneval'];
-
-        // Sort by average score ascending (lowest to highest, like main chart)
-        const orderedData = [...data].sort((a, b) => parseFloat(a.averageScore) - parseFloat(b.averageScore));
-
-        const datasets = orderedData.map(entry => ({
-            label: entry.reasoningEffort ? `${entry.agent} (${entry.reasoningEffort})` : entry.agent,
-            data: benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key])),
-            backgroundColor: agentColors[entry.agentKey] || accentPrimary,
-            borderColor: agentColors[entry.agentKey] || accentPrimary,
-            borderWidth: 1,
-            borderRadius: 4,
-            barPercentage: 0.8,
-            categoryPercentage: 0.9
-        }));
-
-        const maxScore = Math.max(...orderedData.flatMap(entry =>
-            benchmarkKeys.map(key => getBenchmarkValue(entry.benchmarkScores[key]))
-        ));
-        const yAxisMax = Math.ceil(maxScore / 10) * 10;
-
-        detailedChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: benchmarks,
-                datasets: datasets
+                }),
+                datalabels: { display: false }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                animation: buildAnimation,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        align: 'center',
-                        labels: {
-                            color: textPrimary,
-                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.legend },
-                            padding: 15,
-                            boxWidth: 14,
-                            boxHeight: 14
+            scales: {
+                x: {
+                    min: 0,
+                    max: xMax,
+                    title: {
+                        display: !isMobile,
+                        text: 'Average time spent (hours)',
+                        color: textPrimary,
+                        font: {
+                            family: "'JetBrains Mono', monospace",
+                            size: fontSizes.axisTitle,
+                            weight: 500
                         }
                     },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        padding: 12,
-                        titleFont: { family: "'JetBrains Mono', monospace", size: fontSizes.tooltipTitle },
-                        bodyFont: { family: "'JetBrains Mono', monospace", size: fontSizes.tooltipBody },
-                        borderColor: accentPrimary,
-                        borderWidth: 1,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%`;
-                            }
-                        }
-                    },
-                    datalabels: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: yAxisMax,
-                        title: {
-                            display: true,
-                            text: 'Benchmark Score (%)',
-                            color: textPrimary,
-                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTitle, weight: 500 }
+                    grid: { color: borderColor },
+                    ticks: {
+                        color: textSecondary,
+                        font: {
+                            family: "'JetBrains Mono', monospace",
+                            size: isMobile ? 9 : fontSizes.axisTicks
                         },
-                        grid: { color: borderColor },
-                        ticks: {
-                            color: textSecondary,
-                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks },
-                            stepSize: 10,
-                            callback: value => value + '%'
+                        stepSize: 2,
+                        // Hide the bounds tick at 10.5 — the axis pads past the
+                        // budget line, but "10.5h" is not a meaningful gridline.
+                        callback: value => value === xMax ? null : value + 'h'
+                    }
+                },
+                y: {
+                    min: yMin,
+                    max: yMax,
+                    title: {
+                        display: !isMobile,
+                        text: 'Average benchmark performance (%)',
+                        color: textPrimary,
+                        font: {
+                            family: "'JetBrains Mono', monospace",
+                            size: fontSizes.axisTitle,
+                            weight: 500
                         }
                     },
-                    x: {
-                        title: { display: false },
-                        grid: { display: false },
-                        ticks: {
-                            color: textSecondary,
-                            font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks },
-                            maxRotation: 0,
-                            minRotation: 0
-                        }
+                    grid: { color: borderColor },
+                    ticks: {
+                        color: textSecondary,
+                        font: {
+                            family: "'JetBrains Mono', monospace",
+                            size: isMobile ? 9 : fontSizes.axisTicks
+                        },
+                        stepSize: 5,
+                        callback: value => value + '%'
                     }
                 }
             }
-        });
-    }
+        }
+    });
 }
 
 // Create Time Spent Chart
@@ -1342,9 +1390,9 @@ window.addEventListener('resize', () => {
             performanceChart.destroy();
             createSimpleChart(currentSelectedModel);
         }
-        if (detailedChart) {
-            detailedChart.destroy();
-            createDetailedChart(currentSelectedModel, currentSelectedBenchmark);
+        if (paretoChart) {
+            paretoChart.destroy();
+            createParetoChart();
         }
         if (timeSpentChart) {
             timeSpentChart.destroy();
@@ -1400,7 +1448,8 @@ dropdownOptions.addEventListener('click', (e) => {
         // Close dropdown
         modelDropdown.classList.remove('open');
 
-        // Update model if changed
+        // Update model if changed. The pareto chart is unaffected: time data
+        // exists only as a per-agent aggregate, not per target model.
         if (selectedValue !== currentSelectedModel) {
             currentSelectedModel = selectedValue;
             populateLeaderboard(selectedValue);
@@ -1409,10 +1458,6 @@ dropdownOptions.addEventListener('click', (e) => {
             if (performanceChart) {
                 performanceChart.destroy();
                 createSimpleChart(selectedValue);
-            }
-            if (detailedChart) {
-                detailedChart.destroy();
-                createDetailedChart(selectedValue, currentSelectedBenchmark);
             }
         }
     }
@@ -1424,48 +1469,6 @@ document.addEventListener('click', (e) => {
         modelDropdown.classList.remove('open');
     }
 });
-
-// Benchmark dropdown functionality (mobile only)
-const benchmarkDropdownDisplay = document.getElementById('benchmark-select-display');
-const benchmarkDropdownOptions = document.getElementById('benchmark-select-options');
-const benchmarkDropdown = benchmarkDropdownDisplay?.closest('.custom-dropdown');
-
-if (benchmarkDropdownDisplay && benchmarkDropdownOptions && benchmarkDropdown) {
-    benchmarkDropdownDisplay.addEventListener('click', (e) => {
-        e.stopPropagation();
-        benchmarkDropdown.classList.toggle('open');
-    });
-
-    benchmarkDropdownOptions.addEventListener('click', (e) => {
-        if (e.target.classList.contains('dropdown-option')) {
-            const selectedValue = e.target.getAttribute('data-value');
-            const selectedText = e.target.textContent;
-
-            benchmarkDropdownDisplay.textContent = selectedText;
-
-            benchmarkDropdownOptions.querySelectorAll('.dropdown-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            e.target.classList.add('active');
-
-            benchmarkDropdown.classList.remove('open');
-
-            if (selectedValue !== currentSelectedBenchmark) {
-                currentSelectedBenchmark = selectedValue;
-                if (detailedChart) {
-                    detailedChart.destroy();
-                    createDetailedChart(currentSelectedModel, selectedValue);
-                }
-            }
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!benchmarkDropdown.contains(e.target)) {
-            benchmarkDropdown.classList.remove('open');
-        }
-    });
-}
 
 // Mobile table toggle - show/hide benchmark columns
 const toggleTableBtn = document.getElementById('toggle-full-table');
@@ -1533,7 +1536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     createSimpleChart();
-    createDetailedChart();
+    createParetoChart();
     createTimeSpentChart();
     handleNavbarLogoVisibility(); // Set initial state based on scroll position
 

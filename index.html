@@ -9,8 +9,8 @@
         // 1. Apply the saved theme to avoid a light->dark flash on load.
         // 2. Mark the leaderboard as loading so its JS-populated table (and the
         //    content below it) stays hidden until the rows are inserted, instead
-        //    of briefly flashing an empty table and the "Detailed Breakdown"
-        //    heading. The timeout is a failsafe so the content always reveals
+        //    of briefly flashing an empty table and the subsection heading below
+        //    it. The timeout is a failsafe so the content always reveals
         //    even if initialization fails.
         (function () {
             var root = document.documentElement;
@@ -250,26 +250,13 @@
             </div>
             <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown &nbsp;&nbsp; <sup>‡</sup> <strong>Fable 5 results are preliminary and will change</strong> — these are from Fable 5's initial limited availability period, when many runs failed due to rate limits and model refusals; affected SmolLM3-3B runs (AIME 2025, Arena Hard, GSM8K, HealthBench, HumanEval) currently fall back to Opus 4.8 (Max) results while we re-run them with multiple runs for standard deviation</p>
 
-            <h3 class="section-subtitle">Detailed Breakdown by Benchmark</h3>
-            <div class="benchmark-select-container leaderboard-controls">
-                <label class="model-select-label">Select benchmark:</label>
-                <div class="custom-dropdown">
-                    <div class="dropdown-selected" id="benchmark-select-display">BFCL</div>
-                    <div class="dropdown-options" id="benchmark-select-options">
-                        <div class="dropdown-option" data-value="aime2025">AIME 2025</div>
-                        <div class="dropdown-option" data-value="arenahardwriting">Arena Hard</div>
-                        <div class="dropdown-option active" data-value="bfcl">BFCL</div>
-                        <div class="dropdown-option" data-value="gpqamain">GPQA Main</div>
-                        <div class="dropdown-option" data-value="gsm8k">GSM8K</div>
-                        <div class="dropdown-option" data-value="healthbench">HealthBench</div>
-                        <div class="dropdown-option" data-value="humaneval">HumanEval</div>
-                    </div>
-                </div>
-            </div>
+            <h3 class="section-subtitle">Performance vs. Time Spent</h3>
+            <p class="section-description">Higher and further left is better. The dashed line traces the Pareto frontier — agents no other agent beats on both speed and score.</p>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
-                    <canvas id="detailedChart"></canvas>
+                    <canvas id="paretoChart"></canvas>
                 </div>
+                <p class="chart-footnote">Only main-chart agents with recorded runtimes are shown; Fable 5 is omitted until its re-runs complete. <sup>†</sup> Reprompted.</p>
             </div>
         </div>
     </section>

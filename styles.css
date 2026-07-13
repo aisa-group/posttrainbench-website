@@ -559,18 +559,17 @@ section {
    desktop) before the canvas exists, so it doesn't expand on load and shove the
    changelog down. The time chart sets its own inline height, so it's excluded. */
 .leaderboard-chart-wrapper:has(#performanceChart),
-.leaderboard-chart-wrapper:has(#detailedChart) {
+.leaderboard-chart-wrapper:has(#paretoChart) {
     aspect-ratio: 2 / 1;
 }
 
 /* While the leaderboard data loads, hide the JS-populated table and everything
-   below it, so the empty table and the "Detailed Breakdown" heading don't flash
+   below it, so the empty table and the subsection heading below it don't flash
    in before the rows exist. script.js removes the class once rows are inserted. */
 html.leaderboard-loading #leaderboard .leaderboard-table,
 html.leaderboard-loading #leaderboard .table-footnote,
 html.leaderboard-loading #leaderboard .section-subtitle,
-html.leaderboard-loading #leaderboard .benchmark-select-container,
-html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
+html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     display: none;
 }
 
@@ -775,11 +774,6 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#detailedChart) {
     text-align: left;
     font-style: normal;
     margin-top: 0.75rem;
-}
-
-/* Benchmark dropdown - hidden on desktop, shown on mobile */
-.benchmark-select-container {
-    display: none !important;
 }
 
 /* Standard deviation display in table */
@@ -1351,19 +1345,6 @@ tbody tr:last-child td {
     .changelog-content {
         text-align: left;
         align-self: flex-start;
-    }
-
-    /* Show benchmark dropdown on mobile */
-    .benchmark-select-container.leaderboard-controls {
-        display: flex !important;
-        justify-content: flex-end !important;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .benchmark-select-container .custom-dropdown {
-        min-width: 150px;
     }
 
     /* Mobile table: show toggle, hide benchmark columns */
@@ -1950,9 +1931,9 @@ html[data-photo-clean] #citation,
 html[data-photo-clean] #leaderboard .leaderboard-chart,
 html[data-photo-clean] #leaderboard .changelog,
 html[data-photo-clean] #leaderboard .leaderboard-controls,
-html[data-photo-clean] #leaderboard .benchmark-select-container,
 html[data-photo-clean] #leaderboard .mobile-table-notice,
 html[data-photo-clean] #leaderboard .section-subtitle,
+html[data-photo-clean] #leaderboard .section-description,
 html[data-photo-clean] #leaderboard .leaderboard-footnote {
     display: none !important;
 }
