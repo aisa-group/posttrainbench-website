@@ -1890,64 +1890,103 @@ tbody tr:last-child td {
 }
 
 .trace-entry blockquote {
-    margin: 0.4rem 0 0;
+    margin: 0.35rem 0 0;
     border-left: none;
     background: none;
     padding: 0;
+    font-size: 0.88rem;
+    line-height: 1.65;
 }
 
+/* In-page trace excerpts as a mini-timeline — the same visual vocabulary
+   as the trace viewer (spine + round event markers) instead of stacked
+   tinted slabs. Structure comes from the timeline, not from boxes. */
 .agent-trace {
-    margin: 1rem 0;
-    border-left: 3px solid var(--border-color);
-    padding-left: 1.25rem;
+    margin: 1.1rem 0 1.35rem;
+    position: relative;
+    padding-left: 26px;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 1.05rem;
+}
+
+/* The spine. Inset from the ends so it reads as connecting the markers,
+   not as a stray rule. */
+.agent-trace::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 10px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--border-color);
 }
 
 .trace-entry {
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    padding: 0.75rem 1rem;
     position: relative;
 }
 
-.trace-entry.trace-violation {
-    border-left: 3px solid var(--danger);
-    background: color-mix(in srgb, var(--danger) 8%, var(--bg-tertiary));
+/* Event marker, centered on the spine. Hollow for normal events; the
+   bg-primary fill masks the spine passing underneath. */
+.trace-entry::before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bg-primary);
+    border: 2px solid var(--text-secondary);
 }
 
+/* The violation is the filled clay marker — one saturated dot on an
+   otherwise neutral line is the scan target. */
+.trace-entry.trace-violation::before {
+    background: var(--danger);
+    border-color: var(--danger);
+}
+
+/* Timestamp as a small mono eyebrow above the entry, not a bold heading —
+   "Hours later" is metadata, the agent's words are the content. */
 .trace-time {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
     font-weight: 700;
-    color: var(--text-primary);
-    margin-right: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-secondary);
+    margin-bottom: 0.35rem;
 }
 
-.trace-hours {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
+.trace-violation .trace-time {
+    color: var(--danger);
 }
 
 .trace-text {
-    margin-top: 0.4rem;
+    font-size: 0.85rem;
     font-style: italic;
     color: var(--text-secondary);
 }
 
 .trace-action {
-    margin-top: 0.4rem;
+    margin-top: 0.5rem;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
+    font-size: 0.76rem;
     color: var(--danger);
     font-weight: 600;
 }
 
+/* Elided time on the spine — quieter than the events it sits between. */
 .trace-gap {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     color: var(--text-secondary);
     font-style: italic;
-    padding: 0.25rem 0;
-    text-align: center;
+    opacity: 0.8;
+    padding: 0;
+    text-align: left;
 }
 
 /* Numeric columns in findings tables (e.g. the distillation tally). */
@@ -2022,6 +2061,10 @@ tbody tr:last-child td {
 .hack-category-body {
     padding: 0 1.25rem 1.25rem;
     border-top: 1px solid var(--border-color);
+    /* Evidence content reads a notch smaller than site prose — these are
+       long exhibits, and the slightly denser measure keeps them from
+       dominating the page. */
+    font-size: 0.95rem;
 }
 
 .hack-category-body > p {
@@ -2138,7 +2181,7 @@ tbody tr:last-child td {
 .hack-example-title {
     font-weight: 600;
     color: var(--text-primary);
-    font-size: 0.92rem;
+    font-size: 0.95rem;
     margin-bottom: 0.35rem;
 }
 
