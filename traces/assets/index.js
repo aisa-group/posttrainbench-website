@@ -24,6 +24,7 @@ const els = {
 };
 
 let DATA = { runs: [], experiments: [], benchmarks: [], build_ts: null };
+const DATA_REQUEST_TIMEOUT_MS = 30000;
 
 // Canonical display order for benchmarks and base models. Used to order
 // matrix rows/columns and to sort groups so the page doesn't open on
@@ -59,27 +60,70 @@ function orderIndex(orderList, value) {
 }
 
 async function load() {
-  let resp;
   try {
-    resp = await fetch(`${DATA_BASE}index.json`, { cache: 'no-store' });
-  } catch (e) {
-    return showFatal(`Network error fetching the corpus index: ${e.message}`);
-  }
-  if (!resp.ok) {
-    return showFatal(`Could not load <code>${DATA_BASE}index.json</code> (HTTP ${resp.status}). Run <code>build.py</code> first.`);
-  }
-  DATA = await resp.json();
+    DATA = await fetchJsonWithTimeout(`${DATA_BASE}index.json`);
+    if (!DATA || !Array.isArray(DATA.runs)) {
+      throw new Error('The corpus index has an invalid format.');
+    }
 
-  populateFilters();
-  renderHeroStats();
-  renderMatrix();
-  els.loading.classList.add('hidden');
-  render();
+    populateFilters();
+    renderHeroStats();
+    renderMatrix();
+    els.loading.classList.add('hidden');
+    render();
+  } catch (error) {
+    console.error('Failed to load the trace corpus index:', error);
+    const detail = error.status
+      ? `The data server returned HTTP ${error.status}.`
+      : error.code === 'ETIMEDOUT'
+        ? 'The data request timed out.'
+        : 'Check your connection and try again.';
+    showFatal(`Could not load the trace corpus. ${detail}`);
+  }
 }
 
-function showFatal(msg) {
+async function fetchJsonWithTimeout(url, timeoutMs = DATA_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!resp.ok) {
+      const error = new Error(`HTTP ${resp.status}`);
+      error.status = resp.status;
+      throw error;
+    }
+    return await resp.json();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error(`Request timed out after ${timeoutMs}ms`);
+      timeoutError.code = 'ETIMEDOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function showFatal(message) {
   els.loading.classList.add('hidden');
-  els.runs.innerHTML = `<p class="muted" style="padding:1rem 0">${msg}</p>`;
+  els.empty.classList.add('hidden');
+
+  const box = document.createElement('div');
+  box.className = 'empty-state';
+  const text = document.createElement('p');
+  text.className = 'muted';
+  text.textContent = message;
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'btn btn-secondary';
+  retry.textContent = 'Retry';
+  retry.addEventListener('click', () => window.location.reload());
+  box.append(text, retry);
+  els.runs.replaceChildren(box);
 }
 
 // ---------- Hero stats line --------------------------------------------

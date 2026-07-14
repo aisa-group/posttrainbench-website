@@ -56,6 +56,8 @@ let WORKSPACE_LOADED = false;
 let RAIL_CHARTS = [];           // Chart instances pinned to the right rail
 let MODAL_CHARTS = [];          // Chart instances inside the show-all modal
 let TRACE_START_MS = null;      // first event ts in ms, for elapsed formatting
+const DATA_REQUEST_TIMEOUT_MS = 30000;
+const CHART_LOAD_TIMEOUT_MS = 8000;
 
 async function load() {
   try {
@@ -63,28 +65,77 @@ async function load() {
       els.trace.innerHTML = '<p class="muted">No run id in URL. Go back to the index.</p>';
       return;
     }
-    const resp = await fetch(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.json`, { cache: 'no-store' });
-    if (!resp.ok) {
-      els.trace.innerHTML = `<p class="muted">Could not fetch run ${escapeHtml(RUN_ID)}.</p>`;
-      return;
+    RECORD = await fetchJsonWithTimeout(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.json`);
+    if (!RECORD || !RECORD.meta || !RECORD.summary || !RECORD.index_row || !Array.isArray(RECORD.events)) {
+      throw new Error('The trace data has an invalid format.');
     }
-    RECORD = await resp.json();
     computeTraceStart();
     renderTopbar();
     renderSummary();
     renderTrace();
     renderJudge();
-    whenChartReady(renderMiniCharts);
+    if ((RECORD.system_monitor || []).length) whenChartReady(renderMiniCharts);
+    else renderMiniCharts();
     renderMiniTokens();
     setupTabs();
     setupCopyId();
     setupTraceControls();
     setupMetricsModal();
+  } catch (error) {
+    console.error(`Failed to load trace ${RUN_ID || '(missing id)'}:`, error);
+    showRunLoadError(error);
   } finally {
     // Always tear down the loading shield — even if rendering errored,
     // showing the partially-rendered page is better than a stuck overlay.
     hidePageLoading();
   }
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = DATA_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!resp.ok) {
+      const error = new Error(`HTTP ${resp.status}`);
+      error.status = resp.status;
+      throw error;
+    }
+    return await resp.json();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error(`Request timed out after ${timeoutMs}ms`);
+      timeoutError.code = 'ETIMEDOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function showRunLoadError(error) {
+  const message = error.status === 404
+    ? `Run ${RUN_ID} was not found.`
+    : error.code === 'ETIMEDOUT'
+      ? 'The trace request timed out.'
+      : 'Could not load this trace. Check your connection and try again.';
+
+  const box = document.createElement('div');
+  box.className = 'empty-state';
+  const text = document.createElement('p');
+  text.className = 'muted';
+  text.textContent = message;
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'btn btn-secondary';
+  retry.textContent = 'Retry';
+  retry.addEventListener('click', () => window.location.reload());
+  box.append(text, retry);
+  els.trace.replaceChildren(box);
 }
 
 function hidePageLoading() {
@@ -119,9 +170,22 @@ function computeTraceStart() {
   }
 }
 
-function whenChartReady(fn) {
-  if (typeof Chart !== 'undefined') { fn(); return; }
-  setTimeout(() => whenChartReady(fn), 80);
+function whenChartReady(fn, deadline = Date.now() + CHART_LOAD_TIMEOUT_MS) {
+  if (typeof Chart !== 'undefined') {
+    try {
+      fn();
+    } catch (error) {
+      console.error('Failed to render system metrics:', error);
+      setMetricsUnavailable('System metrics could not be rendered.');
+    }
+    return;
+  }
+  if (Date.now() >= deadline) {
+    console.error('Chart.js did not load before the metrics timeout.');
+    setMetricsUnavailable('System metrics are unavailable because the chart library did not load.');
+    return;
+  }
+  setTimeout(() => whenChartReady(fn, deadline), 80);
 }
 
 // ---------- Topbar / left-rail summary -----------------------------------
@@ -842,11 +906,10 @@ function getMetricDefs() {
 function renderMiniCharts() {
   const snaps = RECORD.system_monitor || [];
   if (!snaps.length) {
-    els.railEmpty.classList.remove('hidden');
-    els.metricGridRail.classList.add('hidden');
-    els.showAllBtn.classList.add('hidden');
+    setMetricsUnavailable('No system monitor log for this run.');
     return;
   }
+  setMetricsAvailable();
   setChartDefaults();
   const defs = getMetricDefs();
 
@@ -858,6 +921,30 @@ function renderMiniCharts() {
   // resize because the rail max-height tracks the viewport.
   requestAnimationFrame(updateShowAllVisibility);
   window.addEventListener('resize', updateShowAllVisibility, { passive: true });
+}
+
+function setMetricsAvailable() {
+  els.railEmpty.classList.add('hidden');
+  els.metricGridRail.classList.remove('hidden');
+  const toolbarBtn = document.getElementById('open-metrics-btn');
+  [els.showAllBtn, toolbarBtn].filter(Boolean).forEach(btn => {
+    btn.disabled = false;
+    btn.removeAttribute('aria-disabled');
+    btn.removeAttribute('title');
+  });
+}
+
+function setMetricsUnavailable(message) {
+  els.railEmpty.textContent = message;
+  els.railEmpty.classList.remove('hidden');
+  els.metricGridRail.classList.add('hidden');
+  els.showAllBtn.classList.add('hidden');
+  const toolbarBtn = document.getElementById('open-metrics-btn');
+  [els.showAllBtn, toolbarBtn].filter(Boolean).forEach(btn => {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.title = message;
+  });
 }
 
 function updateShowAllVisibility() {
@@ -1010,6 +1097,7 @@ function destroyCharts(arr) {
 }
 
 function openMetricsModal() {
+  if (typeof Chart === 'undefined' || !(RECORD.system_monitor || []).length) return;
   const defs = getMetricDefs();
   els.metricGridModal.innerHTML = defs.map(d => metricCardHtml(d, 'modal')).join('');
   els.metricsModal.classList.remove('hidden');
@@ -1033,6 +1121,13 @@ function setupMetricsModal() {
   // right rail is hidden on narrower viewports.
   const toolbarBtn = document.getElementById('open-metrics-btn');
   if (toolbarBtn) toolbarBtn.addEventListener('click', openMetricsModal);
+  if ((RECORD.system_monitor || []).length && typeof Chart === 'undefined') {
+    [els.showAllBtn, toolbarBtn].filter(Boolean).forEach(btn => {
+      btn.disabled = true;
+      btn.setAttribute('aria-disabled', 'true');
+      btn.title = 'Loading chart library…';
+    });
+  }
   els.metricsModal.querySelectorAll('[data-modal-close]').forEach(el =>
     el.addEventListener('click', closeMetricsModal));
   document.addEventListener('keydown', e => {
@@ -1113,13 +1208,30 @@ function renderJudgeVerdicts() {
 async function loadWorkspace() {
   if (WORKSPACE_LOADED) return;
   WORKSPACE_LOADED = true;
-  const resp = await fetch(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.workspace.json`, { cache: 'no-store' });
-  if (!resp.ok) {
-    els.wsTree.innerHTML = '<p class="muted">No workspace data.</p>';
-    return;
+  els.wsTree.innerHTML = '<p class="muted">Loading workspace…</p>';
+  try {
+    WORKSPACE = await fetchJsonWithTimeout(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.workspace.json`);
+    if (!WORKSPACE || !Array.isArray(WORKSPACE.files)) {
+      throw new Error('The workspace data has an invalid format.');
+    }
+    renderWorkspace();
+  } catch (error) {
+    console.error(`Failed to load workspace for ${RUN_ID}:`, error);
+    WORKSPACE = null;
+    if (error.status === 404) {
+      els.wsTree.innerHTML = '<p class="muted">No workspace data.</p>';
+      return;
+    }
+
+    // Network, timeout, server, and JSON failures can be transient. Reset the
+    // guard and offer an in-place retry instead of permanently wedging the tab.
+    WORKSPACE_LOADED = false;
+    const message = error.code === 'ETIMEDOUT'
+      ? 'The workspace request timed out.'
+      : 'Could not load the workspace.';
+    els.wsTree.innerHTML = `<p class="muted">${message}</p><button type="button" class="btn btn-secondary btn-small">Retry</button>`;
+    els.wsTree.querySelector('button')?.addEventListener('click', loadWorkspace, { once: true });
   }
-  WORKSPACE = await resp.json();
-  renderWorkspace();
 }
 
 function renderWorkspace() {
