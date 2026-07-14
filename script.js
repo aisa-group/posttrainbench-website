@@ -1579,8 +1579,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Changelog expand/collapse animation
     const changelog = document.querySelector('details.changelog');
     if (changelog) {
+        const summary = changelog.querySelector(':scope > summary');
         const content = changelog.querySelector('.changelog-content');
-        changelog.addEventListener('click', (e) => {
+        summary?.addEventListener('click', (e) => {
             e.preventDefault();
             if (changelog.open) {
                 // Closing: animate out, then remove open
