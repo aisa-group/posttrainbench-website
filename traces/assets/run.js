@@ -370,6 +370,9 @@ function setupTraceControls() {
     const anchor = marker.dataset.anchor;
     if (!anchor) return;
     const url = new URL(window.location.href);
+    // Event anchors belong to the trace tab. Keep tab state in the query
+    // string so it can never overwrite the #turn-… / #ev-… fragment.
+    url.searchParams.delete('tab');
     url.hash = anchor;
     history.replaceState(null, '', url.toString());
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url.toString()).catch(() => {});
@@ -379,12 +382,27 @@ function setupTraceControls() {
 
   // If the URL already has a #turn-N or #ev-… hash on load, scroll to it.
   // (Wait a tick so the trace has rendered.)
-  if (window.location.hash) {
+  const initialAnchor = eventAnchorFromHash();
+  if (initialAnchor) {
     setTimeout(() => {
-      const target = document.querySelector(window.location.hash);
+      const target = document.getElementById(initialAnchor);
       if (target) { target.scrollIntoView({ block: 'center' }); flashEvent(target); }
     }, 50);
   }
+}
+
+// The URL fragment is reserved for event permalinks. Validate it before
+// touching the DOM: tab state used to produce #tab=trace, which both
+// clobbered event links and became an invalid querySelector expression.
+function eventAnchorFromHash(hash = window.location.hash) {
+  if (!hash || hash === '#') return null;
+  let id;
+  try {
+    id = decodeURIComponent(hash.slice(1));
+  } catch {
+    return null;
+  }
+  return /^(?:turn-\d+|ev-[A-Za-z0-9_-]+)$/.test(id) ? id : null;
 }
 
 function flashEvent(el) {
@@ -1181,8 +1199,10 @@ function setupTabs() {
   const sections = new Map();
   for (const b of btns) sections.set(b.dataset.tab, document.getElementById('section-' + b.dataset.tab));
 
-  // Initial state from hash (?tab=judge or #tab=judge), else first tab.
-  const hashTab = new URLSearchParams(location.hash.slice(1)).get('tab') || params.get('tab');
+  // Query params own tab state; accept the old #tab=judge form once and
+  // migrate it so fragments remain available for trace event permalinks.
+  const legacyHashTab = new URLSearchParams(location.hash.slice(1)).get('tab');
+  const hashTab = params.get('tab') || legacyHashTab;
   let active = (hashTab && sections.has(hashTab)) ? hashTab : btns[0].dataset.tab;
   selectTab(active);
 
@@ -1195,7 +1215,18 @@ function setupTabs() {
   function selectTab(name) {
     btns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     for (const [k, sec] of sections) sec?.classList.toggle('active', k === name);
-    history.replaceState(null, '', '#tab=' + encodeURIComponent(name));
+
+    const url = new URL(window.location.href);
+    if (name === 'trace') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', name);
+
+    // Remove a legacy tab fragment. Event fragments are meaningful only on
+    // the trace tab, so clear one when navigating to another section.
+    const currentHashHasLegacyTab = new URLSearchParams(url.hash.slice(1)).has('tab');
+    if (currentHashHasLegacyTab || (name !== 'trace' && eventAnchorFromHash(url.hash))) {
+      url.hash = '';
+    }
+    history.replaceState(null, '', url.toString());
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (name === 'workspace') loadWorkspace();
     // If the trace rendered while its section was hidden (page opened on
