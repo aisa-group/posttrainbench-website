@@ -21,6 +21,9 @@
        reward-hacking badges and trace highlights sit inside the sepia
        palette instead of jumping out of it. */
     --danger: #de7261;
+    /* Pass/clean olive — same warm register (matches the traces viewer's
+       olive session hue). */
+    --ok: #8a9b5c;
 
     /* Motion — strong ease-out; hover/press micro-interactions stay under
        ~150ms so frequently-seen transitions read as instant. */
@@ -66,6 +69,7 @@
     --accent-primary: #a66b4f;
     --accent-secondary: #8d5d45;
     --danger: #b04a3c;
+    --ok: #6f7d45;
 
     /* Chart bar colors - light mode (existing values) */
     --chart-bar: #a66b4f;
@@ -1506,45 +1510,183 @@ tbody tr:last-child td {
 
 .pipeline-diagram {
     width: 100%;
-    max-width: 1400px;
     margin: 2rem auto;
     padding: 2rem;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    overflow-x: auto;
 }
 
-.pipeline-svg {
-    width: 100%;
-    height: auto;
-    display: block;
-    margin: 0 auto;
+/* HTML/CSS pipeline (replaces the old hardcoded-color SVGs, which stayed
+   light in dark mode). Cards + mono arrow glyphs on a grid; the judge
+   branch drops below the main flow. Theme-aware by construction. */
+.pipeline-flow {
+    display: grid;
+    grid-template-areas:
+        "agent a1 judge a2 eval a3 score"
+        ".     .  br    .  .    .  ."
+        ".     .  fail  .  .    .  .";
+    grid-template-columns: 1.45fr auto 1.3fr auto 1.1fr auto 1.1fr;
+    column-gap: 0.8rem;
+    row-gap: 0.55rem;
+    align-items: center;
 }
 
-.pipeline-desktop {
-    min-width: 900px;
+.pf-agent { grid-area: agent; }
+.pf-a1 { grid-area: a1; }
+.pf-judge { grid-area: judge; }
+.pf-a2 { grid-area: a2; }
+.pf-eval { grid-area: eval; }
+.pf-a3 { grid-area: a3; }
+.pf-score { grid-area: score; }
+.pf-branch { grid-area: br; }
+.pf-fail { grid-area: fail; }
+
+.pf-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
 }
 
-.pipeline-mobile {
-    display: none;
-    max-width: 320px;
+.pf-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    margin-bottom: 0.35rem;
+}
+
+.pf-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pf-list li {
+    position: relative;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    padding-left: 0.85rem;
+}
+
+.pf-list li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--accent-primary);
+}
+
+.pf-body {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.pf-sub {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    opacity: 0.85;
+    line-height: 1.5;
+    margin-top: 0.4rem;
+}
+
+/* Outcome semantics: evaluation/score read as the pass path, the fail
+   card carries the flag color. */
+.pf-eval .pf-title { color: var(--ok); }
+.pf-score .pf-title { color: var(--text-primary); }
+
+.pf-fail {
+    justify-self: center;
+    text-align: center;
+    padding: 0.5rem 0.95rem;
+    border-color: color-mix(in srgb, var(--danger) 45%, var(--border-color));
+}
+
+.pf-fail .pf-title {
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+.pf-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    color: var(--text-secondary);
+}
+
+.pf-glyph {
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.pf-arrow-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.pf-arrow-label code {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+    font-size: 0.64rem;
+}
+
+.pf-ok { color: var(--ok); }
+.pf-flag { color: var(--danger); }
+
+.pf-branch {
+    flex-direction: row;
+    justify-self: center;
+    gap: 0.45rem;
+}
+
+.pipeline-diagram .chart-footnote {
+    margin-top: 1.25rem;
+}
+
+/* Phones/tablets: single-column flow; the flagged branch becomes a
+   side-by-side offshoot row so "clean" clearly continues the main path. */
+@media (max-width: 960px) {
+    .pipeline-flow {
+        grid-template-areas:
+            "agent agent"
+            "a1    a1"
+            "judge judge"
+            "br    fail"
+            "a2    a2"
+            "eval  eval"
+            "a3    a3"
+            "score score";
+        grid-template-columns: auto 1fr;
+        justify-items: center;
+    }
+
+    .pf-card { justify-self: stretch; }
+
+    .pf-a1 .pf-glyph,
+    .pf-a2 .pf-glyph,
+    .pf-a3 .pf-glyph {
+        transform: rotate(90deg);
+    }
+
+    .pf-a1, .pf-a2, .pf-a3 {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+
+    .pf-branch { justify-self: start; }
+    .pf-fail { justify-self: start; }
 }
 
 @media (max-width: 768px) {
     .pipeline-diagram {
-        padding: 1rem;
-        overflow-x: visible;
-    }
-
-    .pipeline-desktop {
-        display: none;
-    }
-
-    .pipeline-mobile {
-        display: block;
-        min-width: auto;
-        max-width: 100%;
+        padding: 1.25rem;
     }
 }
 

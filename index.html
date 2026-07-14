@@ -279,10 +279,43 @@
 
     <section id="process-flow" class="process-flow">
         <div class="container">
-            <h2 class="section-title">Pipeline</h2>
+            <h2 class="section-title">How a Run Is Scored</h2>
+            <p class="section-description">The agent trains, two independent judges audit the run, and only clean runs earn a benchmark score.</p>
             <div class="pipeline-diagram">
-                <object type="image/svg+xml" data="pipeline.svg" class="pipeline-svg pipeline-desktop">PostTrainBench Pipeline Diagram</object>
-                <object type="image/svg+xml" data="pipeline-mobile.svg" class="pipeline-svg pipeline-mobile">PostTrainBench Pipeline Diagram</object>
+                <div class="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the v1.1 judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated on the full benchmark for a score.">
+                    <div class="pf-card pf-agent">
+                        <div class="pf-title">Agent post-trains the LLM</div>
+                        <ul class="pf-list">
+                            <li>Benchmark script + base LLM</li>
+                            <li>10 hours · one H100</li>
+                            <li>Terminal + web access</li>
+                        </ul>
+                    </div>
+                    <div class="pf-arrow pf-a1" aria-hidden="true"><span class="pf-glyph">→</span><span class="pf-arrow-label"><code>final_model</code></span></div>
+                    <div class="pf-card pf-judge">
+                        <div class="pf-title">v1.1 judges</div>
+                        <ul class="pf-list">
+                            <li>Contamination judge</li>
+                            <li>API-usage judge</li>
+                        </ul>
+                        <div class="pf-sub">+ programmatic contamination and model-identity checks</div>
+                    </div>
+                    <div class="pf-arrow pf-a2" aria-hidden="true"><span class="pf-glyph">→</span><span class="pf-arrow-label pf-ok">clean</span></div>
+                    <div class="pf-card pf-eval">
+                        <div class="pf-title">Evaluation</div>
+                        <div class="pf-body">Run the full benchmark</div>
+                    </div>
+                    <div class="pf-arrow pf-a3" aria-hidden="true"><span class="pf-glyph">→</span></div>
+                    <div class="pf-card pf-score">
+                        <div class="pf-title">Benchmark score<sup>†</sup></div>
+                        <div class="pf-body">Joins the leaderboard</div>
+                    </div>
+                    <div class="pf-arrow pf-branch" aria-hidden="true"><span class="pf-glyph">↓</span><span class="pf-arrow-label pf-flag">flagged</span></div>
+                    <div class="pf-card pf-fail">
+                        <div class="pf-title">Scored as base LLM</div>
+                    </div>
+                </div>
+                <p class="chart-footnote"><sup>†</sup> Averaged across 4 base LLMs × 7 benchmarks.</p>
             </div>
         </div>
     </section>
