@@ -1553,26 +1553,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Observation foldables (.hack-category / .evidence-fold): a bare
-    // <details> collapses instantly when [open] drops, so closing would skip
-    // the entrance animation's counterpart. Fade the content out first
-    // (120ms — exits beat the 180ms entrance), then close. Opening stays
-    // pure CSS via the [open] fold-in rule.
+    // Observation foldables (.hack-category / .evidence-fold): animate the
+    // HEIGHT, not just opacity — the box collapsing/growing is the visually
+    // salient event, and a bare <details> snaps it instantly in both
+    // directions. Non-summary children are wrapped in a .fold-anim div so
+    // there is a single element whose height can animate (WAAPI keeps it
+    // off the CSS cascade and hardware-friendly). Exits run faster than
+    // entrances; reduced motion toggles instantly.
     document.querySelectorAll('details.hack-category, details.evidence-fold').forEach((fold) => {
         const summary = fold.querySelector(':scope > summary');
         if (!summary) return;
+        const body = document.createElement('div');
+        body.className = 'fold-anim';
+        [...fold.children].filter((el) => el !== summary).forEach((el) => body.appendChild(el));
+        fold.appendChild(body);
+
+        const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
         summary.addEventListener('click', (e) => {
-            if (!fold.open || fold.dataset.closing) return; // opening: browser default
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
             e.preventDefault();
-            fold.dataset.closing = '1';
-            const parts = [...fold.children].filter((el) => el !== summary);
-            parts.forEach((el) => el.classList.add('folding-out'));
-            setTimeout(() => {
-                fold.open = false;
-                delete fold.dataset.closing;
-                parts.forEach((el) => el.classList.remove('folding-out'));
-            }, 120);
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                fold.open = !fold.open;
+                return;
+            }
+            if (fold.dataset.animating) return; // ignore clicks mid-animation
+            fold.dataset.animating = '1';
+            // Finalization runs from BOTH onfinish and a timeout fallback
+            // (idempotent) — animation events can be throttled or suppressed
+            // (background tabs, headless), and depending on onfinish alone
+            // would leave the fold stuck ignoring clicks.
+            const settle = (fn, anim, ms) => {
+                let settled = false;
+                const run = () => {
+                    if (settled) return;
+                    settled = true;
+                    try { anim.cancel(); } catch (err) { /* already finished */ }
+                    fn();
+                    delete fold.dataset.animating;
+                    body.style.overflow = '';
+                };
+                anim.onfinish = run;
+                setTimeout(run, ms);
+            };
+            if (fold.open) {
+                const h = body.offsetHeight;
+                body.style.overflow = 'hidden';
+                const anim = body.animate(
+                    [{ height: h + 'px', opacity: 1 }, { height: '0px', opacity: 0 }],
+                    { duration: 200, easing: EASE }
+                );
+                settle(() => { fold.open = false; }, anim, 280);
+            } else {
+                fold.open = true;
+                const h = body.offsetHeight;
+                body.style.overflow = 'hidden';
+                const anim = body.animate(
+                    [{ height: '0px', opacity: 0 }, { height: h + 'px', opacity: 1 }],
+                    { duration: 260, easing: EASE }
+                );
+                settle(() => {}, anim, 340);
+            }
         });
     });
 

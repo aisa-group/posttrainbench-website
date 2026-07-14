@@ -420,6 +420,7 @@ section {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    user-select: none;
 }
 
 .changelog summary::-webkit-details-marker {
@@ -2027,6 +2028,8 @@ tbody tr:last-child td {
     font-weight: 600;
     font-size: 1rem;
     color: var(--text-primary);
+    /* Toggles get double-clicked; selecting the label text isn't intent. */
+    user-select: none;
 }
 
 .hack-category > summary::-webkit-details-marker {
@@ -2071,32 +2074,10 @@ tbody tr:last-child td {
     margin-top: 1rem;
 }
 
-/* Fold motion. Entrance is pure CSS on [open]; the exit half is applied
-   by script.js just before closing (a bare <details> collapses instantly
-   when [open] drops). Exit runs faster than entrance — dismissal should
-   always feel snappier than opening. */
-.hack-category[open] > .hack-category-body,
-.evidence-fold[open] > :not(summary) {
-    animation: fold-in 180ms var(--ease-out);
-}
-
-.folding-out {
-    animation: fold-out 120ms var(--ease-out) forwards;
-}
-
-@keyframes fold-in {
-    from {
-        opacity: 0;
-        transform: translateY(-3px);
-    }
-}
-
-@keyframes fold-out {
-    to {
-        opacity: 0;
-        transform: translateY(-3px);
-    }
-}
+/* Fold open/close motion lives in script.js (WAAPI height+opacity on the
+   .fold-anim wrapper) — a bare <details> snaps in both directions and CSS
+   alone can't animate the collapse. With JS off, folds still work, just
+   without motion. */
 
 /* Nested evidence foldables (code / trace excerpts / explainers) inside
    observation content. */
@@ -2115,6 +2096,7 @@ tbody tr:last-child td {
     font-size: 0.78rem;
     color: var(--accent-primary);
     transition: color 120ms var(--ease-out);
+    user-select: none;
 }
 
 .evidence-fold > summary::-webkit-details-marker {
@@ -2531,9 +2513,4 @@ html[data-photo-clean] .ptb-photo-caption {
         transform: none;
     }
 
-    .hack-category[open] > .hack-category-body,
-    .evidence-fold[open] > :not(summary),
-    .folding-out {
-        animation: none;
-    }
 }
