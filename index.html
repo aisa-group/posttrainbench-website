@@ -348,12 +348,21 @@
         </div>
     </section>
 
-    <!-- Benchmarks -->
-    <section id="benchmarks" class="tasks">
+    <!-- Benchmark setup -->
+    <section id="benchmarks" class="tasks benchmark-setup">
         <div class="container">
-            <h2 class="section-title">Evaluation</h2>
-            <p class="section-description">Post-trained models are evaluated across these benchmarks to measure improvement in reasoning, knowledge, and problem-solving capabilities. We use <a href="https://inspect.ai-safety-institute.org.uk/" target="_blank" rel="noopener">Inspect</a> for evaluation and respect each model's generation_config.json.</p>
-            <div class="findings-table-wrap">
+            <h2 class="section-title">Benchmark Setup</h2>
+            <p class="section-description">Every agent gets the same four base models, one H100, ten hours, and its native CLI scaffold.</p>
+            <dl class="setup-grid">
+                <div class="setup-item"><dt>Base models</dt><dd>Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</dd></div>
+                <div class="setup-item"><dt>Hardware</dt><dd>One H100 GPU per agent</dd></div>
+                <div class="setup-item"><dt>Time limit</dt><dd>10 hours per run</dd></div>
+                <div class="setup-item"><dt>Score</dt><dd>Weighted average across seven benchmarks</dd></div>
+                <div class="setup-item"><dt>Scaffold</dt><dd>Each model’s native CLI environment</dd></div>
+            </dl>
+            <h3 class="section-subtitle setup-subtitle">Evaluation mix</h3>
+            <p class="section-description setup-description">Final models are evaluated with <a href="https://inspect.ai-safety-institute.org.uk/" target="_blank" rel="noopener noreferrer">Inspect</a> using each model’s <code>generation_config.json</code>.</p>
+            <div class="findings-table-wrap benchmark-table-wrap">
                 <table class="findings-table benchmarks-table">
                     <thead>
                         <tr>
@@ -367,28 +376,6 @@
                         <!-- Rows inserted by populateTasks() -->
                     </tbody>
                 </table>
-            </div>
-        </div>
-    </section>
-
-    <section id="about" class="about">
-        <div class="container">
-            <h2 class="section-title">About</h2>
-            <div class="about-content">
-                <p>Post-Train Bench measures AI R&D automation by testing whether AI agents can successfully post-train other language models. Each agent receives 4 base models (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, and Gemma 3 4B), access to an H100 GPU, and a 10-hour time limit to improve model performance through post-training</p>
-                <div class="setup-info">
-                    <h3>Experimental Setup</h3>
-                    <ul>
-                        <li><strong>Models:</strong> Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</li>
-                        <li><strong>Hardware:</strong> Single H100 GPU per agent</li>
-                        <li><strong>Time Limit:</strong> 10 hours per agent</li>
-                        <li><strong>Evaluation:</strong> Weighted average score across 7 benchmarks</li>
-                        <li><strong>Agent scaffolds:</strong> Native CLI scaffolds (Claude Code for Claude models, Codex CLI for OpenAI, Gemini CLI for Gemini)</li>
-                    </ul>
-                </div>
-                
-                
-                
             </div>
         </div>
     </section>
@@ -755,18 +742,24 @@ examples.extend(synthetic_examples(1000, 42000))</pre>
     <section id="team" class="team">
         <div class="container">
             <h2 class="section-title">Team</h2>
-            <div class="team-inline">
-                <a href="https://benrank.com/" class="team-lead">Ben Rank</a><sup><span class="team-star">*</span>,1,2,3</sup>,
-                <a href="https://hrdkbhatnagar.github.io/" class="team-lead">Hardik Bhatnagar</a><sup><span class="team-star">*</span>,4,3</sup>,
-                <a href="https://drimpossible.github.io/">Ameya Prabhu</a><sup>4,3</sup>,<br>
-                <a href="https://www.shiraeisenberg.com/">Shira Eisenberg</a><sup>5</sup>,
-                <a href="https://karinanguyen.com/">Karina Nguyen</a><sup>5</sup>,
-                <a href="https://scholar.google.de/citations?user=0z0fNxUAAAAJ&hl=en">Matthias Bethge</a><sup>4,3</sup>,
-                <a href="https://www.andriushchenko.me/">Maksym Andriushchenko</a><sup>1,2,3</sup>
-            </div>
+            <ul class="team-list">
+                <li class="team-member team-lead"><a href="https://benrank.com/">Ben Rank</a><sup><span class="team-star">*</span>,1,2,3</sup></li>
+                <li class="team-member team-lead"><a href="https://hrdkbhatnagar.github.io/">Hardik Bhatnagar</a><sup><span class="team-star">*</span>,4,3</sup></li>
+                <li class="team-member"><a href="https://drimpossible.github.io/">Ameya Prabhu</a><sup>4,3</sup></li>
+                <li class="team-member"><a href="https://www.shiraeisenberg.com/">Shira Eisenberg</a><sup>5</sup></li>
+                <li class="team-member"><a href="https://karinanguyen.com/">Karina Nguyen</a><sup>5</sup></li>
+                <li class="team-member"><a href="https://scholar.google.de/citations?user=0z0fNxUAAAAJ&hl=en">Matthias Bethge</a><sup>4,3</sup></li>
+                <li class="team-member"><a href="https://www.andriushchenko.me/">Maksym Andriushchenko</a><sup>1,2,3</sup></li>
+            </ul>
             <div class="team-affiliations">
-                <span class="team-equal-contrib"><sup>*</sup>Equal contribution</span><br>
-                <sup>1</sup>ELLIS Institute Tübingen &nbsp;&nbsp; <sup>2</sup>Max Planck Institute for Intelligent Systems &nbsp;&nbsp; <sup>3</sup>Tübingen AI Center &nbsp;&nbsp; <sup>4</sup>University of Tübingen &nbsp;&nbsp; <sup>5</sup>Thoughtful Lab
+                <p class="team-equal-contrib"><sup>*</sup>Equal contribution</p>
+                <ol class="affiliation-list">
+                    <li><sup>1</sup><span>ELLIS Institute Tübingen</span></li>
+                    <li><sup>2</sup><span>Max Planck Institute for Intelligent Systems</span></li>
+                    <li><sup>3</sup><span>Tübingen AI Center</span></li>
+                    <li><sup>4</sup><span>University of Tübingen</span></li>
+                    <li><sup>5</sup><span>Thoughtful Lab</span></li>
+                </ol>
             </div>
         </div>
     </section>
@@ -776,6 +769,16 @@ examples.extend(synthetic_examples(1000, 42000))</pre>
             <h2 class="section-title">Citation</h2>
             <p class="section-description">If you found PostTrainBench useful, please cite us as:</p>
             <div class="citation-box">
+                <div class="citation-toolbar">
+                    <span>BibTeX</span>
+                    <button class="copy-btn" id="copy-citation" aria-label="Copy citation">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span id="copy-citation-label" aria-live="polite">Copy</span>
+                    </button>
+                </div>
                 <pre class="citation-text">@article{posttrainbench_2026,
   title     = {PostTrainBench: Can LLM Agents Automate LLM Post-Training?},
   author    = {Ben Rank and Hardik Bhatnagar and Ameya Prabhu and Shira Eisenberg and Karina Nguyen and Matthias Bethge and Maksym Andriushchenko},
@@ -785,13 +788,6 @@ examples.extend(synthetic_examples(1000, 42000))</pre>
   primaryClass  = {cs.SE},
   url       = {https://arxiv.org/abs/2603.08640}
 }</pre>
-                <button class="copy-btn" id="copy-citation" aria-label="Copy citation">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    Copy
-                </button>
             </div>
         </div>
     </section>

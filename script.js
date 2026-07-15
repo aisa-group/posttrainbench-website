@@ -382,10 +382,10 @@ function populateTasks() {
             : '<span class="findings-empty">—</span>';
 
         tr.innerHTML = `
-            <td>${task.title}${versionBadge}</td>
-            <td>${task.category}</td>
-            <td>${weightPct}</td>
-            <td>${task.description}</td>
+            <td data-label="Benchmark">${task.title}${versionBadge}</td>
+            <td data-label="Category">${task.category}</td>
+            <td data-label="Weight">${weightPct}</td>
+            <td data-label="What it tests">${task.description}</td>
         `;
 
         tbody.appendChild(tr);
@@ -1518,20 +1518,6 @@ function createTimeSpentChart() {
     });
 }
 
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    });
-});
-
-
 let resizeTimeout;
 let lastWindowWidth = window.innerWidth;
 window.addEventListener('resize', () => {
@@ -1562,15 +1548,19 @@ window.addEventListener('resize', () => {
 // Copy citation to clipboard
 document.getElementById('copy-citation').addEventListener('click', function() {
     const citationText = document.querySelector('.citation-text').textContent;
+    const label = document.getElementById('copy-citation-label');
+    const btn = this;
     navigator.clipboard.writeText(citationText).then(() => {
-        const btn = this;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        Copied!`;
+        label.textContent = 'Copied';
+        btn.classList.add('is-copied');
         setTimeout(() => {
-            btn.innerHTML = originalText;
+            label.textContent = 'Copy';
+            btn.classList.remove('is-copied');
+        }, 2000);
+    }).catch(() => {
+        label.textContent = 'Copy failed';
+        setTimeout(() => {
+            label.textContent = 'Copy';
         }, 2000);
     });
 });
