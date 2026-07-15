@@ -260,31 +260,48 @@
                     </tbody>
                 </table>
             </div>
-            <h3 class="section-subtitle">Performance vs. Time Spent</h3>
-            <p class="section-description">Higher and further left is better. The dashed line traces the Pareto frontier — agents no other agent beats on both speed and score.</p>
-            <div class="leaderboard-chart">
-                <div class="leaderboard-chart-wrapper">
-                    <canvas id="paretoChart"></canvas>
-                </div>
-                <p class="chart-footnote">Only main-chart agents with recorded runtimes are shown; Fable 5 is omitted until its re-runs complete. <sup>†</sup> Reprompted.</p>
-            </div>
             <p class="leaderboard-footnote table-footnote">Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted — base-model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base-model score shown &nbsp;&nbsp; <sup>‡</sup> Preliminary Fable 5 cell — see Methodology &amp; caveats</p>
         </div>
     </section>
 
-    <!-- Time Spent Section -->
-    <section id="time-spent" class="time-spent">
+    <!-- Efficiency Section -->
+    <section id="time-spent" class="time-spent efficiency">
         <div class="container">
-            <h2 class="section-title">Time Spent</h2>
-            <p class="section-description">Time taken by each agent to complete post-training (out of 10 hours). Different agents demonstrate varying levels of persistence — some give up well before the time limit expires.</p>
-            <div class="time-toggle-wrapper">
-                <button id="toggleTimeAgents" class="toggle-btn">Show all agents</button>
+            <h2 class="section-title">Efficiency</h2>
+            <p class="section-description">Score relative to runtime. Upper-left is better; the dashed line marks the Pareto frontier.</p>
+            <div class="efficiency-key">
+                <span><i class="key-dot"></i>Agent</span>
+                <span><i class="key-line key-frontier"></i>Pareto frontier</span>
+                <span><i class="key-line key-budget"></i>10h budget</span>
+                <span><i class="key-stripe"></i>Reprompted</span>
             </div>
-            <div class="leaderboard-chart">
-                <div class="leaderboard-chart-wrapper">
-                    <canvas id="timeSpentChart"></canvas>
-                </div>
+            <div class="efficiency-grid">
+                <article class="efficiency-panel">
+                    <h3 class="efficiency-title">Performance vs. runtime</h3>
+                    <p class="efficiency-copy">Agents that no other agent beats on both speed and score define the frontier.</p>
+                    <div class="leaderboard-chart efficiency-chart">
+                        <div class="leaderboard-chart-wrapper">
+                            <canvas id="paretoChart"></canvas>
+                        </div>
+                    </div>
+                </article>
+                <article class="efficiency-panel">
+                    <div class="efficiency-panel-head">
+                        <h3 class="efficiency-title">Budget use</h3>
+                        <div class="time-scope-toggle" aria-label="Budget chart agent scope">
+                            <button class="time-scope-option is-active" type="button" data-time-scope="main" aria-pressed="true">Main</button>
+                            <button class="time-scope-option" type="button" data-time-scope="all" aria-pressed="false">All</button>
+                        </div>
+                    </div>
+                    <p class="efficiency-copy">Runtime shows how fully each agent used the ten-hour budget.</p>
+                    <div class="leaderboard-chart efficiency-chart budget-chart">
+                        <div class="leaderboard-chart-wrapper">
+                            <canvas id="timeSpentChart"></canvas>
+                        </div>
+                    </div>
+                </article>
             </div>
+            <p class="chart-footnote efficiency-note"><span id="time-scope-note">Main-chart agents with recorded runtimes only.</span> Fable 5 is omitted until its reruns complete. <sup>†</sup> Reprompted.</p>
         </div>
     </section>
 
