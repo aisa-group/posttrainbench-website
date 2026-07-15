@@ -113,18 +113,30 @@
     <section id="leaderboard" class="leaderboard">
         <div class="container">
             <h2 class="section-title">Leaderboard</h2>
+            <p class="section-description">Average performance across four base models and seven weighted benchmarks.</p>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="performanceChart"></canvas>
                 </div>
-                <p class="chart-footnote"><sup>1</sup> The weighted average is taken across all post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). For each run, we ask a CLI agent to maximize the performance of a specific base LLM on a specific benchmark.</p>
-                <p class="chart-footnote"><sup>2</sup> "Official Instruct Models" refers to the officially post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank">Gemma-3-4B-IT</a>. Not directly comparable to agents since their training usually exceeds the 10h + 1 GPU constraint.</p>
-                <p class="chart-footnote"><sup>†</sup> Reprompted: the agent was manually prompted to continue each time it stopped before the time budget expired.</p>
-                <p class="chart-footnote"><sup>‡</sup> <strong>Fable 5 results are preliminary and will change.</strong> These numbers are from Fable 5's initial limited availability period, when many runs failed due to rate limits and model refusals. In particular, Fable 5's SmolLM3-3B runs failed on AIME 2025, Arena Hard, GSM8K, HealthBench, and HumanEval; those cells currently fall back to Opus 4.8 (Max) results as a substitute. We are now re-running these evaluations with multiple runs for standard deviation.</p>
+                <p class="mobile-chart-scope">
+                    <span class="mobile-chart-scope-main">Top ten agents + two baselines</span>
+                    <span id="mobile-chart-references">Same comparison as desktop · full ranking below</span>
+                </p>
             </div>
-            <details class="changelog" open>
-                <summary>Changelog</summary>
-                <div class="changelog-content open">
+            <p class="results-status"><span aria-hidden="true">‡</span> Fable 5 results are preliminary while failed runs are re-evaluated.</p>
+            <div class="leaderboard-meta">
+                <details class="methodology-notes compact-disclosure">
+                    <summary>Methodology &amp; caveats</summary>
+                    <div class="methodology-content">
+                        <p><sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and seven benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). Each run asks a CLI agent to maximize one base model on one benchmark.</p>
+                        <p><sup>2</sup> “Official Instruct Models” are the official post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank" rel="noopener noreferrer">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank" rel="noopener noreferrer">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank" rel="noopener noreferrer">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank" rel="noopener noreferrer">Gemma-3-4B-IT</a>. Their training usually exceeds the ten-hour, one-GPU constraint, so they are not directly comparable.</p>
+                        <p><sup>†</sup> Reprompted means the agent was manually asked to continue whenever it stopped before the time budget expired.</p>
+                        <p><sup>‡</sup> Fable 5 results come from its initial limited-availability period, when rate limits and refusals caused several SmolLM3-3B runs to fail. Those cells temporarily use Opus 4.8 (Max) results while the evaluations are rerun with multiple trials.</p>
+                    </div>
+                </details>
+                <details class="changelog compact-disclosure">
+                <summary>Changelog <span class="disclosure-meta">Updated Jun 17</span></summary>
+                <div class="changelog-content">
                     <div class="changelog-entry">
                         <div class="changelog-date">Jun 17, 2026</div>
                         <ul class="changelog-list">
@@ -206,29 +218,28 @@
                     </div>
                 </div>
             </details>
+            </div>
             <div class="leaderboard-controls">
-                <label class="model-select-label">Filter by model:</label>
-                <div class="custom-dropdown">
-                    <div class="dropdown-selected" id="model-select-display">
-                        Average (all models)
-                    </div>
-                    <div class="dropdown-options" id="model-select-options">
-                        <div class="dropdown-option active" data-value="average">Average (all models)</div>
-                        <div class="dropdown-option" data-value="Qwen3-1.7B">Qwen3-1.7B</div>
-                        <div class="dropdown-option" data-value="Qwen3-4B">Qwen3-4B</div>
-                        <div class="dropdown-option" data-value="SmolLM3-3B">SmolLM3-3B</div>
-                        <div class="dropdown-option" data-value="Gemma-3-4B">Gemma-3-4B</div>
+                <span class="model-select-label" id="model-select-label">Filter by model:</span>
+                <div class="custom-dropdown" id="model-dropdown">
+                    <button class="dropdown-selected" id="model-select-display" type="button"
+                        aria-haspopup="listbox" aria-expanded="false" aria-controls="model-select-options"
+                        aria-labelledby="model-select-label model-select-value">
+                        <span id="model-select-value">Average (all models)</span>
+                    </button>
+                    <div class="dropdown-options" id="model-select-options" role="listbox" aria-labelledby="model-select-label">
+                        <button class="dropdown-option active" type="button" role="option" aria-selected="true" tabindex="-1" data-value="average">Average (all models)</button>
+                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Qwen3-1.7B">Qwen3-1.7B</button>
+                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Qwen3-4B">Qwen3-4B</button>
+                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="SmolLM3-3B">SmolLM3-3B</button>
+                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Gemma-3-4B">Gemma-3-4B</button>
                     </div>
                 </div>
             </div>
             <div class="mobile-table-notice">
-                <span>Showing summary view</span>
-                <button id="toggle-full-table" class="toggle-table-btn">
-                    <span class="show-text">Show all benchmarks</span>
-                    <span class="hide-text">Hide benchmarks</span>
-                </button>
+                <span>Tap a row to see its benchmark scores</span>
             </div>
-            <div class="leaderboard-table">
+            <div class="leaderboard-table" id="leaderboard-table">
                 <table>
                     <thead>
                         <tr>
@@ -249,8 +260,6 @@
                     </tbody>
                 </table>
             </div>
-            <p class="leaderboard-footnote table-footnote"><sup>*</sup> Model not submitted — base model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base model score shown &nbsp;&nbsp; <sup>‡</sup> <strong>Fable 5 results are preliminary and will change</strong> — these are from Fable 5's initial limited availability period, when many runs failed due to rate limits and model refusals; affected SmolLM3-3B runs (AIME 2025, Arena Hard, GSM8K, HealthBench, HumanEval) currently fall back to Opus 4.8 (Max) results while we re-run them with multiple runs for standard deviation</p>
-
             <h3 class="section-subtitle">Performance vs. Time Spent</h3>
             <p class="section-description">Higher and further left is better. The dashed line traces the Pareto frontier — agents no other agent beats on both speed and score.</p>
             <div class="leaderboard-chart">
@@ -259,6 +268,7 @@
                 </div>
                 <p class="chart-footnote">Only main-chart agents with recorded runtimes are shown; Fable 5 is omitted until its re-runs complete. <sup>†</sup> Reprompted.</p>
             </div>
+            <p class="leaderboard-footnote table-footnote">Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted — base-model score shown &nbsp;&nbsp; <sup>†</sup> Evaluation error — base-model score shown &nbsp;&nbsp; <sup>‡</sup> Preliminary Fable 5 cell — see Methodology &amp; caveats</p>
         </div>
     </section>
 

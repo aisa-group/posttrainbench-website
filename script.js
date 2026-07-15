@@ -236,6 +236,7 @@ function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
 function populateLeaderboard(modelName = "average") {
     const tbody = document.getElementById('leaderboard-data');
     tbody.innerHTML = ''; // Clear existing data
+    document.querySelector('.leaderboard-table')?.classList.remove('has-expanded-row');
 
     const data = getLeaderboardDataForModel(modelName);
 
@@ -272,10 +273,13 @@ function populateLeaderboard(modelName = "average") {
 
     data.forEach(entry => {
         const row = document.createElement('tr');
+        row.className = 'leaderboard-entry-row';
 
         // Handle null ranks for baselines
         const rankDisplay = entry.rank !== null ? entry.rank : '-';
-        const rankClass = entry.rank !== null && entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other';
+        const rankClass = entry.rank === null
+            ? 'rank-ref'
+            : (entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-other');
 
         // Create cells with heatmap colors normalized per column
         const avgValue = parseFloat(entry.averageScore);
@@ -314,12 +318,12 @@ function populateLeaderboard(modelName = "average") {
         let agentNameHtml = `${displayAgent}${markerHtml}${prelimBadge}`;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
-            agentNameHtml = `${displayAgent}${markerHtml}${prelimBadge}<span class="scaffold-label">${entry.scaffold}${effortTag}</span>`;
+            agentNameHtml = `${displayAgent}${markerHtml}${prelimBadge}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}</span>`;
         }
 
         row.innerHTML = `
             <td><span class="rank-badge ${rankClass}">${rankDisplay}</span></td>
-            <td><strong>${agentNameHtml}</strong></td>
+            <td class="method-cell"><strong>${agentNameHtml}</strong><span class="row-details-indicator"></span></td>
             <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
             <td class="benchmark-col" style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
             <td class="benchmark-col" style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
@@ -331,6 +335,34 @@ function populateLeaderboard(modelName = "average") {
         `;
 
         tbody.appendChild(row);
+
+        const detailScores = [
+            ['AIME 2025', entry.benchmarkScores.aime2025, aimeColor],
+            ['Arena Hard', entry.benchmarkScores.arenahardwriting, arenaColor],
+            ['BFCL', entry.benchmarkScores.bfcl, bfclColor],
+            ['GPQA Main', entry.benchmarkScores.gpqamain, gpqaColor],
+            ['GSM8K', entry.benchmarkScores.gsm8k, gsmColor],
+            ['HealthBench', entry.benchmarkScores.healthbench, healthColor],
+            ['HumanEval', entry.benchmarkScores.humaneval, humanColor]
+        ];
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'benchmark-detail-row';
+        detailRow.hidden = true;
+        detailRow.innerHTML = `
+            <td colspan="3">
+                <div class="benchmark-detail-panel">
+                    <div class="benchmark-detail-grid">
+                        ${detailScores.map(([label, score, color]) => `
+                            <div class="benchmark-detail-item" style="background-color: ${color}">
+                                <span class="benchmark-detail-label">${label}</span>
+                                <strong>${formatBenchmarkValue(score, showMarkers, showStd)}</strong>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(detailRow);
     });
 }
 
@@ -453,17 +485,16 @@ function createSimpleChart(modelName = "average") {
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
-    // X-axis label rotation: horizontal on wide desktop, tilt 45° at narrower
-    // widths so the ~15 labels don't collide, fixed 55° on mobile.
-    const xLabelRotation = isMobile ? 55 : (window.innerWidth < 1250 ? 45 : 0);
+    // Desktop keeps the complete vertical ranking overview. Phones switch to a
+    // shorter horizontal comparison so labels remain readable without rotation.
+    const xLabelRotation = window.innerWidth < 1250 ? 45 : 0;
 
     // Set wrapper dimensions based on screen size
-    const wrapper = document.querySelector('.leaderboard-chart-wrapper');
+    const wrapper = ctx.closest('.leaderboard-chart-wrapper');
     const footnotes = wrapper.parentElement.querySelectorAll('.chart-footnote');
     if (isMobile) {
-        // Fit chart on mobile screen without horizontal scroll
         wrapper.style.minWidth = '';
-        wrapper.style.height = '320px';
+        wrapper.style.height = '476px';
         footnotes.forEach(fn => fn.style.width = '');
     } else {
         wrapper.style.minWidth = '';
@@ -476,13 +507,20 @@ function createSimpleChart(modelName = "average") {
 
     // Filter to only show agents that should appear in chart
     const data = allData.filter(d => d.showInChart !== false);
+    const baseReference = data.find(d => d.agent === 'Base Models');
+    const officialReference = data.find(d => d.agent === 'Official Instruct Models');
 
-    // Reverse order for chart (ascending - lowest to highest)
-    const reversedData = [...data].reverse();
+    const plottedData = isMobile
+        ? [
+            officialReference,
+            ...data.filter(d => !d.isBaseline).slice(0, 10),
+            baseReference
+        ].filter(Boolean)
+        : [...data].reverse();
 
-    // Update labels - use shorter names on mobile, split on desktop
-    // Reasoning effort is not shown in the main bar chart (only the dagger for reprompted)
-    const chartLabels = reversedData.map(d => {
+    // Mobile keeps the useful effort qualifier on one line; desktop splits long
+    // names so the complete overview still scans as a vertical bar chart.
+    const chartLabels = plottedData.map(d => {
         const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
         const isMax = d.reasoningEffort === 'Max';
         const dagger = isReprompted ? '†' : '';
@@ -490,17 +528,13 @@ function createSimpleChart(modelName = "average") {
         const maxSuffix = isMax ? ' (Max)' : '';
         const displayName = `${d.agent}${dagger}${note}${maxSuffix}`;
         if (isMobile) {
-            // Abbreviated labels for mobile
-            if (d.agent === 'Base Models') return 'Base Models';
             if (d.agent === 'Official Instruct Models') return 'Official Instruct²';
-            if (d.agent === 'GPT 5.1 Codex Max') return 'GPT 5.1 Codex';
-            if (d.agent === 'GPT 5.2 Codex') return 'GPT 5.2 Codex';
-            if (d.agent === 'GPT-5.2') return 'GPT-5.2';
-            if (d.agent === 'Gemini 3 Pro') return 'Gemini 3';
-            if (d.agent === 'Opus 4.5') return 'Opus 4.5';
-            if (d.agent === 'Sonnet 4.5') return 'Sonnet 4.5';
-            if (d.agent === 'MiniMax M2.1') return 'MiniMax';
-            return displayName;
+            if (d.agent === 'Base Models') return 'Base Models';
+            const cleanEffort = d.reasoningEffort
+                ? d.reasoningEffort.replace(', Reprompted', '').trim()
+                : '';
+            const effortSuffix = cleanEffort ? ` (${cleanEffort})` : '';
+            return `${d.agent}${effortSuffix}${dagger}${note}`;
         }
         // Desktop: split long names into two lines
         if (d.agent === 'Base Models') {
@@ -560,7 +594,7 @@ function createSimpleChart(modelName = "average") {
     const chartBarBaseline1 = style.getPropertyValue('--chart-bar-baseline-1').trim() || '#9a9590';
     const chartBarBaseline2 = style.getPropertyValue('--chart-bar-baseline-2').trim() || '#6b655a';
 
-    const chartColors = reversedData.map(d => {
+    const chartColors = plottedData.map(d => {
         if (d.agent === 'Base Models') return chartBarBaseline1;
         if (d.agent === 'Official Instruct Models') return chartBarBaseline2;
         if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createStripePattern(chartBar);
@@ -568,11 +602,16 @@ function createSimpleChart(modelName = "average") {
     });
 
     // Get error bar data (std deviations)
-    const errorBars = reversedData.map(d => d.stdDev ? parseFloat(d.stdDev) : null);
+    const errorBars = plottedData.map(d => d.stdDev ? parseFloat(d.stdDev) : null);
 
-    // Calculate max value dynamically - round up to nearest 10
-    const maxScore = Math.max(...data.map(d => parseFloat(d.averageScore)));
-    const yAxisMax = Math.ceil(maxScore / 10) * 10;
+    // Mobile preserves the same baseline comparison as desktop. Round its
+    // upper bound to 5 so the official reference does not force excess space;
+    // only regular 10/20-point ticks are labelled below.
+    const maxScore = Math.max(...(isMobile ? plottedData : data).map(d => parseFloat(d.averageScore)));
+    const yAxisMax = isMobile
+        ? Math.ceil(maxScore / 5) * 5
+        : Math.ceil(maxScore / 10) * 10;
+    const mobileTickStep = yAxisMax <= 60 ? 10 : 20;
 
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
@@ -584,7 +623,7 @@ function createSimpleChart(modelName = "average") {
     const errorBarPlugin = {
         id: 'errorBars',
         afterDatasetsDraw(chart) {
-            const { ctx, scales: { y } } = chart;
+            const { ctx, scales: { x, y } } = chart;
             const meta = chart.getDatasetMeta(0);
             const data = chart.data.datasets[0].data;
 
@@ -596,43 +635,115 @@ function createSimpleChart(modelName = "average") {
                 const error = errorBars[index];
                 if (error === null || !(error > 0)) return;
 
-                // Pixels spanned by `error` units (the y scale is static during
-                // the bar animation, so this conversion is constant per frame).
-                const errPx = Math.abs(y.getPixelForValue(error) - y.getPixelForValue(0));
-                const finalTop = y.getPixelForValue(data[index]);
-                const span = bar.base - finalTop; // full bar height in px
-                const grow = span > 0 ? Math.min(1, Math.max(0, (bar.base - bar.y) / span)) : 1;
+                if (isMobile) {
+                    const errPx = Math.abs(x.getPixelForValue(error) - x.getPixelForValue(0));
+                    const finalEnd = x.getPixelForValue(data[index]);
+                    const span = finalEnd - bar.base;
+                    const grow = span > 0 ? Math.min(1, Math.max(0, (bar.x - bar.base) / span)) : 1;
+                    const errorLeft = bar.x - errPx;
+                    const errorRight = bar.x + errPx;
+                    const capHeight = 3;
 
-                const xPos = bar.x;
-                const errorTop = bar.y - errPx; // centered on the animated bar top
-                const errorBottom = bar.y + errPx;
-                const capWidth = isMobile ? 3 : 6;
+                    ctx.globalAlpha = grow;
+                    ctx.beginPath();
+                    ctx.moveTo(errorLeft, bar.y);
+                    ctx.lineTo(errorRight, bar.y);
+                    ctx.moveTo(errorLeft, bar.y - capHeight);
+                    ctx.lineTo(errorLeft, bar.y + capHeight);
+                    ctx.moveTo(errorRight, bar.y - capHeight);
+                    ctx.lineTo(errorRight, bar.y + capHeight);
+                    ctx.stroke();
+                } else {
+                    const errPx = Math.abs(y.getPixelForValue(error) - y.getPixelForValue(0));
+                    const finalTop = y.getPixelForValue(data[index]);
+                    const span = bar.base - finalTop;
+                    const grow = span > 0 ? Math.min(1, Math.max(0, (bar.base - bar.y) / span)) : 1;
+                    const errorTop = bar.y - errPx;
+                    const errorBottom = bar.y + errPx;
+                    const capWidth = 6;
 
-                ctx.globalAlpha = grow; // fade the caps in as the bar grows
-
-                // Vertical line
-                ctx.beginPath();
-                ctx.moveTo(xPos, errorTop);
-                ctx.lineTo(xPos, errorBottom);
-                ctx.stroke();
-
-                // Top cap
-                ctx.beginPath();
-                ctx.moveTo(xPos - capWidth, errorTop);
-                ctx.lineTo(xPos + capWidth, errorTop);
-                ctx.stroke();
-
-                // Bottom cap
-                ctx.beginPath();
-                ctx.moveTo(xPos - capWidth, errorBottom);
-                ctx.lineTo(xPos + capWidth, errorBottom);
-                ctx.stroke();
+                    ctx.globalAlpha = grow;
+                    ctx.beginPath();
+                    ctx.moveTo(bar.x, errorTop);
+                    ctx.lineTo(bar.x, errorBottom);
+                    ctx.moveTo(bar.x - capWidth, errorTop);
+                    ctx.lineTo(bar.x + capWidth, errorTop);
+                    ctx.moveTo(bar.x - capWidth, errorBottom);
+                    ctx.lineTo(bar.x + capWidth, errorBottom);
+                    ctx.stroke();
+                }
             });
             ctx.restore();
         }
     };
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning;
+    const chartScales = isMobile ? {
+        x: {
+            beginAtZero: true,
+            max: yAxisMax,
+            grid: { color: borderColor },
+            ticks: {
+                color: textSecondary,
+                font: { family: "'JetBrains Mono', monospace", size: 10 },
+                stepSize: mobileTickStep,
+                callback: value => Number(value) % mobileTickStep === 0 ? value + '%' : null
+            }
+        },
+        y: {
+            grid: { display: false },
+            ticks: {
+                color: textSecondary,
+                font: { family: "'JetBrains Mono', monospace", size: 10, weight: 500 },
+                autoSkip: false
+            }
+        }
+    } : {
+        y: {
+            beginAtZero: true,
+            max: yAxisMax,
+            title: {
+                display: true,
+                text: 'Average benchmark performance¹',
+                color: textPrimary,
+                font: {
+                    family: "'JetBrains Mono', monospace",
+                    size: fontSizes.axisTitle,
+                    weight: 500
+                }
+            },
+            grid: { color: borderColor },
+            ticks: {
+                color: textSecondary,
+                font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks },
+                stepSize: 10,
+                callback: function(value) {
+                    if (value === 65) return null;
+                    return value + '%';
+                }
+            }
+        },
+        x: {
+            title: {
+                display: true,
+                text: 'LLM powering the CLI agent',
+                color: textPrimary,
+                font: {
+                    family: "'JetBrains Mono', monospace",
+                    size: fontSizes.axisTitle,
+                    weight: 500
+                }
+            },
+            grid: { display: false },
+            ticks: {
+                color: textSecondary,
+                font: { family: "'JetBrains Mono', monospace", size: Math.max(8, fontSizes.axisTicks - 2) },
+                maxRotation: xLabelRotation,
+                minRotation: xLabelRotation,
+                autoSkip: false
+            }
+        }
+    };
 
     performanceChart = new Chart(ctx, {
         type: 'bar',
@@ -640,21 +751,20 @@ function createSimpleChart(modelName = "average") {
             labels: chartLabels,
             datasets: [{
                 label: 'Average Score (%)',
-                data: reversedData.map(d => parseFloat(d.averageScore)),
+                data: plottedData.map(d => parseFloat(d.averageScore)),
                 backgroundColor: chartColors,
                 borderColor: chartColors,
                 borderWidth: isMobile ? 1 : 2,
                 borderRadius: isMobile ? 2 : 4,
-                barPercentage: isMobile ? 0.7 : 0.8,
-                categoryPercentage: isMobile ? 0.8 : 0.9
+                barPercentage: isMobile ? 0.62 : 0.8,
+                categoryPercentage: isMobile ? 0.82 : 0.9
             }]
         },
         plugins: [errorBarPlugin],
         options: {
+            indexAxis: isMobile ? 'y' : 'x',
             responsive: true,
             maintainAspectRatio: !isMobile,
-            // Staggered build: bars grow in rank order (data is ascending, so the
-            // reveal climbs toward #1). Disabled when the user prefers reduced motion.
             animation: reduceMotion ? { duration: 0 } : {
                 duration: 450,
                 easing: 'easeOutCubic',
@@ -665,7 +775,11 @@ function createSimpleChart(modelName = "average") {
             // "stuck" when sweeping across empty space.
             interaction: {
                 mode: 'index',
+                axis: isMobile ? 'y' : 'x',
                 intersect: true
+            },
+            layout: {
+                padding: { right: isMobile ? 2 : 0 }
             },
             plugins: {
                 legend: {
@@ -677,20 +791,32 @@ function createSimpleChart(modelName = "average") {
                         label: function(context) {
                             const std = errorBars[context.dataIndex];
                             const stdText = std ? ` ± ${std}%` : '';
-                            return `Average score: ${context.parsed.y.toFixed(1)}%${stdText}`;
+                            const value = isMobile ? context.parsed.x : context.parsed.y;
+                            return `Average score: ${value.toFixed(1)}%${stdText}`;
                         }
                     }
                 }),
                 datalabels: {
-                    display: !isMobile,
-                    color: '#ffffff',
-                    anchor: 'start',
-                    align: 'end',
+                    display: true,
+                    color: function(context) {
+                        const value = Number(context.dataset.data[context.dataIndex]);
+                        return isMobile && value < 12 ? textPrimary : '#ffffff';
+                    },
+                    anchor: isMobile ? 'end' : 'start',
+                    align: function(context) {
+                        const value = Number(context.dataset.data[context.dataIndex]);
+                        if (isMobile && value < 12) return 'end';
+                        return isMobile ? 'start' : 'end';
+                    },
                     offset: 4,
                     // Size each label off the ACTUAL rendered bar width so
                     // "XX.X%" fits inside its bar. Keeps the normal size on wide
                     // bars, shrinks only when a bar is too narrow to hold it.
                     font: function(context) {
+                        const value = Number(context.dataset.data[context.dataIndex]);
+                        if (isMobile && value < 12) {
+                            return { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks, weight: 500 };
+                        }
                         const meta = context.chart.getDatasetMeta(context.datasetIndex);
                         const bar = meta && meta.data && meta.data[context.dataIndex];
                         const barWidth = (bar && bar.width) ? bar.width : 40;
@@ -704,62 +830,7 @@ function createSimpleChart(modelName = "average") {
                     }
                 }
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: yAxisMax,
-                    title: {
-                        display: !isMobile,
-                        text: 'Average benchmark performance¹',
-                        color: textPrimary,
-                        font: {
-                            family: "'JetBrains Mono', monospace",
-                            size: fontSizes.axisTitle,
-                            weight: 500
-                        }
-                    },
-                    grid: {
-                        color: borderColor
-                    },
-                    ticks: {
-                        color: textSecondary,
-                        font: {
-                            family: "'JetBrains Mono', monospace",
-                            size: isMobile ? 9 : fontSizes.axisTicks
-                        },
-                        stepSize: isMobile ? 20 : 10,
-                        callback: function(value) {
-                            if (value === 65) return null;
-                            return value + '%';
-                        }
-                    }
-                },
-                x: {
-                    title: {
-                        display: !isMobile,
-                        text: 'LLM powering the CLI agent',
-                        color: textPrimary,
-                        font: {
-                            family: "'JetBrains Mono', monospace",
-                            size: fontSizes.axisTitle,
-                            weight: 500
-                        }
-                    },
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        color: textSecondary,
-                        font: {
-                            family: "'JetBrains Mono', monospace",
-                            size: isMobile ? 9 : Math.max(8, fontSizes.axisTicks - 2)
-                        },
-                        maxRotation: xLabelRotation,
-                        minRotation: xLabelRotation,
-                        autoSkip: false
-                    }
-                }
-            }
+            scales: chartScales
         }
     });
 }
@@ -1469,6 +1540,7 @@ document.getElementById('copy-citation').addEventListener('click', function() {
 // Escape/Tab dismissal, and a single announced selected option.
 const modelDropdown = document.getElementById('model-dropdown');
 const dropdownDisplay = document.getElementById('model-select-display');
+const dropdownValue = document.getElementById('model-select-value');
 const dropdownOptions = document.getElementById('model-select-options');
 const dropdownOptionButtons = [...(dropdownOptions?.querySelectorAll('.dropdown-option') || [])];
 
@@ -1481,69 +1553,172 @@ function setModelDropdownOpen(isOpen, optionToFocus = null) {
     }
 }
 
-// Toggle dropdown
-dropdownDisplay.addEventListener('click', (e) => {
-    e.stopPropagation();
-    modelDropdown.classList.toggle('open');
-});
+function selectModelOption(option, returnFocus = true) {
+    if (!option || !dropdownValue) return;
+    const selectedValue = option.dataset.value;
 
-// Handle option selection
-dropdownOptions.addEventListener('click', (e) => {
-    if (e.target.classList.contains('dropdown-option')) {
-        const selectedValue = e.target.getAttribute('data-value');
-        const selectedText = e.target.textContent;
+    dropdownValue.textContent = option.textContent.trim();
+    dropdownOptionButtons.forEach((candidate) => {
+        const isSelected = candidate === option;
+        candidate.classList.toggle('active', isSelected);
+        candidate.setAttribute('aria-selected', String(isSelected));
+    });
+    setModelDropdownOpen(false);
 
-        // Update display
-        dropdownDisplay.textContent = selectedText;
-
-        // Update active state
-        dropdownOptions.querySelectorAll('.dropdown-option').forEach(opt => {
-            opt.classList.remove('active');
-        });
-        e.target.classList.add('active');
-
-        // Close dropdown
-        modelDropdown.classList.remove('open');
-
-        // Update model if changed. The pareto chart is unaffected: time data
-        // exists only as a per-agent aggregate, not per target model.
-        if (selectedValue !== currentSelectedModel) {
-            currentSelectedModel = selectedValue;
-            populateLeaderboard(selectedValue);
-
-            // Update charts based on selected model
-            if (performanceChart) {
-                performanceChart.destroy();
-                createSimpleChart(selectedValue);
-            }
+    if (selectedValue !== currentSelectedModel) {
+        currentSelectedModel = selectedValue;
+        populateLeaderboard(selectedValue);
+        if (performanceChart) {
+            performanceChart.destroy();
+            createSimpleChart(selectedValue);
         }
     }
-});
 
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    if (!modelDropdown.contains(e.target)) {
-        modelDropdown.classList.remove('open');
-    }
-});
+    if (returnFocus) dropdownDisplay?.focus();
+}
 
-// Mobile table toggle - show/hide benchmark columns
-const toggleTableBtn = document.getElementById('toggle-full-table');
+function moveDropdownFocus(currentOption, direction) {
+    const currentIndex = dropdownOptionButtons.indexOf(currentOption);
+    const nextIndex = (currentIndex + direction + dropdownOptionButtons.length) % dropdownOptionButtons.length;
+    dropdownOptionButtons[nextIndex]?.focus();
+}
+
+if (modelDropdown && dropdownDisplay && dropdownOptions) {
+    dropdownDisplay.addEventListener('click', () => {
+        setModelDropdownOpen(!modelDropdown.classList.contains('open'));
+    });
+
+    dropdownDisplay.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const activeOption = dropdownOptionButtons.find((option) => option.getAttribute('aria-selected') === 'true');
+            const optionToFocus = event.key === 'ArrowUp'
+                ? dropdownOptionButtons[dropdownOptionButtons.length - 1]
+                : activeOption || dropdownOptionButtons[0];
+            setModelDropdownOpen(true, optionToFocus);
+        } else if (event.key === 'Escape') {
+            setModelDropdownOpen(false);
+        }
+    });
+
+    dropdownOptionButtons.forEach((option) => {
+        option.addEventListener('click', () => selectModelOption(option));
+        option.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                moveDropdownFocus(option, event.key === 'ArrowDown' ? 1 : -1);
+            } else if (event.key === 'Home' || event.key === 'End') {
+                event.preventDefault();
+                const edgeOption = event.key === 'Home'
+                    ? dropdownOptionButtons[0]
+                    : dropdownOptionButtons[dropdownOptionButtons.length - 1];
+                edgeOption?.focus();
+            } else if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selectModelOption(option);
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                setModelDropdownOpen(false);
+                dropdownDisplay.focus();
+            } else if (event.key === 'Tab') {
+                setModelDropdownOpen(false);
+            } else if (event.key.length === 1 && /\S/.test(event.key)) {
+                const searchFrom = dropdownOptionButtons.indexOf(option) + 1;
+                const orderedOptions = dropdownOptionButtons
+                    .slice(searchFrom)
+                    .concat(dropdownOptionButtons.slice(0, searchFrom));
+                const match = orderedOptions.find((candidate) =>
+                    candidate.textContent.trim().toLowerCase().startsWith(event.key.toLowerCase()));
+                match?.focus();
+            }
+        });
+    });
+
+    modelDropdown.addEventListener('focusout', (event) => {
+        if (!modelDropdown.contains(event.relatedTarget)) setModelDropdownOpen(false);
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!modelDropdown.contains(event.target)) setModelDropdownOpen(false);
+    });
+}
+
+// Mobile leaderboard rows reveal their benchmark detail in place. The wide
+// matrix remains the desktop view; phones get one compact, anchored disclosure
+// per agent instead of a second table hidden off-screen.
 const leaderboardTable = document.querySelector('.leaderboard-table');
-const mobileTableNotice = document.querySelector('.mobile-table-notice');
+const leaderboardBody = document.getElementById('leaderboard-data');
 
-if (toggleTableBtn && leaderboardTable && mobileTableNotice) {
-    toggleTableBtn.addEventListener('click', () => {
-        leaderboardTable.classList.toggle('show-full');
-        mobileTableNotice.classList.toggle('show-full');
+function setLeaderboardRowExpanded(row, shouldExpand) {
+    const detailRow = row.nextElementSibling;
+    const panel = detailRow?.querySelector('.benchmark-detail-panel');
+    if (!detailRow?.classList.contains('benchmark-detail-row') || !panel) return;
+
+    const currentHeight = detailRow.hidden ? 0 : panel.getBoundingClientRect().height;
+    const currentOpacity = detailRow.hidden ? 0 : Number.parseFloat(getComputedStyle(panel).opacity || '1');
+    detailRow._detailAnimation?.cancel();
+    detailRow._detailAnimation = null;
+
+    row.classList.toggle('details-open', shouldExpand);
+
+    if (shouldExpand) detailRow.hidden = false;
+    const targetHeight = shouldExpand ? panel.scrollHeight : 0;
+    const targetOpacity = shouldExpand ? 1 : 0;
+
+    panel.style.height = `${targetHeight}px`;
+    panel.style.opacity = String(targetOpacity);
+
+    if (typeof panel.animate !== 'function') {
+        if (!shouldExpand) detailRow.hidden = true;
+        panel.style.height = '';
+        panel.style.opacity = '';
+    } else {
+        const animation = panel.animate([
+            {
+                height: `${currentHeight}px`,
+                opacity: currentOpacity,
+                transform: shouldExpand ? 'translateY(-4px)' : 'translateY(0)'
+            },
+            {
+                height: `${targetHeight}px`,
+                opacity: targetOpacity,
+                transform: shouldExpand ? 'translateY(0)' : 'translateY(-3px)'
+            }
+        ], {
+            duration: shouldExpand ? 180 : 140,
+            easing: 'cubic-bezier(0.23, 1, 0.32, 1)'
+        });
+        detailRow._detailAnimation = animation;
+        animation.onfinish = () => {
+            if (detailRow._detailAnimation !== animation) return;
+            detailRow._detailAnimation = null;
+            if (!shouldExpand) detailRow.hidden = true;
+            panel.style.height = '';
+            panel.style.opacity = '';
+            panel.style.transform = '';
+        };
+    }
+
+    leaderboardTable?.classList.toggle(
+        'has-expanded-row',
+        Boolean(leaderboardBody?.querySelector('.leaderboard-entry-row.details-open'))
+    );
+}
+
+if (leaderboardBody) {
+    leaderboardBody.addEventListener('click', (event) => {
+        if (!window.matchMedia('(max-width: 768px)').matches) return;
+        const row = event.target.closest('.leaderboard-entry-row');
+        if (!row || !leaderboardBody.contains(row)) return;
+        setLeaderboardRowExpanded(row, !row.classList.contains('details-open'));
     });
 }
 
 // Navbar logo visibility based on hero section.
 // While the hero is on screen, the giant "PostTrainBench" title IS the
-// brand mark — repeating it in the navbar would be visual duplication.
-// We fade the nav logo in only after the hero scrolls off, so it picks
-// up where the hero left off.
+// brand mark — repeating it in the desktop navbar would be visual duplication.
+// Phones keep the compact logo visible for wayfinding; desktop fades it in
+// after the hero scrolls off, so it picks up where the hero left off.
 const logo = document.querySelector('.logo');
 const heroSection = document.querySelector('.hero');
 
@@ -1610,14 +1785,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Observation foldables (.hack-category / .evidence-fold): animate the
-    // HEIGHT, not just opacity — the box collapsing/growing is the visually
-    // salient event, and a bare <details> snaps it instantly in both
-    // directions. Non-summary children are wrapped in a .fold-anim div so
-    // there is a single element whose height can animate (WAAPI keeps it
-    // off the CSS cascade and hardware-friendly). Exits run faster than
-    // entrances; reduced motion toggles instantly.
-    document.querySelectorAll('details.hack-category, details.evidence-fold').forEach((fold) => {
+    // Foldables: wrap the body
+    // so height + opacity can bridge the otherwise abrupt <details> layout
+    // change. The animation is retargetable: rapid clicks reverse from the
+    // live presentation height instead of being ignored. Exits stay faster
+    // than entrances, and reduced motion toggles instantly.
+    document.querySelectorAll('details.hack-category, details.evidence-fold, details.compact-disclosure').forEach((fold) => {
         const summary = fold.querySelector(':scope > summary');
         if (!summary) return;
         const body = document.createElement('div');
@@ -1626,72 +1799,111 @@ document.addEventListener('DOMContentLoaded', async () => {
         fold.appendChild(body);
 
         const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        let expanded = fold.open;
+        let activeAnimation = null;
+        let fallbackTimer = null;
+        let animationVersion = 0;
+        fold.dataset.expanded = String(expanded);
+
+        const clearInlineState = () => {
+            body.style.height = '';
+            body.style.opacity = '';
+            body.style.overflow = '';
+            delete fold.dataset.animating;
+        };
+
+        const cancelActiveAnimation = () => {
+            if (fallbackTimer !== null) {
+                clearTimeout(fallbackTimer);
+                fallbackTimer = null;
+            }
+            if (activeAnimation) {
+                try { activeAnimation.cancel(); } catch (err) { /* already finished */ }
+                activeAnimation = null;
+            }
+        };
+
+        const setInstantly = () => {
+            animationVersion += 1;
+            cancelActiveAnimation();
+            fold.open = expanded;
+            clearInlineState();
+        };
+
+        const animateTo = (shouldExpand) => {
+            const version = ++animationVersion;
+
+            // Capture the presentation values before cancelling: cancelling
+            // first would snap the body back to its previous logical state.
+            const wasRendered = fold.open;
+            const startHeight = wasRendered ? body.getBoundingClientRect().height : 0;
+            const computedOpacity = wasRendered ? Number.parseFloat(getComputedStyle(body).opacity) : 0;
+            const startOpacity = Number.isFinite(computedOpacity) ? computedOpacity : (wasRendered ? 1 : 0);
+
+            cancelActiveAnimation();
+            if (shouldExpand && !fold.open) fold.open = true;
+
+            // Measure the natural body after ensuring <details> is rendered,
+            // then restore the captured presentation state before paint.
+            body.style.height = 'auto';
+            const naturalHeight = body.scrollHeight;
+            body.style.height = `${startHeight}px`;
+            body.style.opacity = String(startOpacity);
+            body.style.overflow = 'hidden';
+            fold.dataset.animating = '1';
+
+            const targetHeight = shouldExpand ? naturalHeight : 0;
+            const targetOpacity = shouldExpand ? 1 : 0;
+            const remaining = Math.abs(targetHeight - startHeight);
+            const travelRatio = Math.min(1, remaining / Math.max(naturalHeight, 1));
+            const fullDuration = shouldExpand ? 240 : 180;
+            const duration = Math.round(Math.max(90, fullDuration * (0.55 + 0.45 * travelRatio)));
+
+            const animation = body.animate(
+                [
+                    { height: `${startHeight}px`, opacity: startOpacity },
+                    { height: `${targetHeight}px`, opacity: targetOpacity },
+                ],
+                { duration, easing: EASE, fill: 'both' }
+            );
+            activeAnimation = animation;
+
+            const finish = () => {
+                if (version !== animationVersion) return;
+                if (fallbackTimer !== null) {
+                    clearTimeout(fallbackTimer);
+                    fallbackTimer = null;
+                }
+
+                // Pin the destination before cancelling the animation so the
+                // presentation never flashes back to the captured start.
+                body.style.height = `${targetHeight}px`;
+                body.style.opacity = String(targetOpacity);
+                try { animation.cancel(); } catch (err) { /* already finished */ }
+                activeAnimation = null;
+                fold.open = shouldExpand;
+                clearInlineState();
+            };
+
+            animation.onfinish = finish;
+            // Background tabs and headless browsers can suppress finish events.
+            fallbackTimer = setTimeout(finish, duration + 100);
+        };
+
         summary.addEventListener('click', (e) => {
             e.preventDefault();
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                fold.open = !fold.open;
+            expanded = !expanded;
+            fold.dataset.expanded = String(expanded);
+
+            if (reducedMotion.matches || typeof body.animate !== 'function') {
+                setInstantly();
                 return;
             }
-            if (fold.dataset.animating) return; // ignore clicks mid-animation
-            fold.dataset.animating = '1';
-            // Finalization runs from BOTH onfinish and a timeout fallback
-            // (idempotent) — animation events can be throttled or suppressed
-            // (background tabs, headless), and depending on onfinish alone
-            // would leave the fold stuck ignoring clicks.
-            const settle = (fn, anim, ms) => {
-                let settled = false;
-                const run = () => {
-                    if (settled) return;
-                    settled = true;
-                    try { anim.cancel(); } catch (err) { /* already finished */ }
-                    fn();
-                    delete fold.dataset.animating;
-                    body.style.overflow = '';
-                };
-                anim.onfinish = run;
-                setTimeout(run, ms);
-            };
-            if (fold.open) {
-                const h = body.offsetHeight;
-                body.style.overflow = 'hidden';
-                const anim = body.animate(
-                    [{ height: h + 'px', opacity: 1 }, { height: '0px', opacity: 0 }],
-                    { duration: 200, easing: EASE }
-                );
-                settle(() => { fold.open = false; }, anim, 280);
-            } else {
-                fold.open = true;
-                const h = body.offsetHeight;
-                body.style.overflow = 'hidden';
-                const anim = body.animate(
-                    [{ height: '0px', opacity: 0 }, { height: h + 'px', opacity: 1 }],
-                    { duration: 260, easing: EASE }
-                );
-                settle(() => {}, anim, 340);
-            }
+            animateTo(expanded);
         });
     });
 
-    // Changelog expand/collapse animation
-    const changelog = document.querySelector('details.changelog');
-    if (changelog) {
-        const summary = changelog.querySelector(':scope > summary');
-        const content = changelog.querySelector('.changelog-content');
-        summary?.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (changelog.open) {
-                // Closing: animate out, then remove open
-                content.classList.remove('open');
-                content.addEventListener('transitionend', () => {
-                    changelog.open = false;
-                }, { once: true });
-            } else {
-                // Opening: set open, then animate in
-                changelog.open = true;
-                requestAnimationFrame(() => content.classList.add('open'));
-            }
-        });
-    }
 });
 
 // Render the leaderboard synchronously from the inlined data (scores.js) as soon
