@@ -3,6 +3,7 @@
 // groupable run table.
 
 const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './data/';
+const CATALOG = window.PTB_Catalog;
 
 const els = {
   q: document.getElementById('q'),
@@ -25,39 +26,19 @@ const els = {
 
 let DATA = { runs: [], experiments: [], benchmarks: [], build_ts: null };
 const DATA_REQUEST_TIMEOUT_MS = 30000;
+const TABLE_PAGE_SIZE = 50;
+let OPEN_GROUP_KEY = '';
+let APPLYING_URL_STATE = false;
 
 // Canonical display order for benchmarks and base models. Used to order
 // matrix rows/columns and to sort groups so the page doesn't open on
 // saturated cells. Benchmarks roughly: hard reasoning first → coding →
 // writing/math → general → tool-calling (BFCL last because it saturates
 // near 100% and reads as a flat block).
-const BENCHMARK_ORDER = [
-  'aime2025', 'aime2024',
-  'gpqamain', 'gpqa_main', 'gpqa',
-  'healthbench',
-  'humaneval', 'mbpp', 'livecodebench', 'swebench',
-  'arena_hard', 'arenahard', 'arenahardwriting',
-  'gsm8k', 'math500', 'minervamath',
-  'mmlu', 'ifeval',
-  'bfcl',
-];
+const BENCHMARK_ORDER = CATALOG.BENCHMARK_ORDER;
 // Base models ordered by parameter count descending — largest first so
 // the matrix's left-most column carries the model the eye anchors on.
-const MODEL_ORDER = [
-  'Qwen_Qwen3-4B-Base',
-  'google_gemma-3-4b-pt',
-  'HuggingFaceTB_SmolLM3-3B-Base',
-  'Qwen_Qwen3-1.7B-Base',
-];
-
-function orderIndex(orderList, value) {
-  if (!value) return Infinity;
-  const v = String(value).toLowerCase();
-  for (let i = 0; i < orderList.length; i++) {
-    if (orderList[i].toLowerCase() === v) return i;
-  }
-  return Infinity;
-}
+const MODEL_ORDER = CATALOG.MODEL_ORDER;
 
 async function load() {
   try {
@@ -67,6 +48,7 @@ async function load() {
     }
 
     populateFilters();
+    applyUrlState();
     renderHeroStats();
     renderMatrix();
     els.loading.classList.add('hidden');
@@ -284,11 +266,17 @@ function renderMatrix() {
 }
 
 function filterToCell(benchmark, model) {
+  APPLYING_URL_STATE = true;
   els.benchFilter.value = benchmark;
   els.modelFilter.value = model;
   // Sync custom-select triggers.
   els.benchFilter.dispatchEvent(new Event('change', { bubbles: true }));
   els.modelFilter.dispatchEvent(new Event('change', { bubbles: true }));
+  APPLYING_URL_STATE = false;
+  if (els.groupBy.value === 'task-model') OPEN_GROUP_KEY = `${benchmark}|${model}`;
+  else if (els.groupBy.value === 'task') OPEN_GROUP_KEY = benchmark;
+  else OPEN_GROUP_KEY = '';
+  syncUrlState();
   render();
   document.querySelector('.filter-dock').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -314,8 +302,8 @@ function uniqValuesOrdered(rows, key, orderList) {
     if (v) seen.add(v);
   }
   return [...seen].sort((a, b) => {
-    const ai = orderIndex(orderList, a);
-    const bi = orderIndex(orderList, b);
+    const ai = CATALOG.orderIndex(orderList, a);
+    const bi = CATALOG.orderIndex(orderList, b);
     if (ai !== bi) return ai - bi;
     return a.localeCompare(b);
   });
@@ -344,28 +332,49 @@ function addOpt(select, value, label) {
 
 // ---------- Main render ------------------------------------------------
 
-function filterRows() {
-  const q = els.q.value.trim().toLowerCase();
-  const expF = els.expFilter.value;
-  const benchF = els.benchFilter.value;
-  const modelF = els.modelFilter.value;
-  const agentF = els.agentFilter.value;
+function stateFromControls() {
+  return {
+    benchmark: els.benchFilter.value,
+    model: els.modelFilter.value,
+    agent: els.agentFilter.value,
+    experiment: els.expFilter.value,
+    q: els.q.value.trim(),
+    group: els.groupBy.value,
+    sort: els.sort.value,
+    open: OPEN_GROUP_KEY,
+  };
+}
 
-  return DATA.runs.filter(r => {
-    if (expF && r.experiment !== expF) return false;
-    if (benchF && r.benchmark !== benchF) return false;
-    if (modelF && r.trained_model !== modelF) return false;
-    if (agentF && r.agent_model !== agentF) return false;
-    if (q) {
-      const hay = [r.run_id, r.experiment, r.benchmark, r.trained_model,
-                   r.seed, r.agent_model, prettyAgent(r.agent_model),
-                   prettyTrainedModel(r.trained_model), prettyBenchmark(r.benchmark),
-                   r.contamination, r.disallowed_model]
-                   .filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+function applyUrlState() {
+  const state = CATALOG.readState(window.location.search);
+  APPLYING_URL_STATE = true;
+  els.benchFilter.value = state.benchmark;
+  els.modelFilter.value = state.model;
+  els.agentFilter.value = state.agent;
+  els.expFilter.value = state.experiment;
+  els.q.value = state.q;
+  els.groupBy.value = state.group;
+  els.sort.value = state.sort;
+  OPEN_GROUP_KEY = state.open;
+  [els.benchFilter, els.modelFilter, els.agentFilter, els.expFilter, els.groupBy, els.sort]
+    .forEach(select => select.dispatchEvent(new Event('change', { bubbles: true })));
+  APPLYING_URL_STATE = false;
+}
+
+function syncUrlState() {
+  const next = CATALOG.writeState(new URL(window.location.href), stateFromControls());
+  history.replaceState(null, '', next);
+}
+
+function handleControlInput() {
+  if (APPLYING_URL_STATE) return;
+  OPEN_GROUP_KEY = '';
+  syncUrlState();
+  render();
+}
+
+function filterRows() {
+  return CATALOG.filterRuns(DATA.runs, stateFromControls());
 }
 
 function render() {
@@ -386,7 +395,7 @@ function render() {
   }
   els.empty.classList.add('hidden');
 
-  rows.sort(sorter(els.sort.value));
+  rows.sort(CATALOG.sorter(els.sort.value));
 
   // Corpus-wide accuracy max so bars share a scale.
   const accMax = Math.max(0.01, ...DATA.runs.map(r => r.accuracy ?? 0));
@@ -394,77 +403,80 @@ function render() {
   const groupMode = els.groupBy.value;
   els.runs.innerHTML = '';
   if (groupMode === 'none') {
-    els.runs.appendChild(buildTable(rows, accMax));
+    els.runs.appendChild(buildPagedTable(rows, accMax, groupMode, ''));
     return;
   }
 
-  const groups = buildGroups(rows, groupMode);
+  const groups = CATALOG.buildGroups(rows, groupMode);
+  const requestedGroupExists = groups.some(group => group.key === OPEN_GROUP_KEY);
+  const effectiveOpenKey = requestedGroupExists
+    ? OPEN_GROUP_KEY
+    : (groups.length === 1 ? groups[0].key : '');
   for (const g of groups) {
-    const section = document.createElement('section');
-    section.className = 'exp-group';
-    section.appendChild(buildGroupHeader(g, groupMode));
-    section.appendChild(buildTable(g.rows, accMax));
-    els.runs.appendChild(section);
+    els.runs.appendChild(buildGroupDisclosure(g, groupMode, accMax, g.key === effectiveOpenKey));
   }
 }
 
 // ---------- Grouping ---------------------------------------------------
 
-function buildGroups(rows, mode) {
-  const map = new Map();
-  for (const r of rows) {
-    const key = groupKey(r, mode);
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(r);
-  }
-  // Sort groups. For task and task-model groupings, use the canonical
-  // BENCHMARK_ORDER + MODEL_ORDER so the first group is informative
-  // (hard, discriminating) rather than saturated (BFCL all-100%). For
-  // the "experiment" mode, fall back to best-accuracy desc since there's
-  // no canonical order over arbitrary experiment names.
-  return [...map.entries()]
-    .map(([key, list]) => {
-      let best = null;
-      for (const r of list) if (r.accuracy != null && (best == null || r.accuracy > best)) best = r.accuracy;
-      return { key, rows: list, best };
-    })
-    .sort((a, b) => groupSorter(mode, a, b));
-}
+function buildGroupDisclosure(group, mode, accMax, initiallyOpen) {
+  const details = document.createElement('details');
+  details.className = 'exp-group';
+  details.dataset.groupKey = group.key;
+  details.open = initiallyOpen;
+  details.appendChild(buildGroupHeader(group, mode));
 
-function groupSorter(mode, a, b) {
-  if (mode === 'task' || mode === 'task-model') {
-    const [aBench, aModel] = a.key.split('|');
-    const [bBench, bModel] = b.key.split('|');
-    const benchCmp = orderIndex(BENCHMARK_ORDER, aBench) - orderIndex(BENCHMARK_ORDER, bBench);
-    if (benchCmp !== 0) return benchCmp;
-    if (mode === 'task-model') {
-      const modelCmp = orderIndex(MODEL_ORDER, aModel) - orderIndex(MODEL_ORDER, bModel);
-      if (modelCmp !== 0) return modelCmp;
+  const body = document.createElement('div');
+  body.className = 'exp-group-body';
+  details.appendChild(body);
+  let materialized = false;
+  const materialize = () => {
+    if (materialized) return;
+    materialized = true;
+    body.appendChild(buildPagedTable(group.rows, accMax, mode, group.key));
+  };
+  if (initiallyOpen) materialize();
+
+  details.addEventListener('toggle', () => {
+    if (details.open) {
+      els.runs.querySelectorAll('.exp-group[open]').forEach(other => {
+        if (other !== details) other.open = false;
+      });
+      OPEN_GROUP_KEY = group.key;
+      materialize();
+    } else if (OPEN_GROUP_KEY === group.key) {
+      OPEN_GROUP_KEY = '';
     }
-    return a.key.localeCompare(b.key);
-  }
-  // 'experiment' or any other mode — best accuracy desc, then size, then alpha.
-  const ab = a.best ?? -1, bb = b.best ?? -1;
-  if (ab !== bb) return bb - ab;
-  if (a.rows.length !== b.rows.length) return b.rows.length - a.rows.length;
-  return a.key.localeCompare(b.key);
+    syncUrlState();
+  });
+  return details;
 }
 
-function groupKey(r, mode) {
-  switch (mode) {
-    case 'task-model':
-      return `${r.benchmark || '?'}|${r.trained_model || '?'}`;
-    case 'task':
-      return r.benchmark || '?';
-    case 'experiment':
-      return r.experiment || '?';
-    default:
-      return '';
-  }
+function buildPagedTable(rows, accMax, mode, groupKey) {
+  const wrap = document.createElement('div');
+  wrap.className = 'paged-table';
+  let visible = Math.min(TABLE_PAGE_SIZE, rows.length);
+
+  const renderPage = () => {
+    wrap.replaceChildren(buildTable(rows.slice(0, visible), accMax, mode, groupKey));
+    if (visible >= rows.length) return;
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'load-more-btn';
+    const remaining = rows.length - visible;
+    more.textContent = `Show ${Math.min(TABLE_PAGE_SIZE, remaining)} more`;
+    more.addEventListener('click', () => {
+      visible = Math.min(rows.length, visible + TABLE_PAGE_SIZE);
+      renderPage();
+    });
+    wrap.appendChild(more);
+  };
+  renderPage();
+  return wrap;
 }
 
 function buildGroupHeader(g, mode) {
-  const head = document.createElement('header');
+  const head = document.createElement('summary');
   head.className = 'exp-head';
 
   // Title: depends on mode.
@@ -483,31 +495,41 @@ function buildGroupHeader(g, mode) {
   // Headline stats: best accuracy + which agent, plus run count.
   let bestRun = null;
   const agents = new Set();
+  const models = new Set();
   for (const r of g.rows) {
     agents.add(r.agent_model);
+    if (r.trained_model) models.add(r.trained_model);
     if (r.accuracy != null && (!bestRun || r.accuracy > bestRun.accuracy)) bestRun = r;
   }
-  const parts = [`${g.rows.length} run${g.rows.length === 1 ? '' : 's'}`];
+  const parts = [];
+  if (mode === 'task') {
+    parts.push(`${models.size} model${models.size === 1 ? '' : 's'}`);
+  }
+  parts.push(`${g.rows.length} run${g.rows.length === 1 ? '' : 's'}`);
   if (bestRun) {
     const agent = bestRun.agent_model ? ` (${prettyAgentForRun(bestRun)})` : '';
     parts.push(`best ${(bestRun.accuracy * 100).toFixed(1)}%${agent}`);
   }
-  if (mode !== 'task-model' && agents.size > 1) {
+  if (mode === 'experiment' && agents.size > 1) {
     parts.push(`${agents.size} agents`);
   }
 
   head.innerHTML = `
     <div class="exp-head-title">${title}</div>
-    <div class="exp-head-meta">${escapeHtml(parts.join(' · '))}</div>`;
+    <div class="exp-head-meta">${escapeHtml(parts.join(' · '))}</div>
+    <span class="exp-head-caret" aria-hidden="true">›</span>`;
   return head;
 }
 
-function buildTable(rows, accMax) {
+function buildTable(rows, accMax, mode, groupKey) {
   const t = document.createElement('table');
   t.className = 'runtable';
+  const firstHeader = mode === 'task-model'
+    ? 'seed'
+    : mode === 'task' ? 'base model' : 'task';
   t.innerHTML = `
     <thead><tr>
-      <th class="col-task">task</th>
+      <th class="col-task">${firstHeader}</th>
       <th class="col-agent">agent</th>
       <th class="col-acc">accuracy</th>
       <th class="col-num">duration</th>
@@ -520,12 +542,16 @@ function buildTable(rows, accMax) {
   for (const r of rows) {
     const tr = document.createElement('tr');
     tr.tabIndex = 0;
-    tr.addEventListener('click', () => navigateRun(r.run_id));
+    const href = runHref(r.run_id, groupKey);
+    tr.addEventListener('click', event => {
+      if (event.target.closest('a, button')) return;
+      navigateRun(href);
+    });
     tr.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateRun(r.run_id); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateRun(href); }
     });
     tr.innerHTML = `
-      <td class="col-task">${taskCell(r)}</td>
+      <td class="col-task">${runIdentityCell(r, mode, href)}</td>
       <td class="col-agent">${agentCell(r)}</td>
       <td class="col-acc">${accCell(r, accMax)}</td>
       <td class="col-num">${durationCell(r)}</td>
@@ -542,19 +568,42 @@ function buildTable(rows, accMax) {
   return scroller;
 }
 
-function navigateRun(id) {
-  window.location.href = `run.html?id=${encodeURIComponent(id)}`;
+function runHref(id, groupKey) {
+  const returnUrl = CATALOG.writeState(new URL(window.location.href), {
+    ...stateFromControls(),
+    open: groupKey || OPEN_GROUP_KEY,
+  });
+  returnUrl.hash = '';
+  const destination = new URL('run.html', window.location.href);
+  destination.searchParams.set('id', id);
+  destination.searchParams.set('return', `${returnUrl.pathname}${returnUrl.search}`);
+  return destination.href;
+}
+
+function navigateRun(href) {
+  window.location.href = href;
 }
 
 // ---------- Cell renderers --------------------------------------------
 
-function taskCell(r) {
+function runIdentityCell(r, mode, href) {
   const bench = prettyBenchmark(r.benchmark) || '?';
-  const model = prettyTrainedModel(r.trained_model) || '';
-  const seed = r.seed ? `<span class="seed-pill" title="seed">${escapeHtml(r.seed)}</span>` : '';
+  const model = prettyTrainedModel(r.trained_model) || '?';
+  const seedText = r.seed != null && r.seed !== '' ? String(r.seed) : '';
+  let primary = bench;
+  let secondary = model;
+  if (mode === 'task-model') {
+    primary = seedText ? `seed ${seedText}` : 'open run';
+    secondary = '';
+  } else if (mode === 'task') {
+    primary = model;
+    secondary = seedText ? `seed ${seedText}` : '';
+  } else if (seedText) {
+    secondary += ` · seed ${seedText}`;
+  }
   return `<div class="task-cell">
-    <div class="task-primary">${escapeHtml(bench)}</div>
-    <div class="task-secondary">${escapeHtml(model)} ${seed}</div>
+    <div class="task-primary"><a class="run-primary-link" href="${escapeHtml(href)}">${escapeHtml(primary)}</a></div>
+    ${secondary ? `<div class="task-secondary">${escapeHtml(secondary)}</div>` : ''}
   </div>`;
 }
 
@@ -672,19 +721,6 @@ function axisState(text, okPattern) {
   return 'flag';
 }
 
-// ---------- Sorting ----------------------------------------------------
-
-function sorter(s) {
-  switch (s) {
-    case 'accuracy-desc': return (a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1);
-    case 'accuracy-asc':  return (a, b) => (a.accuracy ?? Infinity) - (b.accuracy ?? Infinity);
-    case 'cost-desc':     return (a, b) => (b.total_cost_usd ?? 0) - (a.total_cost_usd ?? 0);
-    case 'turns-desc':    return (a, b) => (b.num_turns ?? 0) - (a.num_turns ?? 0);
-    case 'duration-desc': return (a, b) => (b.duration_ms ?? 0) - (a.duration_ms ?? 0);
-    default: return (a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1);
-  }
-}
-
 // ---------- Pretty-name helpers (mirror run.js) ------------------------
 
 function prettyBenchmark(b) {
@@ -764,6 +800,7 @@ function escapeHtml(s) {
 }
 
 function clearFilters() {
+  APPLYING_URL_STATE = true;
   els.q.value = '';
   els.expFilter.value = '';
   els.benchFilter.value = '';
@@ -771,14 +808,21 @@ function clearFilters() {
   els.agentFilter.value = '';
   [els.expFilter, els.benchFilter, els.modelFilter, els.agentFilter]
     .forEach(s => s.dispatchEvent(new Event('change', { bubbles: true })));
+  APPLYING_URL_STATE = false;
+  OPEN_GROUP_KEY = '';
+  syncUrlState();
   render();
 }
 
 [els.q, els.expFilter, els.benchFilter, els.modelFilter,
  els.agentFilter, els.groupBy, els.sort]
-  .forEach(el => el.addEventListener('input', render));
+  .forEach(el => el.addEventListener('input', handleControlInput));
 els.resetFilters.addEventListener('click', clearFilters);
 els.emptyReset.addEventListener('click', clearFilters);
+window.addEventListener('popstate', () => {
+  applyUrlState();
+  render();
+});
 
 // ---------- Custom dropdown (wraps each <select> in the filter dock) ---
 // The underlying <select> stays as the source of truth (so existing
