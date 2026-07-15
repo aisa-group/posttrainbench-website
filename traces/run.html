@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
   <title>PostTrainBench · trace</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -52,10 +52,14 @@
   <div class="layout">
     <!-- LEFT RAIL -------------------------------------------------------- -->
     <aside class="rail rail-left">
-      <a href="index.html" class="back-link">
+      <a href="index.html" class="back-link" id="back-link">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back to all runs
       </a>
+      <nav class="run-neighbors hidden" id="run-neighbors" aria-label="Adjacent runs">
+        <a id="prev-run" class="run-neighbor" href="#">← Previous</a>
+        <a id="next-run" class="run-neighbor" href="#">Next →</a>
+      </nav>
 
       <div class="card summary-card">
         <!-- Context: what this run is. -->
@@ -73,6 +77,14 @@
           </div>
           <div class="score-sub" id="score-sub"></div>
         </div>
+
+        <div class="summary-quick" id="summary-quick"></div>
+        <button type="button" class="summary-details-toggle" id="summary-details-toggle"
+                aria-expanded="false" aria-controls="summary-details">
+          <span>Run details</span><span class="summary-details-caret" aria-hidden="true">›</span>
+        </button>
+
+        <div class="summary-details" id="summary-details">
 
         <!-- Supporting stats. -->
         <dl class="summary-stats" id="summary-stats"></dl>
@@ -103,6 +115,7 @@
             </button>
             <span id="copy-feedback" class="copy-feedback">copied</span>
           </div>
+        </div>
         </div>
       </div>
     </aside>
@@ -149,9 +162,21 @@
                count, in plain prose so the toolbar has a left anchor. -->
           <div class="trace-toolbar-summary">
             <span id="event-count" class="trace-toolbar-count"></span>
+            <button type="button" id="open-metrics-btn" class="metrics-btn"
+                    aria-label="Open system metrics">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 17 9 11 13 15 21 7"></polyline>
+                <polyline points="14 7 21 7 21 14"></polyline>
+              </svg>
+              <span>Metrics</span>
+            </button>
           </div>
           <!-- Right cluster: nav + display controls. -->
           <div class="trace-toolbar-controls">
+            <div class="trace-view-toggle" role="group" aria-label="Trace detail">
+              <button type="button" id="trace-view-focus" class="trace-view-btn">Focus</button>
+              <button type="button" id="trace-view-all" class="trace-view-btn">All</button>
+            </div>
             <label class="trace-jump" title="Jump to a turn number (1-based)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -163,14 +188,6 @@
             <label class="toggle-label">
               <input type="checkbox" id="expand-outputs" /> expand outputs
             </label>
-            <button type="button" id="open-metrics-btn" class="metrics-btn"
-                    aria-label="Open system metrics">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="3 17 9 11 13 15 21 7"></polyline>
-                <polyline points="14 7 21 7 21 14"></polyline>
-              </svg>
-              <span>Metrics</span>
-            </button>
           </div>
         </header>
         <div id="trace"></div>
@@ -188,9 +205,12 @@
         <header class="section-header">
           <p class="muted section-desc">Final state of <code>task/</code>. Small text files are inlined; weights and large binaries are listed only.</p>
         </header>
-        <div class="workspace-layout">
+        <div class="workspace-layout" id="workspace-layout">
           <aside id="ws-tree"></aside>
-          <div id="ws-file"><p class="muted">Pick a file from the list to view its contents.</p></div>
+          <div id="ws-file">
+            <button type="button" id="ws-back" class="ws-back">← Files</button>
+            <div id="ws-file-content"><p class="muted">Pick a file from the list to view its contents.</p></div>
+          </div>
         </div>
       </section>
 
@@ -222,6 +242,7 @@
   <script src="config.js"></script>
   <script src="assets/theme.js"></script>
   <script src="assets/tooltip.js"></script>
+  <script src="assets/catalog.js"></script>
   <script src="assets/run.js"></script>
 </body>
 </html>

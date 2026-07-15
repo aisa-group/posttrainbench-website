@@ -2,6 +2,7 @@
 
 const params = new URLSearchParams(window.location.search);
 const RUN_ID = params.get('id');
+const CATALOG = window.PTB_Catalog;
 // Base URL for the JSON data — local "./data/" by default, can be set to
 // an external host (HF Datasets, R2, S3) by overriding window.PTB_DATA_BASE
 // in config.js.
@@ -10,6 +11,10 @@ const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './
 const els = {
   topbarMeta: document.getElementById('topbar-meta'),
   tabNav: document.getElementById('tab-nav'),
+  backLink: document.getElementById('back-link'),
+  runNeighbors: document.getElementById('run-neighbors'),
+  prevRun: document.getElementById('prev-run'),
+  nextRun: document.getElementById('next-run'),
 
   // Left rail summary
   summaryTitle: document.getElementById('summary-title'),
@@ -21,6 +26,9 @@ const els = {
   scoreBig: document.getElementById('score-big'),
   scoreSub: document.getElementById('score-sub'),
   summaryStats: document.getElementById('summary-stats'),
+  summaryQuick: document.getElementById('summary-quick'),
+  summaryDetails: document.getElementById('summary-details'),
+  summaryDetailsToggle: document.getElementById('summary-details-toggle'),
   linkRaw: document.getElementById('link-raw'),
 
   summaryThemes: document.getElementById('summary-themes'),
@@ -33,6 +41,9 @@ const els = {
   judge: document.getElementById('judge'),
   wsTree: document.getElementById('ws-tree'),
   wsFile: document.getElementById('ws-file'),
+  wsFileContent: document.getElementById('ws-file-content'),
+  wsBack: document.getElementById('ws-back'),
+  workspaceLayout: document.getElementById('workspace-layout'),
 
   // Right rail
   metricGridRail: document.getElementById('metric-grid-rail'),
@@ -48,6 +59,8 @@ const els = {
   eventCount: document.getElementById('event-count'),
   expandOutputs: document.getElementById('expand-outputs'),
   jumpTurn: document.getElementById('jump-turn'),
+  traceViewFocus: document.getElementById('trace-view-focus'),
+  traceViewAll: document.getElementById('trace-view-all'),
 };
 
 let RECORD = null;
@@ -56,6 +69,7 @@ let WORKSPACE_LOADED = false;
 let RAIL_CHARTS = [];           // Chart instances pinned to the right rail
 let MODAL_CHARTS = [];          // Chart instances inside the show-all modal
 let TRACE_START_MS = null;      // first event ts in ms, for elapsed formatting
+let TRACE_VIEW = params.get('view') === 'all' ? 'all' : 'focus';
 const DATA_REQUEST_TIMEOUT_MS = 30000;
 const CHART_LOAD_TIMEOUT_MS = 8000;
 
@@ -72,6 +86,7 @@ async function load() {
     computeTraceStart();
     renderTopbar();
     renderSummary();
+    setupRunContext();
     renderTrace();
     renderJudge();
     if ((RECORD.system_monitor || []).length) whenChartReady(renderMiniCharts);
@@ -79,6 +94,7 @@ async function load() {
     renderMiniTokens();
     setupTabs();
     setupCopyId();
+    setupSummaryDetails();
     setupTraceControls();
     setupMetricsModal();
   } catch (error) {
@@ -253,7 +269,9 @@ function renderSummary() {
     : `<span class="cost-missing" data-tip="${escapeHtml(COST_MISSING_TITLE)}">—</span>`;
 
   const agentPretty = escapeHtml(prettyAgentFromMeta((s.agent_models || [])[0], m) || '—');
+  const agentQuick = prettyAgentFromMeta((s.agent_models || [])[0], m) || '—';
   const harness = prettyHarness(m.trace_format);
+  els.summaryQuick.textContent = `${agentQuick} · ${humanDuration(ix.time_taken, ix.duration_ms)}`;
 
   const stats = [
     ['agent',       agentPretty],
@@ -312,6 +330,58 @@ function renderSummary() {
     els.linkRaw.setAttribute('download', `${RUN_ID}.json`);
     els.linkRaw.innerHTML = `${downloadIcon}<span>Download trace</span>`;
   }
+}
+
+function safeReturnUrl() {
+  const value = params.get('return');
+  if (!value) return null;
+  try {
+    const url = new URL(value, window.location.href);
+    const landingPath = new URL('index.html', window.location.href).pathname;
+    return url.origin === window.location.origin && url.pathname === landingPath ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+async function setupRunContext() {
+  const returnUrl = safeReturnUrl();
+  if (!returnUrl) return;
+  els.backLink.href = returnUrl.href;
+  els.backLink.lastChild.textContent = ' Back to results';
+
+  try {
+    const catalogData = await fetchJsonWithTimeout(`${DATA_BASE}index.json`);
+    if (!catalogData || !Array.isArray(catalogData.runs)) return;
+    const state = CATALOG.readState(returnUrl.search);
+    const ordered = CATALOG.orderedRuns(catalogData.runs, state);
+    const current = ordered.findIndex(run => run.run_id === RUN_ID);
+    if (current < 0 || ordered.length < 2) return;
+
+    const neighborHref = run => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('id', run.run_id);
+      url.hash = '';
+      return url.href;
+    };
+    const previous = ordered[current - 1];
+    const next = ordered[current + 1];
+    els.prevRun.classList.toggle('hidden', !previous);
+    els.nextRun.classList.toggle('hidden', !next);
+    if (previous) els.prevRun.href = neighborHref(previous);
+    if (next) els.nextRun.href = neighborHref(next);
+    els.runNeighbors.classList.remove('hidden');
+  } catch (error) {
+    console.warn('Could not build adjacent-run navigation:', error);
+  }
+}
+
+function setupSummaryDetails() {
+  els.summaryDetailsToggle.addEventListener('click', () => {
+    const open = !els.summaryDetails.classList.contains('mobile-open');
+    els.summaryDetails.classList.toggle('mobile-open', open);
+    els.summaryDetailsToggle.setAttribute('aria-expanded', String(open));
+  });
 }
 
 // ---------- Pretty-name helpers ----------------------------------------
@@ -395,7 +465,19 @@ function prettyAgentFromMeta(name, meta) {
 // Re-render the trace when the expand-outputs toggle changes, and wire up
 // the jump-to-turn input + click-on-marker permalink behavior.
 function setupTraceControls() {
-  els.expandOutputs.addEventListener('change', renderTrace);
+  els.expandOutputs.addEventListener('change', () => renderTrace({ preservePosition: true }));
+
+  const setTraceView = view => {
+    if (TRACE_VIEW === view) return;
+    TRACE_VIEW = view;
+    const url = new URL(window.location.href);
+    if (view === 'all') url.searchParams.set('view', 'all');
+    else url.searchParams.delete('view');
+    history.replaceState(null, '', url);
+    renderTrace({ preservePosition: true });
+  };
+  els.traceViewFocus.addEventListener('click', () => setTraceView('focus'));
+  els.traceViewAll.addEventListener('click', () => setTraceView('all'));
 
   // Per-block output expand: clicking a badged Output header toggles just
   // that card between the height-capped view and full height. Only cards
@@ -503,15 +585,13 @@ function setupCopyId() {
 
 // ---------- Trace --------------------------------------------------------
 
-// Thinking and system events are always shown (no toggles for them);
-// tool outputs are collapsed by default and reveal on the "expand outputs" toggle.
-const SHOW_THINKING = true;
-const SHOW_SYSTEM = true;
-
-function renderTrace() {
+// Focus keeps the narrative readable: initialization stays visible, noisy
+// system records are omitted, and thoughts start closed. All restores the
+// forensic stream. Output height remains an independent choice.
+function renderTrace({ preservePosition = false } = {}) {
+  const anchor = preservePosition ? captureTraceAnchor() : null;
   const events = RECORD.events;
-  els.eventCount.textContent = `${events.length} events · ${RECORD.summary.session_count || 1} session(s)`;
-  const wantSys = SHOW_SYSTEM;
+  const wantSys = TRACE_VIEW === 'all';
   const expandResults = els.expandOutputs.checked;
 
   // Pair tool_use → tool_result so they render together.
@@ -547,9 +627,19 @@ function renderTrace() {
     }
   }
 
+  const sessionCount = RECORD.summary.session_count || 1;
+  const displayTurns = RECORD.index_row.num_turns ?? turnCounter;
+  els.eventCount.innerHTML = `<span>${Number(displayTurns).toLocaleString()} turn${Number(displayTurns) === 1 ? '' : 's'} · ${sessionCount} session${sessionCount === 1 ? '' : 's'}</span><span class="trace-raw-count">${events.length.toLocaleString()} source events</span>`;
+  els.eventCount.title = `${events.length.toLocaleString()} source events`;
+  els.traceViewFocus.classList.toggle('active', TRACE_VIEW === 'focus');
+  els.traceViewAll.classList.toggle('active', TRACE_VIEW === 'all');
+  els.traceViewFocus.setAttribute('aria-pressed', String(TRACE_VIEW === 'focus'));
+  els.traceViewAll.setAttribute('aria-pressed', String(TRACE_VIEW === 'all'));
+
   const out = [];
   let lastSession = -1;
-  for (const ev of events) {
+  for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
+    const ev = events[eventIndex];
     if (ev.type === 'system' && !wantSys && ev.subtype !== 'init') continue;
     if (skipUserEv.has(ev)) continue;
 
@@ -558,10 +648,29 @@ function renderTrace() {
     }
     lastSession = ev.session_idx;
 
-    out.push(renderEvent(ev, resultByUseId, expandResults, turnNumByUuid.get(ev)));
+    out.push(renderEvent(ev, resultByUseId, expandResults, turnNumByUuid.get(ev), eventIndex));
   }
   els.trace.innerHTML = out.join('');
+  if (anchor) restoreTraceAnchor(anchor);
   markClippedOutputs();
+}
+
+function captureTraceAnchor() {
+  const stickyBottom = Math.max(0, els.tabNav.getBoundingClientRect().bottom) + 8;
+  const visible = [...els.trace.querySelectorAll('.event')]
+    .find(event => event.getBoundingClientRect().bottom > stickyBottom);
+  if (!visible) return null;
+  return { id: visible.id, offset: visible.getBoundingClientRect().top - stickyBottom };
+}
+
+function restoreTraceAnchor(anchor) {
+  requestAnimationFrame(() => {
+    const target = document.getElementById(anchor.id);
+    if (!target) return;
+    const stickyBottom = Math.max(0, els.tabNav.getBoundingClientRect().bottom) + 8;
+    const delta = target.getBoundingClientRect().top - stickyBottom - anchor.offset;
+    if (Math.abs(delta) > 0.5) window.scrollBy({ top: delta, behavior: 'instant' });
+  });
 }
 
 // Badge the tool cards whose output actually overflows the 280px height cap
@@ -614,7 +723,7 @@ function renderSessionBanner(ev) {
   </div>`;
 }
 
-function renderEvent(ev, resultByUseId, expandResults, turnNum) {
+function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
   let roleClass = '';
   let markerLabel = '';
   let markerNum = '';
@@ -646,7 +755,7 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum) {
   // Agent turns use #turn-N; other events use a stable role-based ID.
   const anchorId = turnNum != null
     ? `turn-${turnNum}`
-    : `ev-${ev.session_idx ?? 0}-${ev.type}-${(ev.uuid || ev.ts || '').replace(/[^A-Za-z0-9_-]/g, '').slice(-8) || Math.random().toString(36).slice(2, 8)}`;
+    : `ev-${ev.session_idx ?? 0}-${ev.type}-${(ev.uuid || ev.ts || eventIndex).toString().replace(/[^A-Za-z0-9_-]/g, '').slice(-8) || eventIndex}`;
   // Marker: turn # (or role label) → relative time. The displayed time is
   // already trace-relative (first event = 00:00:00) so the redundant
   // "+elapsed" badge is gone. Wall-clock + date move to the hover tooltip.
@@ -656,7 +765,7 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum) {
     : '';
   const marker = `<aside class="event-marker" data-anchor="${anchorId}" title="Copy link to this event">
     ${markerNum}${markerLabel}
-    ${tsParts ? `<div class="ev-time" title="${escapeHtml(tsTitle)}">${escapeHtml(tsParts.time || '')}</div>` : ''}
+    ${tsParts ? `<div class="ev-time" title="${escapeHtml(tsTitle)}"><span class="ev-time-full">${escapeHtml(tsParts.time || '')}</span><span class="ev-time-short">${escapeHtml((tsParts.time || '').slice(0, 5))}</span></div>` : ''}
     ${ev.parent_tool_use_id ? `<div class="ev-sub-tag">sub-agent</div>` : ''}
   </aside>`;
 
@@ -711,6 +820,11 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum) {
     body = ev.blocks.map(b => renderBlock(b, resultByUseId, expandResults)).join('');
   }
 
+  if (!body.trim()) {
+    if (TRACE_VIEW === 'focus') return '';
+    body = `<details><summary class="muted" style="cursor:pointer;font-size:0.72rem">Raw ${escapeHtml(ev.type || 'event')}</summary><pre class="muted" style="font-size:0.72rem;margin-top:4px">${escapeHtml(JSON.stringify(ev.raw ?? ev, null, 2))}</pre></details>`;
+  }
+
   return `<article id="${anchorId}" class="${cls}">${marker}<div class="event-body">${body}</div></article>`;
 }
 
@@ -728,7 +842,7 @@ function renderBlock(block, resultByUseId, expandResults) {
       // Agent message — bordered card, same shape as other blocks.
       return `<div class="block-card agent-text">${mdLite(block.text || '')}</div>`;
     case 'thinking':
-      return `<details class="block-card agent-thinking" ${SHOW_THINKING ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(block.thinking || '')}</div></details>`;
+      return `<details class="block-card agent-thinking" ${TRACE_VIEW === 'all' ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(block.thinking || '')}</div></details>`;
     case 'tool_use': {
       const pair = resultByUseId.get(block.id);
       return renderToolCall(block, pair, expandResults);
@@ -805,7 +919,7 @@ function renderCodexItem(item, expandResults) {
   switch (item.type) {
     case 'reasoning':
     case 'agent_reasoning':
-      return `<details class="block-card agent-thinking" ${SHOW_THINKING ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(item.text || '')}</div></details>`;
+      return `<details class="block-card agent-thinking" ${TRACE_VIEW === 'all' ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(item.text || '')}</div></details>`;
     case 'agent_message':
     case 'assistant_message':
       return `<div class="block-card agent-text">${mdLite(item.text || '')}</div>`;
@@ -1169,7 +1283,14 @@ function renderJudge() {
     const html = renderCodexItem(e.item || {}, /*expandResults*/ false);
     if (html) items.push(`<div class="judge-item">${html}</div>`);
   }
-  els.judge.innerHTML = `<div class="judge-stream">${items.join('') || '<p class="muted">(no renderable judge items)</p>'}</div>`;
+  if (!items.length) {
+    els.judge.innerHTML = '<p class="muted">No renderable judge trace items.</p>';
+    return;
+  }
+  els.judge.innerHTML = `<details class="judge-details">
+    <summary>View judge trace <span>· ${items.length.toLocaleString()} item${items.length === 1 ? '' : 's'}</span></summary>
+    <div class="judge-stream">${items.join('')}</div>
+  </details>`;
 }
 
 function renderJudgeVerdicts() {
@@ -1263,28 +1384,50 @@ function renderWorkspace() {
       showWorkspaceFile(f);
     });
   });
+
+  els.wsBack.onclick = () => {
+    els.workspaceLayout.classList.remove('workspace-file-open');
+    els.wsTree.querySelectorAll('.ws-file.active').forEach(x => x.classList.remove('active'));
+    scrollSectionBelowTabs(document.getElementById('section-workspace'));
+  };
+
+  if (!window.matchMedia('(max-width: 900px)').matches && files.length) {
+    const preferredNames = ['metrics_final.json', 'metrics.json', 'README.md'];
+    const preferred = preferredNames
+      .map(name => files.find(file => file.inlined && file.path.split('/').pop() === name))
+      .find(Boolean);
+    const initial = preferred || files.find(file => file.inlined) || files[0];
+    const row = [...els.wsTree.querySelectorAll('.ws-file')]
+      .find(item => item.dataset.path === initial.path);
+    row?.classList.add('active');
+    showWorkspaceFile(initial, { scroll: false });
+  }
 }
 
-function showWorkspaceFile(f) {
+function showWorkspaceFile(f, { scroll = true } = {}) {
   const header = `<h4>${escapeHtml(f.path)} <span class="muted" style="font-weight:400">(${fmtBytes(f.size)})</span></h4>`;
   if (!f.inlined) {
-    els.wsFile.innerHTML = `${header}<p class="muted">Not inlined: ${escapeHtml(f.skipped_reason || '?')}</p>`;
-    return;
-  }
-  const lang = guessLang(f.path);
-  // Render with highlight.js if it's loaded and we recognize the language.
-  let code;
-  if (lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang)) {
-    try {
-      const res = hljs.highlight(f.text, { language: lang, ignoreIllegals: true });
-      code = `<pre class="hljs language-${lang}"><code>${res.value}</code></pre>`;
-    } catch {
+    els.wsFileContent.innerHTML = `${header}<p class="muted">Not inlined: ${escapeHtml(f.skipped_reason || 'file is too large to preview')}</p>`;
+  } else {
+    const lang = guessLang(f.path);
+    // Render with highlight.js if it's loaded and we recognize the language.
+    let code;
+    if (lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang)) {
+      try {
+        const res = hljs.highlight(f.text, { language: lang, ignoreIllegals: true });
+        code = `<pre class="hljs language-${lang}"><code>${res.value}</code></pre>`;
+      } catch {
+        code = `<pre><code>${escapeHtml(f.text)}</code></pre>`;
+      }
+    } else {
       code = `<pre><code>${escapeHtml(f.text)}</code></pre>`;
     }
-  } else {
-    code = `<pre><code>${escapeHtml(f.text)}</code></pre>`;
+    els.wsFileContent.innerHTML = header + code;
   }
-  els.wsFile.innerHTML = header + code;
+  if (window.matchMedia('(max-width: 900px)').matches) {
+    els.workspaceLayout.classList.add('workspace-file-open');
+    if (scroll) scrollSectionBelowTabs(els.wsFile);
+  }
 }
 
 function guessLang(path) {
@@ -1316,7 +1459,7 @@ function setupTabs() {
   const legacyHashTab = new URLSearchParams(location.hash.slice(1)).get('tab');
   const hashTab = params.get('tab') || legacyHashTab;
   let active = (hashTab && sections.has(hashTab)) ? hashTab : btns[0].dataset.tab;
-  selectTab(active);
+  selectTab(active, { initial: true });
 
   els.tabNav.addEventListener('click', e => {
     const btn = e.target.closest('.tab-btn');
@@ -1324,7 +1467,7 @@ function setupTabs() {
     selectTab(btn.dataset.tab);
   });
 
-  function selectTab(name) {
+  function selectTab(name, { initial = false } = {}) {
     btns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     for (const [k, sec] of sections) sec?.classList.toggle('active', k === name);
 
@@ -1339,13 +1482,27 @@ function setupTabs() {
       url.hash = '';
     }
     history.replaceState(null, '', url.toString());
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (!initial) {
+      if (window.matchMedia('(max-width: 900px)').matches) {
+        requestAnimationFrame(() => scrollSectionBelowTabs(sections.get(name)));
+      } else {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
     if (name === 'workspace') loadWorkspace();
     // If the trace rendered while its section was hidden (page opened on
     // ?tab=judge), every output measured 0×0 and got no "show all" badge —
     // re-measure now that it's visible.
     if (name === 'trace') markClippedOutputs();
   }
+}
+
+function scrollSectionBelowTabs(element) {
+  if (!element) return;
+  const topbarHeight = document.querySelector('.topbar')?.offsetHeight || 48;
+  const tabHeight = els.tabNav.offsetHeight || 44;
+  const top = element.getBoundingClientRect().top + window.scrollY - topbarHeight - tabHeight - 8;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 }
 
 // ---------- Trace control listeners ------------------------------------
