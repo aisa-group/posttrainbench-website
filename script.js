@@ -7,29 +7,51 @@ if (typeof ChartDataLabels !== 'undefined') {
 // Global chart instances
 let performanceChart = null;
 let paretoChart = null;
+let timeSpentChart = null;
+let currentSelectedModel = 'average';
+let isThemeTransitioning = false;
+let activeThemeTransition = null;
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 // Hamburger Menu Toggle
 const hamburgerBtn = document.getElementById('hamburger-btn');
 const navLinks = document.getElementById('nav-links');
 
+function setMobileNavOpen(isOpen) {
+    hamburgerBtn.classList.toggle('active', isOpen);
+    navLinks.classList.toggle('active', isOpen);
+    hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
+    hamburgerBtn.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+}
+
 hamburgerBtn.addEventListener('click', () => {
-    hamburgerBtn.classList.toggle('active');
-    navLinks.classList.toggle('active');
+    setMobileNavOpen(!navLinks.classList.contains('active'));
 });
 
 // Close menu when clicking a link
 navLinks.querySelectorAll('a').forEach(link => {
     link.addEventListener('click', () => {
-        hamburgerBtn.classList.remove('active');
-        navLinks.classList.remove('active');
+        setMobileNavOpen(false);
     });
 });
 
 // Close menu when clicking outside
 document.addEventListener('click', (e) => {
     if (!hamburgerBtn.contains(e.target) && !navLinks.contains(e.target)) {
-        hamburgerBtn.classList.remove('active');
-        navLinks.classList.remove('active');
+        setMobileNavOpen(false);
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navLinks.classList.contains('active')) {
+        setMobileNavOpen(false);
+        hamburgerBtn.focus();
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 768 && navLinks.classList.contains('active')) {
+        setMobileNavOpen(false);
     }
 });
 
@@ -40,15 +62,16 @@ const html = document.documentElement;
 // Load saved theme or default to light
 const savedTheme = localStorage.getItem('theme') || 'light';
 html.setAttribute('data-theme', savedTheme);
+themeToggle.setAttribute('aria-label', savedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
 
-themeToggle.addEventListener('click', () => {
-    const currentTheme = html.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
+function commitTheme(newTheme) {
+    isThemeTransitioning = true;
     html.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+    themeToggle.setAttribute('aria-label', newTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
 
-    // Recreate charts with new theme colors
+    // Recreate the canvases in their destination colors, but suppress their
+    // normal entrance builds while the page-level theme crossfade is running.
     if (performanceChart) {
         performanceChart.destroy();
         createSimpleChart(currentSelectedModel);
@@ -61,9 +84,33 @@ themeToggle.addEventListener('click', () => {
         timeSpentChart.destroy();
         createTimeSpentChart();
     }
+
+    requestAnimationFrame(() => {
+        isThemeTransitioning = false;
+    });
+}
+
+themeToggle.addEventListener('click', () => {
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+    if (!reducedMotionQuery.matches && typeof document.startViewTransition === 'function') {
+        // A second click should retarget immediately rather than waiting for
+        // the previous crossfade to finish.
+        activeThemeTransition?.skipTransition();
+        const transition = document.startViewTransition(() => commitTheme(newTheme));
+        activeThemeTransition = transition;
+        transition.finished
+            .catch(() => {})
+            .finally(() => {
+                if (activeThemeTransition === transition) activeThemeTransition = null;
+            });
+    } else {
+        commitTheme(newTheme);
+    }
 });
 
-// Map dropdown display values to actual model names in data
+// Map model-filter values to actual model names in data
 const modelNameMap = {
     "Qwen3-1.7B": "Qwen3-1.7B-Base",
     "Qwen3-4B": "Qwen3-4B-Base",
@@ -896,7 +943,7 @@ function createParetoChart() {
         }
     };
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning;
     const buildAnimation = reduceMotion ? { duration: 0 } : {
         duration: 450,
         easing: 'easeOutCubic',
@@ -1022,7 +1069,6 @@ function createParetoChart() {
 }
 
 // Create Time Spent Chart
-let timeSpentChart = null;
 let showAllTimeAgents = false;
 
 function createTimeSpentChart() {
@@ -1059,7 +1105,7 @@ function createTimeSpentChart() {
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning;
     const buildAnimation = reduceMotion ? { duration: 0 } : {
         duration: 450,
         easing: 'easeOutCubic',
@@ -1398,6 +1444,7 @@ window.addEventListener('resize', () => {
             timeSpentChart.destroy();
             createTimeSpentChart();
         }
+        handleNavbarLogoVisibility();
     }, 250);
 });
 
@@ -1417,12 +1464,22 @@ document.getElementById('copy-citation').addEventListener('click', function() {
     });
 });
 
-// Custom dropdown functionality
-let currentSelectedModel = 'average';
-
+// Custom model picker. It retains the original visual character while matching
+// native-select basics: labelled state, arrow-key navigation, typeahead,
+// Escape/Tab dismissal, and a single announced selected option.
+const modelDropdown = document.getElementById('model-dropdown');
 const dropdownDisplay = document.getElementById('model-select-display');
 const dropdownOptions = document.getElementById('model-select-options');
-const modelDropdown = dropdownDisplay.closest('.custom-dropdown');
+const dropdownOptionButtons = [...(dropdownOptions?.querySelectorAll('.dropdown-option') || [])];
+
+function setModelDropdownOpen(isOpen, optionToFocus = null) {
+    if (!modelDropdown || !dropdownDisplay) return;
+    modelDropdown.classList.toggle('open', isOpen);
+    dropdownDisplay.setAttribute('aria-expanded', String(isOpen));
+    if (isOpen && optionToFocus) {
+        requestAnimationFrame(() => optionToFocus.focus());
+    }
+}
 
 // Toggle dropdown
 dropdownDisplay.addEventListener('click', (e) => {
@@ -1493,7 +1550,7 @@ const heroSection = document.querySelector('.hero');
 function handleNavbarLogoVisibility() {
     if (!heroSection || !logo) return;
     const heroBottom = heroSection.getBoundingClientRect().bottom;
-    if (heroBottom > 0) {
+    if (heroBottom > 0 && window.innerWidth > 768) {
         logo.style.opacity = '0';
         logo.style.visibility = 'hidden';
     } else {

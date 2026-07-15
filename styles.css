@@ -14,6 +14,10 @@
     --text-secondary: #aca595;
     --accent-primary: #c17d5a;
     --accent-secondary: #a66b4f;
+    --accent-text: #d08b68;
+    --accent-fill: #c17d5a;
+    --accent-fill-hover: #d08b68;
+    --accent-on-fill: #1a1612;
     --border-color: #3d3728;
     --success: #10b981;
     --warning: #f59e0b;
@@ -28,6 +32,11 @@
     /* Motion — strong ease-out; hover/press micro-interactions stay under
        ~150ms so frequently-seen transitions read as instant. */
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+    /* Typography roles: mono carries the benchmark/console identity while
+       system sans gives longer editorial passages a calmer reading rhythm. */
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
     /* Shape & elevation tokens */
     --radius-sm: 0.25rem;
@@ -68,6 +77,10 @@
     --border-color: #d9d4c8;
     --accent-primary: #a66b4f;
     --accent-secondary: #8d5d45;
+    --accent-text: #895940;
+    --accent-fill: #895940;
+    --accent-fill-hover: #744a35;
+    --accent-on-fill: #faf8f3;
     --danger: #b04a3c;
     --ok: #6f7d45;
 
@@ -96,15 +109,40 @@
 html {
     /* Anchor links land below the sticky navbar instead of underneath it. */
     scroll-padding-top: 5rem;
+    scroll-behavior: smooth;
+    background-color: var(--bg-primary);
 }
 
 body {
-    font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
+    font-family: var(--font-mono);
     background-color: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
-    /* Colors only — the theme toggle crossfades as one coordinated change. */
-    transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* Treat a theme change as one visual state transition. Transitioning only the
+   body while panels and canvases snapped made the page flash in layers. */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 180ms;
+    animation-timing-function: var(--ease-out);
+    mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+    animation-name: theme-fade-out;
+}
+
+::view-transition-new(root) {
+    animation-name: theme-fade-in;
+}
+
+@keyframes theme-fade-out {
+    to { opacity: 0; }
+}
+
+@keyframes theme-fade-in {
+    from { opacity: 0; }
 }
 
 ::selection {
@@ -204,17 +242,19 @@ body {
     cursor: pointer;
     padding: 0.5rem;
     z-index: 101;
+    transition: transform 120ms var(--ease-out);
 }
 
 .hamburger-line {
     width: 24px;
     height: 2px;
     background-color: var(--text-primary);
-    transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out);
+    transform-origin: center;
+    transition: transform 180ms var(--ease-out), opacity 120ms var(--ease-out);
 }
 
 .hamburger.active .hamburger-line:nth-child(1) {
-    transform: rotate(45deg) translate(5px, 5px);
+    transform: translateY(7px) rotate(45deg);
 }
 
 .hamburger.active .hamburger-line:nth-child(2) {
@@ -222,7 +262,11 @@ body {
 }
 
 .hamburger.active .hamburger-line:nth-child(3) {
-    transform: rotate(-45deg) translate(5px, -5px);
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+.hamburger:active {
+    transform: scale(0.96);
 }
 
 .theme-toggle {
@@ -337,8 +381,8 @@ body {
 }
 
 .btn-primary {
-    background-color: var(--accent-primary);
-    color: var(--bg-primary);
+    background-color: var(--accent-fill);
+    color: var(--accent-on-fill);
 }
 
 .btn-secondary {
@@ -349,7 +393,7 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
     .btn-primary:hover {
-        background-color: var(--accent-secondary);
+        background-color: var(--accent-fill-hover);
     }
 
     .btn-secondary:hover {
@@ -1300,23 +1344,42 @@ tbody tr:last-child td {
         background: var(--bg-secondary);
         border-bottom: 1px solid var(--border-color);
         flex-direction: column;
-        padding: 1rem;
-        gap: 0;
-        display: none;
+        align-items: stretch;
+        padding: 0.65rem 1rem 0.8rem;
+        gap: 0.1rem;
+        display: flex;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-6px) scale(0.99);
+        transform-origin: top center;
+        box-shadow: var(--shadow-panel);
+        transition: opacity 160ms var(--ease-out), transform 180ms var(--ease-out), visibility 0s linear 180ms;
     }
 
     .nav-links.active {
-        display: flex;
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+        transition-delay: 0s;
     }
 
     .nav-links a {
         font-size: 0.95rem;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid var(--border-color);
+        padding: 0.6rem 0.75rem;
+        border: 0;
+        border-radius: var(--radius-sm);
+        text-align: center;
+        transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out);
     }
 
     .nav-links a:last-of-type {
-        border-bottom: none;
+        border: 0;
+    }
+
+    .nav-links a:active {
+        background: var(--bg-tertiary);
     }
 
     .nav-right {
@@ -1325,6 +1388,8 @@ tbody tr:last-child td {
 
     .logo {
         font-size: 1rem;
+        opacity: 1;
+        visibility: visible;
     }
 
     .section-title {
