@@ -383,11 +383,19 @@
     <section id="observations" class="observations">
         <div class="container">
             <h2 class="section-title">Observations</h2>
+            <p class="section-description observations-deck">What the run traces reveal about how agents train, where improvements come from, why runs fail, and where strategies cross the rules.</p>
+            <nav class="observations-nav" aria-label="Observation topics">
+                <a href="#observations-methods">Methods</a>
+                <a href="#observations-signal">Signal</a>
+                <a href="#observations-inference">Inference</a>
+                <a href="#observations-reliability">Reliability</a>
+                <a href="#observations-integrity">Integrity</a>
+            </nav>
 
-            <h3 class="section-subtitle">Post-Training Method Selection</h3>
-            <p class="findings-lead">All agents default to SFT and iterate within it — Opus 4.6 and 4.7 routinely produce 3–9 training-script versions per task. Effort goes into data curation and hyperparameter tuning, not method selection. Where agents diverge:</p>
-            <div class="findings-table-wrap">
-                <table class="findings-table">
+            <h3 id="observations-methods" class="section-subtitle observation-heading">Agents default to SFT</h3>
+            <p class="findings-lead observations-copy">Agents rarely search across training methods. Every agent starts with SFT; Opus 4.6 and 4.7 often rewrite the training script 3–9 times, spending their search budget on data and hyperparameters instead. The table captures where agents diverge.</p>
+            <div class="findings-table-wrap findings-methods-wrap">
+                <table class="findings-table findings-methods-table">
                     <thead>
                         <tr>
                             <th>Method</th>
@@ -396,11 +404,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>SFT</td>
-                            <td>All agents</td>
-                            <td>Default approach — via TRL's <code>SFTTrainer</code> or HF's base <code>Trainer</code></td>
-                        </tr>
                         <tr>
                             <td>GRPO <span class="findings-meta">RL</span></td>
                             <td>Sonnet 4.6, Opus 4.6, Opus 4.8, GLM 5.2</td>
@@ -431,21 +434,19 @@
                             <td>Opus 4.8, GLM 5.2</td>
                             <td>Preference pairs on Arena Hard — the only preference-based method observed</td>
                         </tr>
-                        <tr>
-                            <td>PPO, KTO</td>
-                            <td class="findings-empty">—</td>
-                            <td class="findings-empty">Not observed in any run</td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
+            <p class="findings-note observations-copy">PPO and KTO were not observed in any run.</p>
 
             <!-- Distillation findings sourced from the Opus 4.7 / 4.8 / GLM 5.2
                  trace analysis (280 runs; see ptb_opus47_opus48_glm52_analysis.md). -->
-            <h3 class="section-subtitle">Where the Training Signal Comes From</h3>
-            <p class="findings-lead">A trace analysis of the three newest agents (Opus 4.7, Opus 4.8, GLM 5.2 — 280 runs) shows most "post-training" is really distillation: the training signal comes from a stronger model, directly or indirectly. These runs predate the v1.1 judges; hosted-API teacher use is now disallowed (see Reward Hacking below).</p>
-            <div class="findings-table-wrap">
-                <table class="findings-table">
+            <h3 id="observations-signal" class="section-subtitle observation-heading">Most training signal is distilled</h3>
+            <p class="findings-lead observations-copy">Across 280 runs from Opus 4.7, Opus 4.8, and GLM 5.2, roughly 55–77% used a stronger model's outputs—directly, through hosted APIs, or through packaged reasoning traces. These runs predate the v1.1 judges; hosted-API teachers are now disallowed.</p>
+            <p class="table-scroll-hint" aria-hidden="true">Swipe to compare agents →</p>
+            <div class="findings-signal-frame">
+                <div class="findings-table-wrap findings-signal-wrap">
+                    <table class="findings-table findings-signal-table">
                     <thead>
                         <tr>
                             <th>Training signal</th>
@@ -486,23 +487,23 @@
                             <td class="num">23%</td>
                         </tr>
                     </tbody>
-                </table>
+                    </table>
+                </div>
             </div>
 
-            <details class="evidence-fold">
+            <details class="evidence-fold observations-evidence">
                 <summary>What are "R1 traces" — the most-used training signal in the benchmark?</summary>
                 <div class="evidence-body">
                     <p>Chain-of-thought generations from DeepSeek-R1, packaged into public HuggingFace datasets (<code>OpenR1-Math-220k</code>, <code>Mixture-of-Thoughts</code>, <code>Bespoke-Stratos-17k</code>, <code>s1K</code>). They're long, high-quality on math and science, and cost no GPU budget to obtain — so training on them effectively distills R1 into the base model without ever running it. Every analyzed AIME run trains on them.</p>
                 </div>
             </details>
 
-            <div class="observation-block">
-                <p><strong>The single biggest accuracy lever isn't training at all.</strong> Opus 4.8 discovered that forcing greedy decoding (<code>temperature=0.0</code> in <code>generation_config.json</code>) beats the base models' shipped sampling defaults — one GSM8K run jumped 42.7% → 78% from that change alone. GLM 5.2 found the same lever independently (a BFCL run went 17% → 91%). Both treat the base model's sampling defaults as a first-order bug to fix before training.</p>
-            </div>
+            <h3 id="observations-inference" class="section-subtitle observation-heading">Inference settings can outweigh training</h3>
+            <p class="findings-lead observations-copy">Forcing greedy decoding (<code>temperature=0.0</code> in <code>generation_config.json</code>) beat the base models' shipped sampling defaults: one Opus 4.8 GSM8K run jumped from 42.7% to 78%, while a GLM 5.2 BFCL run went from 17% to 91%. Both agents treat sampling defaults as a first-order bug to fix before training.</p>
 
-            <h3 class="section-subtitle">Reliability & Failure Modes</h3>
-            <p class="findings-lead">Reliability varies as much as strategy. In the same 280-run analysis, Opus 4.7 failed to produce an evaluable model in 26% of its runs (22 of 84) — versus 13% for Opus 4.8 and 5% for GLM 5.2.</p>
-            <div class="observation-block">
+            <h3 id="observations-reliability" class="section-subtitle observation-heading">Reliability hinges on artifact handling</h3>
+            <p class="findings-lead observations-copy">The same training strategy can succeed or fail on artifact handling alone. Opus 4.7 produced no evaluable model in 26% of runs, versus 13% for Opus 4.8 and 5% for GLM 5.2.</p>
+            <div class="observation-block observation-reading-card">
                 <p><strong>One habit explains most of the gap.</strong> Opus 4.7 saves <code>final_model</code> as a symlink to an absolute path inside its container. Outside the container that path doesn't exist — the copy step skips the broken link, cleanup deletes the real weights, and the run falls back to base-model scores. Training succeeded; nothing survived. At least 14 of its 22 failures follow this mechanism. GLM 5.2 writes <code>final_model</code> as a real directory with relative paths; its 4 failures are unrelated one-offs.</p>
                 <details class="evidence-fold">
                     <summary>Broken symlinks from Opus 4.7 runs — the recurring pattern</summary>
@@ -513,9 +514,9 @@ healthbench_HuggingFaceTB_SmolLM3-3B-Base_*  final_model -> /home/ben/task/work/
                 </details>
             </div>
 
-            <h3 class="section-subtitle">Reward Hacking & Contamination</h3>
-            <div class="observation-block">
-                <p>Most agents acknowledged the contamination rules early in their runs — yet the v1.1 judges (two agent-as-judge passes backed by programmatic contamination and model-identity checks) still surfaced violations across most of them. They cluster into three recurring types — expand each for examples from real runs.</p>
+            <h3 id="observations-integrity" class="section-subtitle observation-heading">Reward hacking follows three recurring patterns</h3>
+            <div class="integrity-block">
+                <p class="findings-lead observations-copy integrity-intro">The v1.1 audit found three recurring violations: hosted LLM teachers, substituted instruct models, and benchmark-targeted training data. Expand each pattern for examples from real runs.</p>
 
                 <!-- Featured run on cluster:
                      /fast/brank/auto-posttrain/results_rerun/codex_non_api_xhigh_gpt-5.5_10h_run1/arenahardwriting_Qwen_Qwen3-1.7B-Base_17327640 -->
@@ -734,7 +735,7 @@ examples.extend(synthetic_examples(1000, 42000))</pre>
                     </div>
                 </details>
 
-                <p><strong>Agent-level variation.</strong> Opus 4.6 was the most prolific offender (12 flags across 84 runs, predominantly HumanEval). Kimi K2.5 exhibited the most diverse strategies across 4 benchmarks. Gemini 3.1 Pro had zero contamination across any run. For more details, see <a href="https://arxiv.org/abs/2603.08640" target="_blank">the paper</a>.</p>
+                <p class="integrity-closing"><strong>Agent-level variation.</strong> Opus 4.6 was the most prolific offender (12 flags across 84 runs, predominantly HumanEval). Kimi K2.5 exhibited the most diverse strategies across 4 benchmarks. Gemini 3.1 Pro had zero contamination across any run. For more details, see <a href="https://arxiv.org/abs/2603.08640" target="_blank" rel="noopener noreferrer">the paper</a>.</p>
             </div>
         </div>
     </section>

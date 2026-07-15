@@ -2446,7 +2446,62 @@ tbody tr:last-child td {
 
 /* Observations Section */
 .observations {
+    --observations-measure: 36rem;
     padding: 4rem 0;
+}
+
+.observations-deck {
+    max-width: var(--observations-measure);
+    margin-bottom: 1rem;
+    font-family: var(--font-sans);
+    line-height: 1.65;
+}
+
+.observations-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem 1rem;
+    margin: 0 auto 3rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+}
+
+.observations-nav a {
+    color: var(--accent-text);
+    text-decoration: none;
+    text-underline-offset: 0.25em;
+    transition: color 120ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .observations-nav a:hover {
+        color: var(--text-primary);
+        text-decoration: underline;
+    }
+}
+
+.observations-copy,
+.observation-heading {
+    width: min(100%, var(--observations-measure));
+    margin-inline: auto;
+}
+
+.observation-heading {
+    margin-top: 3.75rem;
+    margin-bottom: 1rem;
+    text-align: left;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    scroll-margin-top: 6rem;
+}
+
+#observations-methods {
+    margin-top: 0;
+}
+
+.observations code {
+    font-family: var(--font-mono);
 }
 
 /* Findings tables — dense reference-style tables used in the
@@ -2456,9 +2511,11 @@ tbody tr:last-child td {
 .findings-table-wrap {
     margin: 0.25rem 0 2rem;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
 }
 
 .findings-table {
+    font-family: var(--font-mono);
     width: 100%;
     min-width: 0;
     border-collapse: collapse;
@@ -2529,7 +2586,7 @@ tbody tr:last-child td {
     display: inline-block;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.78rem;
-    color: var(--accent-primary);
+    color: var(--accent-text);
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     padding: 0.2rem 0.45rem;
@@ -2540,10 +2597,45 @@ tbody tr:last-child td {
 }
 
 .findings-lead {
+    font-family: var(--font-sans);
     color: var(--text-secondary);
     font-size: 0.95rem;
-    line-height: 1.6;
-    margin: 0.5rem 0 1.25rem;
+    line-height: 1.7;
+    margin-top: 0;
+    margin-bottom: 1.35rem;
+}
+
+.findings-lead code {
+    padding: 0.08em 0.32em;
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary);
+    color: var(--accent-text);
+    font-size: 0.9em;
+}
+
+.findings-note {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0;
+}
+
+.findings-methods-wrap {
+    margin-bottom: 0.65rem;
+}
+
+.findings-methods-table th:first-child,
+.findings-methods-table td:first-child {
+    width: 17%;
+    font-weight: 600;
+}
+
+.findings-methods-table th:nth-child(2),
+.findings-methods-table td:nth-child(2) {
+    width: 31%;
+}
+
+.table-scroll-hint {
+    display: none;
 }
 
 .findings-meta {
@@ -2564,6 +2656,24 @@ tbody tr:last-child td {
     .findings-code {
         font-size: 0.7rem;
     }
+
+    /* The benchmark table adapts into records; reassert these after the
+       shared findings-table rules so no table-row borders leak into cards. */
+    .benchmarks-table {
+        border: 0;
+        background: transparent;
+        overflow: visible;
+    }
+
+    .benchmarks-table td {
+        padding: 0;
+        border-bottom: 0;
+    }
+
+    .benchmarks-table td:nth-child(4) {
+        padding-top: 0.7rem;
+        border-top: 1px solid var(--border-color);
+    }
 }
 
 .observation-block {
@@ -2575,9 +2685,19 @@ tbody tr:last-child td {
 }
 
 .observation-block p {
+    font-family: var(--font-sans);
     color: var(--text-secondary);
     margin-bottom: 1rem;
-    line-height: 1.6;
+    line-height: 1.7;
+}
+
+.observation-block p strong {
+    color: var(--text-primary);
+}
+
+.observation-reading-card {
+    max-width: 48rem;
+    margin-inline: auto;
 }
 
 .observation-block ul {
@@ -2604,20 +2724,20 @@ tbody tr:last-child td {
 
 .observation-block code {
     background: var(--bg-tertiary);
-    color: var(--accent-primary);
+    color: var(--accent-text);
     padding: 0.15rem 0.4rem;
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
 }
 
 .observation-block a {
-    color: var(--accent-primary);
+    color: var(--accent-text);
     text-decoration: underline;
     transition: color 120ms var(--ease-out);
 }
 
 .observation-block a:hover {
-    color: var(--accent-secondary);
+    color: var(--text-primary);
 }
 
 .observation-block blockquote {
@@ -2720,6 +2840,7 @@ tbody tr:last-child td {
 }
 
 .trace-text {
+    font-family: var(--font-sans);
     font-size: 0.85rem;
     font-style: italic;
     color: var(--text-secondary);
@@ -2735,6 +2856,7 @@ tbody tr:last-child td {
 
 /* Elided time on the spine — quieter than the events it sits between. */
 .trace-gap {
+    font-family: var(--font-sans);
     font-size: 0.78rem;
     color: var(--text-secondary);
     font-style: italic;
@@ -2751,6 +2873,39 @@ tbody tr:last-child td {
     white-space: nowrap;
 }
 
+.integrity-block {
+    max-width: 62rem;
+    margin-inline: auto;
+}
+
+.integrity-intro {
+    margin-bottom: 1.5rem;
+}
+
+.integrity-closing {
+    width: min(100%, var(--observations-measure));
+    margin: 1.75rem auto 0;
+    font-family: var(--font-sans);
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.integrity-closing strong {
+    color: var(--text-primary);
+}
+
+.integrity-closing a {
+    color: var(--accent-text);
+    text-underline-offset: 0.2em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .integrity-closing a:hover {
+        color: var(--text-primary);
+    }
+}
+
 /* Explanatory tails inside table cells — dropped on phones so the
    numeric columns stay on-screen instead of forcing a crush/scroll.
    Same for the run-count metas in numeric column headers. */
@@ -2759,13 +2914,155 @@ tbody tr:last-child td {
     .findings-table th.num .findings-meta {
         display: none;
     }
+
+    .observation-heading {
+        margin-top: 3.25rem;
+        font-size: 1.25rem;
+    }
+
+    #observations-methods {
+        margin-top: 0;
+    }
+
+    .findings-methods-wrap {
+        overflow: visible;
+    }
+
+    .findings-methods-table {
+        display: block;
+        border: 0;
+        background: transparent;
+        overflow: visible;
+    }
+
+    .findings-methods-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .findings-methods-table tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .findings-methods-table tr {
+        display: grid;
+        grid-template-columns: minmax(7rem, 0.8fr) minmax(0, 1.2fr);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-secondary);
+        overflow: hidden;
+    }
+
+    .findings-methods-table td {
+        display: block;
+        width: auto !important;
+        padding: 0.7rem 0.8rem;
+        border: 0;
+        font-size: 0.76rem;
+    }
+
+    .findings-methods-table td:first-child,
+    .findings-methods-table td:nth-child(2) {
+        background: var(--bg-tertiary);
+    }
+
+    .findings-methods-table td:first-child {
+        border-right: 1px solid var(--border-color);
+    }
+
+    .findings-methods-table td:nth-child(2)::before,
+    .findings-methods-table td:nth-child(3)::before {
+        display: block;
+        margin-bottom: 0.2rem;
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        font-size: 0.58rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .findings-methods-table td:nth-child(2)::before {
+        content: 'Used by';
+    }
+
+    .findings-methods-table td:nth-child(3) {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--border-color);
+        font-family: var(--font-sans);
+        line-height: 1.6;
+    }
+
+    .findings-methods-table td:nth-child(3)::before {
+        content: 'Notes';
+    }
+
+    .table-scroll-hint {
+        display: block;
+        margin: 0 0 0.45rem;
+        color: var(--text-secondary);
+        font-size: 0.66rem;
+        text-align: right;
+    }
+
+    .findings-signal-frame {
+        position: relative;
+        margin-inline: -0.75rem;
+        margin-bottom: 2rem;
+    }
+
+    .findings-signal-frame::after {
+        content: '';
+        position: absolute;
+        z-index: 3;
+        top: 0;
+        right: 0;
+        bottom: 6px;
+        width: 1.5rem;
+        background: linear-gradient(to right, transparent, var(--bg-primary));
+        pointer-events: none;
+    }
+
+    .findings-signal-wrap {
+        margin: 0;
+        padding-inline: 0.75rem;
+    }
+
+    .findings-signal-table {
+        min-width: 40rem;
+    }
+
+    .findings-signal-table th:first-child,
+    .findings-signal-table td:first-child {
+        position: sticky;
+        left: 0.75rem;
+        min-width: 14rem;
+        box-shadow: 1px 0 var(--border-color);
+    }
+
+    .findings-signal-table th:first-child {
+        z-index: 2;
+        background: var(--bg-tertiary);
+    }
+
+    .findings-signal-table td:first-child {
+        z-index: 1;
+        background: var(--bg-primary);
+    }
 }
 
 /* Reward-hacking categories — top-level foldables in the qualitative
    analysis, one per hacking type. The +/− marker mirrors the changelog
    toggle so "there's more here" reads the same everywhere on the site. */
 .hack-category {
-    background: var(--bg-primary);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     margin: 0 0 1rem;
@@ -2781,6 +3078,7 @@ tbody tr:last-child td {
     font-weight: 600;
     font-size: 1rem;
     color: var(--text-primary);
+    transition: background-color 100ms var(--ease-out);
     /* Toggles get double-clicked; selecting the label text isn't intent. */
     user-select: none;
 }
@@ -2793,17 +3091,26 @@ tbody tr:last-child td {
     content: '+';
     margin-left: auto;
     font-family: 'JetBrains Mono', monospace;
-    color: var(--accent-primary);
+    color: var(--accent-text);
 }
 
-.hack-category[open] > summary::after {
+.hack-category[open] > summary::after,
+.hack-category[data-expanded="true"] > summary::after {
     content: '\2212';
+}
+
+.hack-category[data-expanded="false"] > summary::after {
+    content: '+';
 }
 
 @media (hover: hover) and (pointer: fine) {
     .hack-category > summary:hover::after {
-        color: var(--accent-secondary);
+        color: var(--text-primary);
     }
+}
+
+.hack-category > summary:active {
+    background: var(--bg-tertiary);
 }
 
 .hack-category-count {
@@ -2815,6 +3122,7 @@ tbody tr:last-child td {
 }
 
 .hack-category-body {
+    font-family: var(--font-sans);
     padding: 0 1.25rem 1.25rem;
     border-top: 1px solid var(--border-color);
     /* Evidence content reads a notch smaller than site prose — these are
@@ -2847,8 +3155,8 @@ tbody tr:last-child td {
     padding: 0.6rem 1rem;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.78rem;
-    color: var(--accent-primary);
-    transition: color 120ms var(--ease-out);
+    color: var(--accent-text);
+    transition: color 120ms var(--ease-out), background-color 100ms var(--ease-out);
     user-select: none;
 }
 
@@ -2861,14 +3169,23 @@ tbody tr:last-child td {
     margin-right: 0.5rem;
 }
 
-.evidence-fold[open] > summary::before {
+.evidence-fold[open] > summary::before,
+.evidence-fold[data-expanded="true"] > summary::before {
     content: '\2212';
+}
+
+.evidence-fold[data-expanded="false"] > summary::before {
+    content: '+';
 }
 
 @media (hover: hover) and (pointer: fine) {
     .evidence-fold > summary:hover {
-        color: var(--accent-secondary);
+        color: var(--text-primary);
     }
+}
+
+.evidence-fold > summary:active {
+    background: var(--bg-secondary);
 }
 
 .evidence-fold pre {
@@ -2892,6 +3209,7 @@ tbody tr:last-child td {
 
 /* Prose body variant for explainer folds (e.g. the R1-traces note). */
 .evidence-fold .evidence-body {
+    font-family: var(--font-sans);
     padding: 0 1rem 0.9rem;
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -2904,8 +3222,9 @@ tbody tr:last-child td {
 
 /* A standalone evidence fold outside an observation block sits on the
    section background, so give the R1 explainer some breathing room. */
-.observations > .container > .evidence-fold {
-    margin: 0.25rem 0 2rem;
+.observations-evidence {
+    max-width: 48rem;
+    margin: 0.25rem auto 2rem;
 }
 
 /* One concrete incident inside a category. */
@@ -2914,6 +3233,7 @@ tbody tr:last-child td {
 }
 
 .hack-example-title {
+    font-family: var(--font-mono);
     font-weight: 600;
     color: var(--text-primary);
     font-size: 0.95rem;
@@ -2932,6 +3252,7 @@ tbody tr:last-child td {
     font-size: 0.8rem;
     color: var(--text-secondary);
     margin: 0.5rem 0 0;
+    font-family: var(--font-sans);
 }
 
 .judge-verdict-badge {
@@ -2957,6 +3278,28 @@ tbody tr:last-child td {
     }
     .evidence-fold pre {
         font-size: 0.68rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .hack-category > summary {
+        align-items: center;
+        gap: 0.5rem;
+        line-height: 1.35;
+    }
+
+    .hack-category-count {
+        display: none;
+    }
+
+    .judge-verdict {
+        display: block;
+        line-height: 1.55;
+    }
+
+    .judge-verdict-badge {
+        display: table;
+        margin-bottom: 0.35rem;
     }
 }
 
@@ -3077,16 +3420,12 @@ tbody tr:last-child td {
    elements so tab-navigation never lands on something with no visible
    focus indicator. :focus-visible (vs :focus) skips mouse clicks, so
    pointer users don't see rings flash. */
-:where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .toggle-table-btn,
-       .nav-github, .nav-links a, .dropdown-selected, .hamburger,
-       a.team-lead, .changelog summary, details > summary):focus-visible {
+:where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .time-scope-option,
+       .nav-github, .nav-links a, .hamburger,
+       .observations-nav a, .team-list a,
+       details > summary):focus-visible {
     outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
-}
-
-.dropdown-option:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: -2px;
 }
 
 /* ───────────────────────────────────────────────────────────────────────
@@ -3139,7 +3478,8 @@ html[data-photo-clean] #observations,
 html[data-photo-clean] #team,
 html[data-photo-clean] #citation,
 html[data-photo-clean] #leaderboard .leaderboard-chart,
-html[data-photo-clean] #leaderboard .changelog,
+html[data-photo-clean] #leaderboard .leaderboard-meta,
+html[data-photo-clean] #leaderboard .results-status,
 html[data-photo-clean] #leaderboard .leaderboard-controls,
 html[data-photo-clean] #leaderboard .mobile-table-notice,
 html[data-photo-clean] #leaderboard .section-subtitle,
@@ -3305,6 +3645,15 @@ html[data-photo-clean] .ptb-photo-caption {
 /* Reduced motion: keep the opacity/color changes that aid comprehension,
    drop the movement. (Chart.js animations are disabled in script.js.) */
 @media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 1ms;
+    }
+
     .dropdown-options,
     .tt-pop {
         transform: none;
@@ -3316,7 +3665,7 @@ html[data-photo-clean] .ptb-photo-caption {
         transition-duration: 0ms;
     }
 
-    :where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .toggle-table-btn):active {
+    :where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .dropdown-selected):active {
         transform: none;
     }
 
