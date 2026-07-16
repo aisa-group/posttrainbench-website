@@ -109,7 +109,6 @@
 html {
     /* Anchor links land below the sticky navbar instead of underneath it. */
     scroll-padding-top: 5rem;
-    scroll-behavior: smooth;
     background-color: var(--bg-primary);
 }
 
@@ -251,6 +250,13 @@ body {
     background-color: var(--text-primary);
     transform-origin: center;
     transition: transform 180ms var(--ease-out), opacity 120ms var(--ease-out);
+}
+
+.hamburger.no-motion .hamburger-line,
+.nav-links.no-motion,
+.custom-dropdown.no-motion .dropdown-options,
+.custom-dropdown.no-motion .dropdown-selected::after {
+    transition-duration: 0ms;
 }
 
 .hamburger.active .hamburger-line:nth-child(1) {
@@ -934,6 +940,16 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     margin-top: 0.2rem;
 }
 
+.score-provenance {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--accent-text);
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: normal;
+}
+
 /* Scaffold label in method column */
 .scaffold-label {
     display: flex;
@@ -960,30 +976,6 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     color: var(--text-secondary);
 }
 
-/* Preliminary/unstable results badge (e.g. Fable 5 pending re-run) */
-.preliminary-badge {
-    display: inline-block;
-    font-size: 0.58rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: #f0a94a;
-    background: rgba(245, 158, 11, 0.16);
-    border: 1px solid rgba(245, 158, 11, 0.5);
-    border-radius: var(--radius-sm);
-    padding: 0.05rem 0.35rem;
-    margin-left: 0.4rem;
-    vertical-align: middle;
-    white-space: nowrap;
-    cursor: help;
-}
-
-[data-theme="light"] .preliminary-badge {
-    color: #b45309;
-    background: rgba(245, 158, 11, 0.14);
-    border-color: rgba(180, 83, 9, 0.45);
-}
-
 /* Custom instant tooltip (see tooltip.js) — a single floating div at the
    <body> level, triggered by data-tip. Replaces slow native title hovers. */
 .tt-pop {
@@ -1004,8 +996,15 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     pointer-events: none;
     opacity: 0;
     transform: translateY(3px) scale(0.98);
+    transform-origin: var(--tt-arrow-x) bottom;
     transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out);
     --tt-arrow-x: 50%;
+}
+.tt-pop[data-arrow-pos="above"] {
+    transform-origin: var(--tt-arrow-x) top;
+}
+.tt-pop[data-arrow-pos="below"] {
+    transform-origin: var(--tt-arrow-x) bottom;
 }
 .tt-pop.tt-show {
     opacity: 1;
@@ -2634,10 +2633,6 @@ tbody tr:last-child td {
     width: 31%;
 }
 
-.table-scroll-hint {
-    display: none;
-}
-
 .findings-meta {
     color: var(--text-secondary);
     font-size: 0.78em;
@@ -2906,11 +2901,7 @@ tbody tr:last-child td {
     }
 }
 
-/* Explanatory tails inside table cells — dropped on phones so the
-   numeric columns stay on-screen instead of forcing a crush/scroll.
-   Same for the run-count metas in numeric column headers. */
 @media (max-width: 640px) {
-    .findings-table .cell-detail,
     .findings-table th.num .findings-meta {
         display: none;
     }
@@ -3004,58 +2995,6 @@ tbody tr:last-child td {
         content: 'Notes';
     }
 
-    .table-scroll-hint {
-        display: block;
-        margin: 0 0 0.45rem;
-        color: var(--text-secondary);
-        font-size: 0.66rem;
-        text-align: right;
-    }
-
-    .findings-signal-frame {
-        position: relative;
-        margin-inline: -0.75rem;
-        margin-bottom: 2rem;
-    }
-
-    .findings-signal-frame::after {
-        content: '';
-        position: absolute;
-        z-index: 3;
-        top: 0;
-        right: 0;
-        bottom: 6px;
-        width: 1.5rem;
-        background: linear-gradient(to right, transparent, var(--bg-primary));
-        pointer-events: none;
-    }
-
-    .findings-signal-wrap {
-        margin: 0;
-        padding-inline: 0.75rem;
-    }
-
-    .findings-signal-table {
-        min-width: 40rem;
-    }
-
-    .findings-signal-table th:first-child,
-    .findings-signal-table td:first-child {
-        position: sticky;
-        left: 0.75rem;
-        min-width: 14rem;
-        box-shadow: 1px 0 var(--border-color);
-    }
-
-    .findings-signal-table th:first-child {
-        z-index: 2;
-        background: var(--bg-tertiary);
-    }
-
-    .findings-signal-table td:first-child {
-        z-index: 1;
-        background: var(--bg-primary);
-    }
 }
 
 /* Reward-hacking categories — top-level foldables in the qualitative
@@ -3135,10 +3074,9 @@ tbody tr:last-child td {
     margin-top: 1rem;
 }
 
-/* Fold open/close motion lives in script.js (WAAPI height+opacity on the
-   .fold-anim wrapper) — a bare <details> snaps in both directions and CSS
-   alone can't animate the collapse. With JS off, folds still work, just
-   without motion. */
+/* Fold open/close motion lives in script.js (WAAPI opacity + translation on
+   the .fold-anim wrapper). Layout changes immediately; only the content cue
+   animates. With JS off, folds still work without motion. */
 
 /* Nested evidence foldables (code / trace excerpts / explainers) inside
    observation content. */
@@ -3205,26 +3143,6 @@ tbody tr:last-child td {
     font-size: 0.8rem;
     color: var(--text-secondary);
     font-style: italic;
-}
-
-/* Prose body variant for explainer folds (e.g. the R1-traces note). */
-.evidence-fold .evidence-body {
-    font-family: var(--font-sans);
-    padding: 0 1rem 0.9rem;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-
-.evidence-fold .evidence-body p + p {
-    margin-top: 0.6rem;
-}
-
-/* A standalone evidence fold outside an observation block sits on the
-   section background, so give the R1 explainer some breathing room. */
-.observations-evidence {
-    max-width: 48rem;
-    margin: 0.25rem auto 2rem;
 }
 
 /* One concrete incident inside a category. */

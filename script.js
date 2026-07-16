@@ -17,21 +17,29 @@ const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
 const hamburgerBtn = document.getElementById('hamburger-btn');
 const navLinks = document.getElementById('nav-links');
 
-function setMobileNavOpen(isOpen) {
+function setMobileNavOpen(isOpen, { instant = false } = {}) {
+    if (instant) {
+        hamburgerBtn.classList.add('no-motion');
+        navLinks.classList.add('no-motion');
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            hamburgerBtn.classList.remove('no-motion');
+            navLinks.classList.remove('no-motion');
+        }));
+    }
     hamburgerBtn.classList.toggle('active', isOpen);
     navLinks.classList.toggle('active', isOpen);
     hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
     hamburgerBtn.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
 }
 
-hamburgerBtn.addEventListener('click', () => {
-    setMobileNavOpen(!navLinks.classList.contains('active'));
+hamburgerBtn.addEventListener('click', (event) => {
+    setMobileNavOpen(!navLinks.classList.contains('active'), { instant: event.detail === 0 });
 });
 
 // Close menu when clicking a link
 navLinks.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => {
-        setMobileNavOpen(false);
+    link.addEventListener('click', (event) => {
+        setMobileNavOpen(false, { instant: event.detail === 0 });
     });
 });
 
@@ -44,14 +52,14 @@ document.addEventListener('click', (e) => {
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && navLinks.classList.contains('active')) {
-        setMobileNavOpen(false);
+        setMobileNavOpen(false, { instant: true });
         hamburgerBtn.focus();
     }
 });
 
 window.addEventListener('resize', () => {
     if (window.innerWidth > 768 && navLinks.classList.contains('active')) {
-        setMobileNavOpen(false);
+        setMobileNavOpen(false, { instant: true });
     }
 });
 
@@ -90,11 +98,11 @@ function commitTheme(newTheme) {
     });
 }
 
-themeToggle.addEventListener('click', () => {
+themeToggle.addEventListener('click', (event) => {
     const currentTheme = html.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
-    if (!reducedMotionQuery.matches && typeof document.startViewTransition === 'function') {
+    if (event.detail !== 0 && !reducedMotionQuery.matches && typeof document.startViewTransition === 'function') {
         // A second click should retarget immediately rather than waiting for
         // the previous crossfade to finish.
         activeThemeTransition?.skipTransition();
@@ -118,6 +126,21 @@ const modelNameMap = {
     "Gemma-3-4B": "gemma-3-4b-pt"
 };
 
+function getChartAgentMeta(entry) {
+    const effortParts = entry.reasoningEffort
+        ? entry.reasoningEffort.split(',').map(part => part.trim())
+        : [];
+    const isReprompted = effortParts.includes('Reprompted');
+    const effort = effortParts.find(part => part !== 'Reprompted') || '';
+    const footnote = agentInfo[entry.agentKey]?.footnoteMarker || '';
+
+    return {
+        name: `${entry.agent}${isReprompted ? '†' : ''}${footnote}`,
+        effort,
+        effortLabel: effort
+    };
+}
+
 // Get leaderboard data for specific model or average
 function getLeaderboardDataForModel(modelName) {
     if (modelName === "average") {
@@ -135,7 +158,8 @@ function getLeaderboardDataForModel(modelName) {
         Object.keys(modelScores).forEach(key => {
             benchmarkScoresForDisplay[key] = {
                 value: modelScores[key].value.toFixed(2),
-                fallbackType: modelScores[key].fallbackType
+                fallbackType: modelScores[key].fallbackType,
+                sourceLabel: modelScores[key].sourceLabel || null
             };
         });
         return {
@@ -198,6 +222,13 @@ function getFallbackType(score) {
     return false;
 }
 
+function getBenchmarkSourceLabel(score) {
+    if (typeof score === 'object' && score !== null) {
+        return score.sourceLabel || null;
+    }
+    return null;
+}
+
 // Helper to get std value from benchmark score
 function getBenchmarkStd(score) {
     if (typeof score === 'object' && score !== null && score.std !== undefined) {
@@ -210,6 +241,7 @@ function getBenchmarkStd(score) {
 function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
     const value = getBenchmarkValue(score);
     const std = getBenchmarkStd(score);
+    const sourceLabel = getBenchmarkSourceLabel(score);
 
     let valueStr = `${value.toFixed(2)}%`;
 
@@ -227,6 +259,10 @@ function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
     // Add std display if available and requested
     if (showStd && std !== null) {
         valueStr += `<span class="std-value">± ${std}%</span>`;
+    }
+
+    if (sourceLabel) {
+        valueStr += `<span class="score-provenance">from ${sourceLabel}</span>`;
     }
 
     return valueStr;
@@ -312,13 +348,10 @@ function populateLeaderboard(modelName = "average") {
         }
         const footnoteMarker = agentInfo[entry.agentKey]?.footnoteMarker || '';
         const markerHtml = footnoteMarker ? `<sup>${footnoteMarker}</sup>` : '';
-        const prelim = agentInfo[entry.agentKey]?.preliminary;
-        const prelimNote = agentInfo[entry.agentKey]?.preliminaryNote || 'Preliminary — these numbers will change soon.';
-        const prelimBadge = prelim ? ` <span class="preliminary-badge" data-tip="${prelimNote}">Preliminary</span>` : '';
-        let agentNameHtml = `${displayAgent}${markerHtml}${prelimBadge}`;
+        let agentNameHtml = `${displayAgent}${markerHtml}`;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
-            agentNameHtml = `${displayAgent}${markerHtml}${prelimBadge}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}</span>`;
+            agentNameHtml = `${displayAgent}${markerHtml}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}</span>`;
         }
 
         row.innerHTML = `
@@ -379,7 +412,7 @@ function populateTasks() {
             : '';
         const weightPct = (typeof task.weight === 'number')
             ? `${(task.weight * 100).toFixed(1)}%`
-            : '<span class="findings-empty">—</span>';
+            : '<span class="findings-empty">-</span>';
 
         tr.innerHTML = `
             <td data-label="Benchmark">${task.title}${versionBadge}</td>
@@ -473,7 +506,7 @@ function chartTooltipTitle(items) {
 }
 
 // Create Simple Performance Chart (average view)
-function createSimpleChart(modelName = "average") {
+function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     const ctx = document.getElementById('performanceChart');
 
     // Get theme colors
@@ -765,11 +798,15 @@ function createSimpleChart(modelName = "average") {
             indexAxis: isMobile ? 'y' : 'x',
             responsive: true,
             maintainAspectRatio: !isMobile,
-            animation: reduceMotion ? { duration: 0 } : {
-                duration: 450,
-                easing: 'easeOutCubic',
-                delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 28 : 0,
-            },
+            animation: (reduceMotion || motion === 'none')
+                ? { duration: 0 }
+                : motion === 'initial'
+                    ? {
+                        duration: 450,
+                        easing: 'easeOutCubic',
+                        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 28 : 0,
+                    }
+                    : { duration: 190, easing: 'easeOutCubic' },
             // Tooltip only while actually over a bar — intersect: false would
             // keep a tooltip active anywhere in the plot area, which reads as
             // "stuck" when sweeping across empty space.
@@ -840,7 +877,7 @@ function createSimpleChart(modelName = "average") {
 // (hours), y = average benchmark performance (%). The dashed line steps along
 // the Pareto frontier: down to the x-axis at the fastest frontier agent, and
 // out to the right edge at the best-performing one.
-function createParetoChart() {
+function createParetoChart({ motion = 'initial' } = {}) {
     const ctx = document.getElementById('paretoChart');
     if (!ctx) return;
 
@@ -872,15 +909,13 @@ function createParetoChart() {
         .filter(d => !d.isBaseline && d.showInChart && timeData[d.agentKey])
         .map(d => {
             const t = timeData[d.agentKey];
-            const isReprompted = !!(d.reasoningEffort && d.reasoningEffort.includes('Reprompted'));
-            const cleanEffort = isReprompted
-                ? d.reasoningEffort.replace(', Reprompted', '').trim()
-                : d.reasoningEffort;
-            const label = (cleanEffort ? `${d.agent} (${cleanEffort})` : d.agent) + (isReprompted ? '†' : '');
+            const labelMeta = getChartAgentMeta(d);
             return {
                 x: t.hours,
                 y: parseFloat(d.averageScore),
-                label: label,
+                label: labelMeta.name,
+                reasoningEffort: labelMeta.effort,
+                reasoningLabel: labelMeta.effortLabel,
                 agentKey: d.agentKey,
                 scaffold: d.scaffold,
                 time: t.time,
@@ -922,8 +957,10 @@ function createParetoChart() {
         afterDatasetsDraw(chart) {
             const { ctx: c, chartArea, scales } = chart;
             const fontSize = isMobile ? 10 : Math.max(9, fontSizes.axisTicks - 1);
+            const effortFontSize = Math.max(8, fontSize - 2);
+            const nameFont = `500 ${fontSize}px 'JetBrains Mono', monospace`;
+            const effortFont = `600 ${effortFontSize}px 'JetBrains Mono', monospace`;
             c.save();
-            c.font = `500 ${fontSize}px 'JetBrains Mono', monospace`;
 
             const pts = points.map(p => ({
                 px: scales.x.getPixelForValue(p.x),
@@ -942,8 +979,12 @@ function createParetoChart() {
 
             ordered.forEach(({ px, py, p }) => {
                 if (isMobile && !frontierKeys.has(p.agentKey)) return;
-                const w = c.measureText(p.label).width;
-                const h = fontSize;
+                c.font = nameFont;
+                const nameWidth = c.measureText(p.label).width;
+                c.font = effortFont;
+                const effortWidth = p.reasoningLabel ? c.measureText(p.reasoningLabel).width : 0;
+                const w = Math.max(nameWidth, effortWidth);
+                const h = fontSize + (p.reasoningLabel ? effortFontSize + 2 : 0);
                 // Must clear the point's own obstacle rect (radius + 2px pad +
                 // 3px separation margin), or every candidate self-collides.
                 const gap = pointRadius + 8;
@@ -971,15 +1012,25 @@ function createParetoChart() {
                           rect.bottom < o.top - 3 || rect.top > o.bottom + 3));
                     if (collides) continue;
                     c.textAlign = cand.align;
-                    c.textBaseline = cand.baseline;
+                    c.textBaseline = 'top';
+                    const textX = cand.align === 'left' ? rect.left
+                        : cand.align === 'center' ? rect.left + w / 2 : rect.right;
                     // Surface-colored halo keeps labels readable where they
                     // cross gridlines or the dashed frontier/budget lines.
                     c.strokeStyle = bgPrimary;
                     c.lineWidth = 3;
                     c.lineJoin = 'round';
-                    c.strokeText(p.label, cand.x, cand.y);
+                    c.font = nameFont;
+                    c.strokeText(p.label, textX, rect.top);
                     c.fillStyle = frontierKeys.has(p.agentKey) ? textPrimary : textSecondary;
-                    c.fillText(p.label, cand.x, cand.y);
+                    c.fillText(p.label, textX, rect.top);
+                    if (p.reasoningLabel) {
+                        const effortY = rect.top + fontSize + 2;
+                        c.font = effortFont;
+                        c.strokeText(p.reasoningLabel, textX, effortY);
+                        c.fillStyle = accentPrimary;
+                        c.fillText(p.reasoningLabel, textX, effortY);
+                    }
                     placed.push(rect);
                     break;
                 }
@@ -1014,14 +1065,18 @@ function createParetoChart() {
         }
     };
 
-    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning;
-    const buildAnimation = reduceMotion ? { duration: 0 } : {
-        duration: 450,
-        easing: 'easeOutCubic',
-        // Points pop in fastest-agent-first (data is sorted by time).
-        delay: (c) => (c.type === 'data' && c.mode === 'default' && c.datasetIndex === 0)
-            ? c.dataIndex * 40 : 0,
-    };
+    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
+    const buildAnimation = reduceMotion
+        ? { duration: 0 }
+        : motion === 'initial'
+            ? {
+                duration: 450,
+                easing: 'easeOutCubic',
+                // Points pop in fastest-agent-first (data is sorted by time).
+                delay: (c) => (c.type === 'data' && c.mode === 'default' && c.datasetIndex === 0)
+                    ? c.dataIndex * 40 : 0,
+            }
+            : { duration: 190, easing: 'easeOutCubic' };
 
     paretoChart = new Chart(ctx, {
         type: 'scatter',
@@ -1075,6 +1130,7 @@ function createParetoChart() {
                                 `Avg score: ${p.y.toFixed(1)}%${p.stdDev ? ` ± ${p.stdDev.toFixed(1)}%` : ''}`,
                                 `Time: ${p.time}${p.stdTime ? ` ± ${p.stdTime}` : ''}`
                             ];
+                            if (p.reasoningEffort) lines.push(`Reasoning effort: ${p.reasoningEffort}`);
                             if (p.scaffold) lines.push(`Scaffold: ${p.scaffold}`);
                             if (frontierKeys.has(p.agentKey)) lines.push('On the Pareto frontier');
                             return lines;
@@ -1156,7 +1212,7 @@ function updateTimeScopeControl() {
     }
 }
 
-function createTimeSpentChart() {
+function createTimeSpentChart({ motion = 'initial' } = {}) {
     const ctx = document.getElementById('timeSpentChart');
 
     // Get theme colors
@@ -1194,13 +1250,17 @@ function createTimeSpentChart() {
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
 
-    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning;
-    const buildAnimation = reduceMotion ? { duration: 0 } : {
-        duration: 450,
-        easing: 'easeOutCubic',
-        // Cascade the horizontal bars in from the top.
-        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 22 : 0,
-    };
+    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
+    const buildAnimation = reduceMotion
+        ? { duration: 0 }
+        : motion === 'initial'
+            ? {
+                duration: 450,
+                easing: 'easeOutCubic',
+                // Cascade the horizontal bars in from the top on first load only.
+                delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 22 : 0,
+            }
+            : { duration: 190, easing: 'easeOutCubic' };
 
     const timeErrorBarPlugin = {
         id: 'timeErrorBars',
@@ -1271,12 +1331,7 @@ function createTimeSpentChart() {
         }
     };
 
-    const labels = sortedData.map(d => {
-        const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
-        const cleanEffort = isReprompted ? d.reasoningEffort.replace(', Reprompted', '').trim() : d.reasoningEffort;
-        const dagger = isReprompted ? '†' : '';
-        return cleanEffort ? `${d.agent} (${cleanEffort})${dagger}` : d.agent;
-    });
+    const labels = sortedData.map(d => getChartAgentMeta(d).name);
 
     // Agent names carry the comparison; scaffold metadata remains available in
     // the table and tooltip instead of taking a second axis-label line.
@@ -1295,21 +1350,34 @@ function createTimeSpentChart() {
             sortedData.forEach((dataItem, index) => {
                 const bar = meta.data[index];
                 const yPos = bar.y;
-                const isReprompted = dataItem.reasoningEffort && dataItem.reasoningEffort.includes('Reprompted');
-                const cleanEffort = isReprompted ? dataItem.reasoningEffort.replace(', Reprompted', '').trim() : dataItem.reasoningEffort;
-                const dagger = isReprompted ? '†' : '';
-                const displayName = cleanEffort ? `${dataItem.agent} (${cleanEffort})${dagger}` : dataItem.agent;
+                const labelMeta = getChartAgentMeta(dataItem);
+                const nameFont = `600 ${labelFontSize}px 'JetBrains Mono', monospace`;
+                const effortFontSize = Math.max(8, labelFontSize - 2);
+                const effortFont = `600 ${effortFontSize}px 'JetBrains Mono', monospace`;
 
                 if (isMobile) {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `600 ${labelFontSize}px 'JetBrains Mono', monospace`;
+                    ctx.font = nameFont;
                     ctx.textBaseline = 'bottom';
-                    ctx.fillText(displayName, xPos, yPos - Math.max(7, bar.height * 0.75));
+                    const labelY = yPos - Math.max(7, bar.height * 0.75);
+                    ctx.fillText(labelMeta.name, xPos, labelY);
+                    if (labelMeta.effort) {
+                        const nameWidth = ctx.measureText(labelMeta.name).width;
+                        ctx.fillStyle = accentPrimary;
+                        ctx.font = effortFont;
+                        ctx.fillText(`· ${labelMeta.effort}`, xPos + nameWidth + 6, labelY);
+                    }
                 } else {
                     ctx.fillStyle = textSecondary;
-                    ctx.font = `500 ${labelFontSize}px 'JetBrains Mono', monospace`;
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(displayName, xPos, yPos);
+                    ctx.font = nameFont;
+                    ctx.textBaseline = labelMeta.effort ? 'bottom' : 'middle';
+                    ctx.fillText(labelMeta.name, xPos, labelMeta.effort ? yPos - 1 : yPos);
+                    if (labelMeta.effortLabel) {
+                        ctx.fillStyle = accentPrimary;
+                        ctx.font = effortFont;
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(labelMeta.effortLabel, xPos, yPos + 1);
+                    }
                 }
             });
 
@@ -1439,10 +1507,7 @@ function createTimeSpentChart() {
                         // scaffold name instead), so build the title from data.
                         title: function(items) {
                             const d = sortedData[items[0].dataIndex];
-                            const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
-                            const cleanEffort = isReprompted ? d.reasoningEffort.replace(', Reprompted', '').trim() : d.reasoningEffort;
-                            const dagger = isReprompted ? '†' : '';
-                            return cleanEffort ? `${d.agent} (${cleanEffort})${dagger}` : d.agent;
+                            return getChartAgentMeta(d).name;
                         },
                         label: function(context) {
                             const dataItem = sortedData[context.dataIndex];
@@ -1453,8 +1518,13 @@ function createTimeSpentChart() {
                             return label;
                         },
                         afterLabel: function(context) {
-                            const scaffold = agentInfo[sortedData[context.dataIndex].agentKey]?.scaffold;
-                            return scaffold ? `Scaffold: ${scaffold}` : '';
+                            const dataItem = sortedData[context.dataIndex];
+                            const labelMeta = getChartAgentMeta(dataItem);
+                            const scaffold = agentInfo[dataItem.agentKey]?.scaffold;
+                            return [
+                                labelMeta.effort ? `Reasoning effort: ${labelMeta.effort}` : null,
+                                scaffold ? `Scaffold: ${scaffold}` : null
+                            ].filter(Boolean);
                         }
                     }
                 }),
@@ -1531,15 +1601,15 @@ window.addEventListener('resize', () => {
     resizeTimeout = setTimeout(() => {
         if (performanceChart) {
             performanceChart.destroy();
-            createSimpleChart(currentSelectedModel);
+            createSimpleChart(currentSelectedModel, { motion: 'none' });
         }
         if (paretoChart) {
             paretoChart.destroy();
-            createParetoChart();
+            createParetoChart({ motion: 'none' });
         }
         if (timeSpentChart) {
             timeSpentChart.destroy();
-            createTimeSpentChart();
+            createTimeSpentChart({ motion: 'none' });
         }
         handleNavbarLogoVisibility();
     }, 250);
@@ -1574,8 +1644,12 @@ const dropdownValue = document.getElementById('model-select-value');
 const dropdownOptions = document.getElementById('model-select-options');
 const dropdownOptionButtons = [...(dropdownOptions?.querySelectorAll('.dropdown-option') || [])];
 
-function setModelDropdownOpen(isOpen, optionToFocus = null) {
+function setModelDropdownOpen(isOpen, optionToFocus = null, { instant = false } = {}) {
     if (!modelDropdown || !dropdownDisplay) return;
+    if (instant) {
+        modelDropdown.classList.add('no-motion');
+        requestAnimationFrame(() => requestAnimationFrame(() => modelDropdown.classList.remove('no-motion')));
+    }
     modelDropdown.classList.toggle('open', isOpen);
     dropdownDisplay.setAttribute('aria-expanded', String(isOpen));
     if (isOpen && optionToFocus) {
@@ -1583,7 +1657,7 @@ function setModelDropdownOpen(isOpen, optionToFocus = null) {
     }
 }
 
-function selectModelOption(option, returnFocus = true) {
+function selectModelOption(option, returnFocus = true, { motion = 'interaction', instant = false } = {}) {
     if (!option || !dropdownValue) return;
     const selectedValue = option.dataset.value;
 
@@ -1593,14 +1667,14 @@ function selectModelOption(option, returnFocus = true) {
         candidate.classList.toggle('active', isSelected);
         candidate.setAttribute('aria-selected', String(isSelected));
     });
-    setModelDropdownOpen(false);
+    setModelDropdownOpen(false, null, { instant });
 
     if (selectedValue !== currentSelectedModel) {
         currentSelectedModel = selectedValue;
         populateLeaderboard(selectedValue);
         if (performanceChart) {
             performanceChart.destroy();
-            createSimpleChart(selectedValue);
+            createSimpleChart(selectedValue, { motion });
         }
     }
 
@@ -1614,8 +1688,8 @@ function moveDropdownFocus(currentOption, direction) {
 }
 
 if (modelDropdown && dropdownDisplay && dropdownOptions) {
-    dropdownDisplay.addEventListener('click', () => {
-        setModelDropdownOpen(!modelDropdown.classList.contains('open'));
+    dropdownDisplay.addEventListener('click', (event) => {
+        setModelDropdownOpen(!modelDropdown.classList.contains('open'), null, { instant: event.detail === 0 });
     });
 
     dropdownDisplay.addEventListener('keydown', (event) => {
@@ -1625,9 +1699,9 @@ if (modelDropdown && dropdownDisplay && dropdownOptions) {
             const optionToFocus = event.key === 'ArrowUp'
                 ? dropdownOptionButtons[dropdownOptionButtons.length - 1]
                 : activeOption || dropdownOptionButtons[0];
-            setModelDropdownOpen(true, optionToFocus);
+            setModelDropdownOpen(true, optionToFocus, { instant: true });
         } else if (event.key === 'Escape') {
-            setModelDropdownOpen(false);
+            setModelDropdownOpen(false, null, { instant: true });
         }
     });
 
@@ -1645,13 +1719,13 @@ if (modelDropdown && dropdownDisplay && dropdownOptions) {
                 edgeOption?.focus();
             } else if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                selectModelOption(option);
+                selectModelOption(option, true, { motion: 'none', instant: true });
             } else if (event.key === 'Escape') {
                 event.preventDefault();
-                setModelDropdownOpen(false);
+                setModelDropdownOpen(false, null, { instant: true });
                 dropdownDisplay.focus();
             } else if (event.key === 'Tab') {
-                setModelDropdownOpen(false);
+                setModelDropdownOpen(false, null, { instant: true });
             } else if (event.key.length === 1 && /\S/.test(event.key)) {
                 const searchFrom = dropdownOptionButtons.indexOf(option) + 1;
                 const orderedOptions = dropdownOptionButtons
@@ -1665,7 +1739,7 @@ if (modelDropdown && dropdownDisplay && dropdownOptions) {
     });
 
     modelDropdown.addEventListener('focusout', (event) => {
-        if (!modelDropdown.contains(event.relatedTarget)) setModelDropdownOpen(false);
+        if (!modelDropdown.contains(event.relatedTarget)) setModelDropdownOpen(false, null, { instant: true });
     });
 
     document.addEventListener('click', (event) => {
@@ -1684,48 +1758,47 @@ function setLeaderboardRowExpanded(row, shouldExpand) {
     const panel = detailRow?.querySelector('.benchmark-detail-panel');
     if (!detailRow?.classList.contains('benchmark-detail-row') || !panel) return;
 
-    const currentHeight = detailRow.hidden ? 0 : panel.getBoundingClientRect().height;
-    const currentOpacity = detailRow.hidden ? 0 : Number.parseFloat(getComputedStyle(panel).opacity || '1');
+    const wasHidden = detailRow.hidden;
+    const presentation = wasHidden ? null : getComputedStyle(panel);
+    const currentOpacity = wasHidden
+        ? 0
+        : Number.parseFloat(presentation.opacity || '1');
+    const currentTransform = wasHidden || presentation.transform === 'none'
+        ? (shouldExpand ? 'translateY(-4px)' : 'none')
+        : presentation.transform;
     detailRow._detailAnimation?.cancel();
     detailRow._detailAnimation = null;
 
     row.classList.toggle('details-open', shouldExpand);
-
     if (shouldExpand) detailRow.hidden = false;
-    const targetHeight = shouldExpand ? panel.scrollHeight : 0;
-    const targetOpacity = shouldExpand ? 1 : 0;
 
-    panel.style.height = `${targetHeight}px`;
-    panel.style.opacity = String(targetOpacity);
-
-    if (typeof panel.animate !== 'function') {
+    if (reducedMotionQuery.matches || typeof panel.animate !== 'function') {
         if (!shouldExpand) detailRow.hidden = true;
-        panel.style.height = '';
         panel.style.opacity = '';
+        panel.style.transform = '';
     } else {
         const animation = panel.animate([
             {
-                height: `${currentHeight}px`,
                 opacity: currentOpacity,
-                transform: shouldExpand ? 'translateY(-4px)' : 'translateY(0)'
+                transform: currentTransform
             },
             {
-                height: `${targetHeight}px`,
-                opacity: targetOpacity,
-                transform: shouldExpand ? 'translateY(0)' : 'translateY(-3px)'
+                opacity: shouldExpand ? 1 : 0,
+                transform: shouldExpand ? 'none' : 'translateY(-3px)'
             }
         ], {
             duration: shouldExpand ? 180 : 140,
-            easing: 'cubic-bezier(0.23, 1, 0.32, 1)'
+            easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+            fill: 'both'
         });
         detailRow._detailAnimation = animation;
         animation.onfinish = () => {
             if (detailRow._detailAnimation !== animation) return;
             detailRow._detailAnimation = null;
             if (!shouldExpand) detailRow.hidden = true;
-            panel.style.height = '';
             panel.style.opacity = '';
             panel.style.transform = '';
+            animation.cancel();
         };
     }
 
@@ -1804,7 +1877,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Switch the budget chart's scope without changing the surrounding layout.
     document.querySelectorAll('[data-time-scope]').forEach((scopeButton) => {
-        scopeButton.addEventListener('click', () => {
+        scopeButton.addEventListener('click', (event) => {
             const nextShowAll = scopeButton.dataset.timeScope === 'all';
             if (nextShowAll === showAllTimeAgents) return;
             showAllTimeAgents = nextShowAll;
@@ -1813,15 +1886,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (timeSpentChart) {
                 timeSpentChart.destroy();
             }
-            createTimeSpentChart();
+            createTimeSpentChart({ motion: event.detail === 0 ? 'none' : 'interaction' });
         });
     });
 
-    // Foldables: wrap the body
-    // so height + opacity can bridge the otherwise abrupt <details> layout
-    // change. The animation is retargetable: rapid clicks reverse from the
-    // live presentation height instead of being ignored. Exits stay faster
-    // than entrances, and reduced motion toggles instantly.
+    // Foldables: wrap the body so a small opacity/translation cue can bridge
+    // the otherwise abrupt <details> change without animating layout. Rapid
+    // clicks reverse from the live presentation state, exits stay faster than
+    // entrances, and reduced motion toggles instantly.
     document.querySelectorAll('details.hack-category, details.evidence-fold, details.compact-disclosure').forEach((fold) => {
         const summary = fold.querySelector(':scope > summary');
         if (!summary) return;
@@ -1831,7 +1903,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         fold.appendChild(body);
 
         const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
         let expanded = fold.open;
         let activeAnimation = null;
         let fallbackTimer = null;
@@ -1839,9 +1910,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         fold.dataset.expanded = String(expanded);
 
         const clearInlineState = () => {
-            body.style.height = '';
             body.style.opacity = '';
-            body.style.overflow = '';
+            body.style.transform = '';
             delete fold.dataset.animating;
         };
 
@@ -1866,36 +1936,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         const animateTo = (shouldExpand) => {
             const version = ++animationVersion;
 
-            // Capture the presentation values before cancelling: cancelling
-            // first would snap the body back to its previous logical state.
             const wasRendered = fold.open;
-            const startHeight = wasRendered ? body.getBoundingClientRect().height : 0;
-            const computedOpacity = wasRendered ? Number.parseFloat(getComputedStyle(body).opacity) : 0;
+            const presentation = wasRendered ? getComputedStyle(body) : null;
+            const computedOpacity = wasRendered ? Number.parseFloat(presentation.opacity) : 0;
             const startOpacity = Number.isFinite(computedOpacity) ? computedOpacity : (wasRendered ? 1 : 0);
+            const startTransform = !wasRendered || presentation.transform === 'none'
+                ? (shouldExpand ? 'translateY(-4px)' : 'none')
+                : presentation.transform;
 
             cancelActiveAnimation();
             if (shouldExpand && !fold.open) fold.open = true;
-
-            // Measure the natural body after ensuring <details> is rendered,
-            // then restore the captured presentation state before paint.
-            body.style.height = 'auto';
-            const naturalHeight = body.scrollHeight;
-            body.style.height = `${startHeight}px`;
-            body.style.opacity = String(startOpacity);
-            body.style.overflow = 'hidden';
             fold.dataset.animating = '1';
 
-            const targetHeight = shouldExpand ? naturalHeight : 0;
-            const targetOpacity = shouldExpand ? 1 : 0;
-            const remaining = Math.abs(targetHeight - startHeight);
-            const travelRatio = Math.min(1, remaining / Math.max(naturalHeight, 1));
-            const fullDuration = shouldExpand ? 240 : 180;
-            const duration = Math.round(Math.max(90, fullDuration * (0.55 + 0.45 * travelRatio)));
+            const duration = shouldExpand ? 180 : 140;
 
             const animation = body.animate(
                 [
-                    { height: `${startHeight}px`, opacity: startOpacity },
-                    { height: `${targetHeight}px`, opacity: targetOpacity },
+                    { opacity: startOpacity, transform: startTransform },
+                    {
+                        opacity: shouldExpand ? 1 : 0,
+                        transform: shouldExpand ? 'none' : 'translateY(-3px)'
+                    },
                 ],
                 { duration, easing: EASE, fill: 'both' }
             );
@@ -1907,19 +1968,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     clearTimeout(fallbackTimer);
                     fallbackTimer = null;
                 }
-
-                // Pin the destination before cancelling the animation so the
-                // presentation never flashes back to the captured start.
-                body.style.height = `${targetHeight}px`;
-                body.style.opacity = String(targetOpacity);
+                fold.open = shouldExpand;
                 try { animation.cancel(); } catch (err) { /* already finished */ }
                 activeAnimation = null;
-                fold.open = shouldExpand;
                 clearInlineState();
             };
 
             animation.onfinish = finish;
-            // Background tabs and headless browsers can suppress finish events.
             fallbackTimer = setTimeout(finish, duration + 100);
         };
 
@@ -1928,7 +1983,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             expanded = !expanded;
             fold.dataset.expanded = String(expanded);
 
-            if (reducedMotion.matches || typeof body.animate !== 'function') {
+            if (e.detail === 0 || reducedMotionQuery.matches || typeof body.animate !== 'function') {
                 setInstantly();
                 return;
             }
