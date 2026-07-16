@@ -138,7 +138,7 @@ const agentInfo = {
     "gpt-5.5-xhigh": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "xHigh" },
     "gpt-5.5-xhigh-reprompted": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent (reprompted)", scaffold: "Codex CLI", reasoningEffort: "xHigh, Reprompted" },
     "qwen3-max": { name: "Qwen3 Max", description: "Qwen3 Max agent", isOpenCode: true, scaffold: "Claude Code" },
-    "fable-5": { name: "Fable 5", description: "Claude Fable 5 with 1M context, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max", footnoteMarker: "‡", preliminary: true, preliminaryNote: "These numbers are from Fable 5's initial limited availability, when many runs failed due to rate limits and refusals. We are re-running them with multiple runs for standard deviation." }
+    "fable-5": { name: "Fable 5", description: "Claude Fable 5 with 1M context, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max", footnoteMarker: "‡" }
 };
 
 // Benchmark metadata (weights are loaded from scores.json)

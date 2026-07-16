@@ -42,6 +42,10 @@ When you have new benchmark results:
 
 1. **Update CSV files** in `data/`
 
+   The judge pipeline emits `time_aggregated.csv` and `time_overview.csv`.
+   Keep the first filename and store the second as
+   `data/aggregated_time_overview.csv` to match the site generator.
+
 2. **Regenerate scores.json:**
    ```bash
    python3 generate_data.py
@@ -172,5 +176,4 @@ python3 generate_data.py
 | `scores.json` | Generated benchmark data (don't edit manually) |
 | `script.js` | UI rendering and interactions |
 | `generate_data.py` | Converts CSVs to scores.json |
-
 

@@ -27,6 +27,7 @@ AGGREGATED_NAME_TO_KEY = {
     "Opus-4.8": "opus-4.8",
     "Opus-4.8 (Max)": "opus-4.8-max",
     "GLM 5.2": "glm-5.2",
+    "Fable 5 (Max)": "fable-5",
 }
 
 CSV_TO_AGENT = {
@@ -46,6 +47,7 @@ CSV_TO_AGENT = {
     "aggregated_avg_Opus-4.8.csv": "opus-4.8",
     "aggregated_avg_Opus-4.8_(Max).csv": "opus-4.8-max",
     "aggregated_avg_GLM_5.2.csv": "glm-5.2",
+    "aggregated_avg_Fable_5_(Max).csv": "fable-5",
 }
 
 STD_CSV_TO_AGENT = {
@@ -65,6 +67,7 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_Opus-4.8.csv": "opus-4.8",
     "aggregated_std_Opus-4.8_(Max).csv": "opus-4.8-max",
     "aggregated_std_GLM_5.2.csv": "glm-5.2",
+    "aggregated_std_Fable_5_(Max).csv": "fable-5",
 }
 
 # Single-run variants: per-model scores from a final_*.csv,
@@ -72,18 +75,19 @@ STD_CSV_TO_AGENT = {
 SINGLE_RUN_FINAL_TO_KEY = {
     "final_codex_non_api_high_reprompt_gpt-5.4_10h.csv": "gpt-5.4-high-reprompted",
     "final_codex_non_api_xhigh_reprompt_gpt-5.5_10h.csv": "gpt-5.5-xhigh-reprompted",
-    "final_claude_non_api_max_claude-fable-5_1m__10h_run2.csv": "fable-5",
 }
 
-# Cells where a run failed; substitute another agent's value for that
-# (agent, model, benchmark) and flag it so the site can footnote it.
-# Keeps the raw final_*.csv pristine. fallbackType becomes "substituted".
-SUBSTITUTIONS = [
+# Optional cell-level substitutions for unpatched source data. Fable's GPQA
+# fallback is already included in its aggregated CSVs.
+SUBSTITUTIONS = []
+
+# Provenance labels describe values already patched in the source CSVs. They do
+# not copy or otherwise change scores.
+CELL_PROVENANCE = [
     {
         "agent": "fable-5",
-        "source": "opus-4.8-max",
-        "model": "SmolLM3-3B-Base",
-        "benchmarks": ["aime2025", "arenahardwriting", "gsm8k", "healthbench", "humaneval"],
+        "benchmarks": ["gpqamain"],
+        "sourceLabel": "Opus 4.8 Max",
     },
 ]
 
@@ -121,7 +125,6 @@ TIME_OVERVIEW_TO_KEY = {
     "opencode_opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
     "codex_non_api_high_reprompt_gpt-5.4_10h": "gpt-5.4-high-reprompted",
     "codex_non_api_xhigh_reprompt_gpt-5.5_10h": "gpt-5.5-xhigh-reprompted",
-    "claude_non_api_max_claude-fable-5_1m__10h_run2": "fable-5",
 }
 
 TIME_AGGREGATED_TO_KEY = {
@@ -141,6 +144,7 @@ TIME_AGGREGATED_TO_KEY = {
     "Opus-4.8": "opus-4.8",
     "Opus-4.8 (Max)": "opus-4.8-max",
     "GLM 5.2": "glm-5.2",
+    "Fable 5 (Max)": "fable-5",
 }
 
 
@@ -356,6 +360,15 @@ def generate_scores_json():
                     "value": model_benchmark_data[source][model][bm]["value"],
                     "fallbackType": "substituted",
                 }
+
+    # Attach provenance to upstream-patched cells without mutating their values.
+    for annotation in CELL_PROVENANCE:
+        agent_key = annotation["agent"]
+        if agent_key not in model_benchmark_data:
+            continue
+        for model in BASE_MODELS:
+            for bm in annotation["benchmarks"]:
+                model_benchmark_data[agent_key][model][bm]["sourceLabel"] = annotation["sourceLabel"]
 
     aggregated_scores = {}
     aggregated_file = DATA_DIR / "single_metrics_aggregated.csv"

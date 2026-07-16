@@ -68,10 +68,12 @@ function getAverageBenchmarkScores(agentKey) {
         let sum = 0;
         let stdSum = 0;
         let hasStd = false;
+        const sourceLabels = new Set();
 
         baseModels.forEach(model => {
             const entry = modelBenchmarkData[agentKey][model][benchmark];
             sum += entry.value;
+            if (entry.sourceLabel) sourceLabels.add(entry.sourceLabel);
 
             if (stdData[agentKey] && stdData[agentKey][model] && stdData[agentKey][model][benchmark] !== undefined) {
                 stdSum += stdData[agentKey][model][benchmark];
@@ -82,7 +84,8 @@ function getAverageBenchmarkScores(agentKey) {
         avgScores[benchmark] = {
             value: (sum / baseModels.length).toFixed(2),
             std: hasStd ? (stdSum / baseModels.length).toFixed(2) : null,
-            fallbackType: false
+            fallbackType: false,
+            sourceLabel: sourceLabels.size === 1 ? [...sourceLabels][0] : null
         };
     });
 
