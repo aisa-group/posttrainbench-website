@@ -72,6 +72,7 @@ let TRACE_START_MS = null;      // first event ts in ms, for elapsed formatting
 let TRACE_VIEW = params.get('view') === 'all' ? 'all' : 'focus';
 const DATA_REQUEST_TIMEOUT_MS = 30000;
 const CHART_LOAD_TIMEOUT_MS = 8000;
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 async function load() {
   try {
@@ -232,7 +233,7 @@ function renderSummary() {
   const scoreBarFill = document.getElementById('score-bar-fill');
   const scoreBar = document.getElementById('score-bar');
   const NO_EVAL_TITLE =
-    "Agent didn't produce a final_model — the evaluation harness never " +
+    "Agent didn't produce a final_model. The evaluation harness never " +
     "ran, so this run has no metrics.json.";
   if (ix.accuracy != null) {
     els.scoreBig.textContent = (ix.accuracy * 100).toFixed(1);
@@ -246,11 +247,13 @@ function renderSummary() {
     // Bar is sized to the absolute 0–100% scale; gives instant visual
     // anchor of where this score sits without external context.
     if (scoreBar) scoreBar.style.display = '';
-    if (scoreBarFill) scoreBarFill.style.width = Math.min(100, ix.accuracy * 100).toFixed(1) + '%';
+    if (scoreBarFill) {
+      scoreBarFill.style.setProperty('--score-scale', String(Math.min(1, Math.max(0, ix.accuracy))));
+    }
   } else {
     // No metrics.json — render an explicit "not evaluated" state instead
     // of a bare em-dash. Hide the bar (irrelevant), dim the big number.
-    els.scoreBig.textContent = '—';
+    els.scoreBig.textContent = '-';
     els.scoreBig.classList.add('score-big-empty');
     els.scoreSub.innerHTML =
       `<span class="no-eval-marker" data-tip="${escapeHtml(NO_EVAL_TITLE)}">not evaluated</span>`;
@@ -261,15 +264,15 @@ function renderSummary() {
   // intentional HTML for the cost-missing tooltip case). Keep the
   // template literal below from escaping so the cost tooltip survives.
   const COST_MISSING_TITLE =
-    "Cost unknown — the trace doesn't include result events with token " +
+    "Cost unknown. The trace doesn't include result events with token " +
     "cost. Common for runs killed early, older Claude Code containers, " +
     "or Codex/opencode traces.";
   const costHtml = (ix.total_cost_usd != null && ix.total_cost_usd > 0)
     ? '$' + Number(ix.total_cost_usd).toFixed(2)
-    : `<span class="cost-missing" data-tip="${escapeHtml(COST_MISSING_TITLE)}">—</span>`;
+    : `<span class="cost-missing" data-tip="${escapeHtml(COST_MISSING_TITLE)}">-</span>`;
 
-  const agentPretty = escapeHtml(prettyAgentFromMeta((s.agent_models || [])[0], m) || '—');
-  const agentQuick = prettyAgentFromMeta((s.agent_models || [])[0], m) || '—';
+  const agentPretty = escapeHtml(prettyAgentFromMeta((s.agent_models || [])[0], m) || '-');
+  const agentQuick = prettyAgentFromMeta((s.agent_models || [])[0], m) || '-';
   const harness = prettyHarness(m.trace_format);
   els.summaryQuick.textContent = `${agentQuick} · ${humanDuration(ix.time_taken, ix.duration_ms)}`;
 
@@ -281,10 +284,10 @@ function renderSummary() {
   // overflowed and wrapped, breaking alignment with the other stats.
   if (harness) stats.push(['harness', escapeHtml(harness)]);
   stats.push(
-    ['time budget', escapeHtml(ix.time_budget_h ? ix.time_budget_h + 'h' : '—')],
+    ['time budget', escapeHtml(ix.time_budget_h ? ix.time_budget_h + 'h' : '-')],
     ['duration',    escapeHtml(humanDuration(ix.time_taken, ix.duration_ms))],
-    ['turns',       escapeHtml((ix.num_turns != null && ix.num_turns > 0) ? String(ix.num_turns) : '—')],
-    ['sessions',    escapeHtml(String(ix.session_count ?? '—'))],
+    ['turns',       escapeHtml((ix.num_turns != null && ix.num_turns > 0) ? String(ix.num_turns) : '-')],
+    ['sessions',    escapeHtml(String(ix.session_count ?? '-'))],
     ['cost',        costHtml],
   );
   els.summaryStats.innerHTML = stats.map(([k, v]) =>
@@ -501,7 +504,7 @@ function setupTraceControls() {
       setTimeout(() => els.jumpTurn.classList.remove('jump-miss'), 600);
       return;
     }
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.scrollIntoView({ block: 'center' });
     flashEvent(target);
   };
   els.jumpTurn.addEventListener('change', jump);
@@ -551,22 +554,31 @@ function eventAnchorFromHash(hash = window.location.hash) {
   return /^(?:turn-\d+|ev-[A-Za-z0-9_-]+)$/.test(id) ? id : null;
 }
 
+const eventFlashTimers = new WeakMap();
 function flashEvent(el) {
+  const currentTimer = eventFlashTimers.get(el);
+  if (currentTimer) clearTimeout(currentTimer);
   el.classList.add('event-flash');
-  setTimeout(() => el.classList.remove('event-flash'), 1500);
+  const timer = setTimeout(() => {
+    el.classList.remove('event-flash');
+    eventFlashTimers.delete(el);
+  }, 1200);
+  eventFlashTimers.set(el, timer);
 }
 
 function setupCopyId() {
+  let resetTimer = null;
   const copy = () => {
     const text = RECORD.meta.run_id;
     const finish = () => {
-      // Triggers the CSS animation: border flash, icon swap (copy→check),
-      // and the "copied" pill fading up. Remove the class after the
-      // animation has run so a second click can re-trigger it.
-      els.runIdBox.classList.remove('copied');
-      void els.runIdBox.offsetWidth;     // force reflow so class re-add restarts
+      // A repeated click simply extends the readable state. Transitions retarget
+      // naturally, so no keyframe restart or forced layout is necessary.
+      if (resetTimer !== null) clearTimeout(resetTimer);
       els.runIdBox.classList.add('copied');
-      setTimeout(() => els.runIdBox.classList.remove('copied'), 1300);
+      resetTimer = setTimeout(() => {
+        els.runIdBox.classList.remove('copied');
+        resetTimer = null;
+      }, 1100);
     };
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text).then(finish).catch(finish);
@@ -1101,7 +1113,7 @@ function metricCardHtml(def, where) {
   </div>`;
 }
 
-function buildChart(canvasId, def) {
+function buildChart(canvasId, def, { motion = 'initial' } = {}) {
   const ctx = document.getElementById(canvasId);
   if (!ctx) return null;
   const css = getComputedStyle(document.documentElement);
@@ -1130,6 +1142,9 @@ function buildChart(canvasId, def) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: REDUCED_MOTION.matches || motion === 'none'
+        ? false
+        : { duration: motion === 'initial' ? 450 : 190, easing: 'easeOutCubic' },
       elements: { point: { radius: 0 }, line: { borderWidth: 1.4, tension: 0.25 } },
       layout: { padding: { top: 8, right: 10, bottom: 4, left: 4 } },
       scales: {
@@ -1210,7 +1225,7 @@ function destroyCharts(arr) {
   arr.length = 0;
 }
 
-function openMetricsModal() {
+function openMetricsModal(event) {
   if (typeof Chart === 'undefined' || !(RECORD.system_monitor || []).length) return;
   const defs = getMetricDefs();
   els.metricGridModal.innerHTML = defs.map(d => metricCardHtml(d, 'modal')).join('');
@@ -1219,7 +1234,8 @@ function openMetricsModal() {
   // Chart.js needs the canvases to have layout dimensions before construction.
   // The modal is now visible, so we can build them.
   destroyCharts(MODAL_CHARTS);
-  MODAL_CHARTS = defs.map(d => buildChart(`metric-modal-${d.key}`, d));
+  const motion = event?.detail === 0 ? 'none' : 'interaction';
+  MODAL_CHARTS = defs.map(d => buildChart(`metric-modal-${d.key}`, d, { motion }));
 }
 
 function closeMetricsModal() {
@@ -1502,8 +1518,26 @@ function scrollSectionBelowTabs(element) {
   const topbarHeight = document.querySelector('.topbar')?.offsetHeight || 48;
   const tabHeight = els.tabNav.offsetHeight || 44;
   const top = element.getBoundingClientRect().top + window.scrollY - topbarHeight - tabHeight - 8;
-  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
 }
+
+// Canvas colors are captured when each chart is constructed. Rebuild in place
+// during the root theme snapshot, without replaying entrance motion.
+window.addEventListener('ptb:themechange', () => {
+  if (!RECORD || typeof Chart === 'undefined' || !(RECORD.system_monitor || []).length) return;
+  setChartDefaults();
+  const defs = getMetricDefs();
+
+  if (els.metricGridRail.querySelector('canvas')) {
+    destroyCharts(RAIL_CHARTS);
+    RAIL_CHARTS = defs.map(d => buildChart(`metric-rail-${d.key}`, d, { motion: 'none' }));
+  }
+
+  if (!els.metricsModal.classList.contains('hidden')) {
+    destroyCharts(MODAL_CHARTS);
+    MODAL_CHARTS = defs.map(d => buildChart(`metric-modal-${d.key}`, d, { motion: 'none' }));
+  }
+});
 
 // ---------- Trace control listeners ------------------------------------
 
@@ -1535,7 +1569,7 @@ function fmtNum(v) {
   return v.toFixed(4);
 }
 function fmt(v, decimals = 0) {
-  if (v == null) return '—';
+  if (v == null) return '-';
   if (typeof v !== 'number') return String(v);
   return v.toFixed(decimals);
 }
@@ -1546,7 +1580,7 @@ function fmtBytes(n) {
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 function msToHms(ms) {
-  if (ms == null) return '—';
+  if (ms == null) return '-';
   const s = Math.floor(ms / 1000);
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   if (h) return `${h}h ${m}m ${sec}s`;
@@ -1565,7 +1599,7 @@ function humanDuration(timeTakenStr, durationMs) {
     return parts.join(' ');
   }
   if (durationMs) return msToHms(durationMs);
-  return '—';
+  return '-';
 }
 
 // Convert ISO timestamp like "2026-04-30T23:24:24Z" into a compact split:

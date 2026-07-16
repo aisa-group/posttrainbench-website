@@ -30,6 +30,7 @@
 
   --thinking: #b39a6a;
   --thinking-bg: rgba(179, 154, 106, 0.10);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 [data-theme="light"] {
@@ -66,8 +67,20 @@ html, body {
   line-height: 1.6;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* Theme changes render as one coherent state transition. Retargeting lives in
+   theme.js, so a second click never waits for the first crossfade to finish. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--ease-out);
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { animation-name: trace-theme-fade-out; }
+::view-transition-new(root) { animation-name: trace-theme-fade-in; }
+@keyframes trace-theme-fade-out { to { opacity: 0; } }
+@keyframes trace-theme-fade-in { from { opacity: 0; } }
 
 a {
   color: var(--accent-text);
@@ -110,9 +123,12 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   pointer-events: none;
   opacity: 0;
   transform: translateY(3px) scale(0.98);
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transform-origin: var(--tt-arrow-x) bottom;
+  transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out);
   --tt-arrow-x: 50%;
 }
+.tt-pop[data-arrow-pos="above"] { transform-origin: var(--tt-arrow-x) top; }
+.tt-pop[data-arrow-pos="below"] { transform-origin: var(--tt-arrow-x) bottom; }
 .tt-pop.tt-show {
   opacity: 1;
   transform: none;
@@ -544,12 +560,6 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 .trace-jump input::placeholder { color: var(--text-secondary); opacity: 0.7; }
 .trace-jump input.jump-miss {
   color: var(--session-4);
-  animation: jump-miss-shake 0.4s ease;
-}
-@keyframes jump-miss-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
 }
 .toggle-label {
   display: inline-flex;
@@ -709,10 +719,13 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   margin: 0.55rem 0 0.3rem;
 }
 .score-bar-fill {
+  width: 100%;
   height: 100%;
   background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
   border-radius: 2px;
-  transition: width 0.4s ease;
+  transform: scaleX(var(--score-scale, 0));
+  transform-origin: left center;
+  transition: transform 360ms var(--ease-out);
 }
 .score-sub {
   font-size: 0.75rem;
@@ -735,7 +748,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   border: 1px dashed transparent;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: border-color 0.18s ease, background-color 0.18s ease;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms var(--ease-out);
 }
 .run-id-block code {
   background: transparent;
@@ -767,16 +780,16 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   justify-content: center;
   width: 22px;
   height: 22px;
-  transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+  transition: color 150ms ease, background-color 150ms ease, transform 140ms var(--ease-out);
 }
 .copy-btn:hover { color: var(--accent-primary); background: var(--bg-secondary); }
-.copy-btn:active { transform: scale(0.92); }
+.copy-btn:active { transform: scale(0.97); }
 .copy-btn .icon-copy,
 .copy-btn .icon-check {
   position: absolute;
   inset: 0;
   margin: auto;
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
 .copy-btn .icon-check {
   opacity: 0;
@@ -801,34 +814,21 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   opacity: 0;
   transform: translateY(4px);
   pointer-events: none;
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 140ms var(--ease-out), transform 160ms var(--ease-out);
 }
 
-/* "Copied" state — fires once on press. The CSS animation handles the
-   border pulse; the JS removes .copied after ~1.3s. */
+/* "Copied" state stays transition-driven and can be extended by another click
+   without restarting keyframes or forcing layout. */
 .run-id-block.copied {
-  animation: copy-flash 0.9s ease;
   border-color: var(--accent-primary);
   background-color: var(--bg-tertiary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 18%, transparent);
 }
 .run-id-block.copied .icon-copy { opacity: 0; transform: scale(0.6); }
 .run-id-block.copied .icon-check { opacity: 1; transform: scale(1); }
 .run-id-block.copied .copy-feedback {
   opacity: 1;
   transform: translateY(0);
-  animation: copy-toast 1.2s ease both;
-}
-
-@keyframes copy-flash {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 40%, transparent); }
-  60%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-primary) 0%,  transparent); }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-@keyframes copy-toast {
-  0%   { opacity: 0; transform: translateY(6px); }
-  15%  { opacity: 1; transform: translateY(0); }
-  75%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-2px); }
 }
 /* Two-column grid: label on the left, value right-aligned against the
    card's right edge. Right-aligning the values cleans up the column —
@@ -1442,11 +1442,24 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   margin: 0;
   padding: 0.25rem 0;
   z-index: 50;
-  animation: cs-menu-open 0.14s ease;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-3px) scale(0.99);
+  transform-origin: top right;
+  transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out), visibility 0s linear 120ms;
 }
-@keyframes cs-menu-open {
-  from { opacity: 0; transform: translateY(-3px); }
-  to   { opacity: 1; transform: translateY(0); }
+.cs-open .cs-menu {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition-duration: 150ms, 150ms, 0s;
+  transition-delay: 0s;
+}
+.cs.cs-no-motion .cs-menu,
+.cs.cs-no-motion .cs-caret {
+  transition-duration: 0ms;
 }
 .cs-option {
   padding: 0.4rem 0.85rem;
@@ -2008,24 +2021,26 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   font-weight: 700;
 }
 
-/* Permalink-linked flash: brief accent ring on the event when scrolled to. */
-.event-flash {
-  animation: event-flash 1.4s ease;
-}
-@keyframes event-flash {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary) 35%, transparent); }
-  30%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-primary) 25%, transparent); }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-
 /* Event body */
 .event-body {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
   min-width: 0;
   padding-left: 0.5rem;  /* sit right of the vertical thread */
 }
+.event-body::before {
+  content: '';
+  position: absolute;
+  inset: -0.4rem;
+  border: 2px solid color-mix(in srgb, var(--accent-primary) 32%, transparent);
+  border-radius: 0.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms var(--ease-out);
+}
+.event-flash .event-body::before { opacity: 1; }
 
 /* Generic block label (icon + uppercase text) used by Output, Todo, etc. */
 .block-label {
@@ -2441,10 +2456,11 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   opacity: 0.75;
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.btn:hover .btn-icon { opacity: 1; }
 /* The external-link icon's arrow naturally points up-right; give it a
    tiny nudge on hover to reinforce "this opens elsewhere." */
-.btn:hover .btn-icon { transform: translate(0.5px, -0.5px); }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover .btn-icon { opacity: 1; transform: translate(0.5px, -0.5px); }
+}
 
 .metric-card-grid {
   display: grid;
@@ -2993,4 +3009,38 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   }
   .metric-card-grid-modal .metric-card-mini { min-width: 0; padding: 0.65rem 0.5rem 0.5rem; }
   .metric-card-grid-modal .metric-card-mini canvas { height: 210px !important; max-width: 100%; }
+}
+
+/* Nonessential spatial motion is removed without flattening useful opacity
+   feedback. Chart.js and programmatic scrolling use the same preference in JS. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 1ms;
+  }
+
+  .tt-pop,
+  .cs-menu,
+  .score-bar-fill,
+  .copy-btn .icon-copy,
+  .copy-btn .icon-check,
+  .copy-feedback,
+  .summary-disclosure::before,
+  .exp-head-caret,
+  .judge-details > summary::before,
+  .summary-details-caret {
+    transition-duration: 0ms;
+  }
+
+  .tt-pop,
+  .cs-menu,
+  .copy-feedback {
+    transform: none;
+  }
+
+  .event-body::before { transition-duration: 0ms; }
+
+  :where(.btn, .theme-toggle, .metrics-btn, .copy-btn, .trace-view-btn, .load-more-btn):active {
+    transform: none;
+  }
 }

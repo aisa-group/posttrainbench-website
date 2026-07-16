@@ -225,7 +225,7 @@ function renderMatrix() {
       cellEl.className = 'matrix-cell';
       if (!c) {
         cellEl.classList.add('matrix-cell-empty');
-        cellEl.innerHTML = `<span class="matrix-empty">—</span>`;
+        cellEl.innerHTML = `<span class="matrix-empty">-</span>`;
         cellEl.disabled = true;
         cellEl.setAttribute('aria-label', `${prettyBenchmark(b)} · ${prettyTrainedModel(tm)}: no runs`);
       } else {
@@ -233,7 +233,7 @@ function renderMatrix() {
         cellEl.style.setProperty('--cell-intensity', intensity.toFixed(3));
         const accLabel = c.bestAcc != null
           ? `${(c.bestAcc * 100).toFixed(1)}%`
-          : '—';
+          : '-';
         // Cell face shows only the best accuracy + shade — keeps a clean
         // heatmap read. Best agent name lives in the tooltip.
         cellEl.innerHTML = `<span class="matrix-acc">${accLabel}</span>`;
@@ -278,7 +278,7 @@ function filterToCell(benchmark, model) {
   else OPEN_GROUP_KEY = '';
   syncUrlState();
   render();
-  document.querySelector('.filter-dock').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelector('.filter-dock').scrollIntoView({ block: 'start' });
 }
 
 function uniqValuesSortedByCount(rows, key) {
@@ -555,7 +555,7 @@ function buildTable(rows, accMax, mode, groupKey) {
       <td class="col-agent">${agentCell(r)}</td>
       <td class="col-acc">${accCell(r, accMax)}</td>
       <td class="col-num">${durationCell(r)}</td>
-      <td class="col-num">${(r.num_turns != null && r.num_turns > 0) ? r.num_turns.toLocaleString() : '<span class="muted">—</span>'}</td>
+      <td class="col-num">${(r.num_turns != null && r.num_turns > 0) ? r.num_turns.toLocaleString() : '<span class="muted">-</span>'}</td>
       <td class="col-num">${fmtCost(r.total_cost_usd)}</td>
       <td class="col-verdict">${verdictDots(r)}</td>`;
     tbody.appendChild(tr);
@@ -608,7 +608,7 @@ function runIdentityCell(r, mode, href) {
 }
 
 function agentCell(r) {
-  if (!r.agent_model) return '<span class="muted">—</span>';
+  if (!r.agent_model) return '<span class="muted">-</span>';
   const pretty = prettyAgentForRun(r);
   const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(pretty);
   const nameHtml = m
@@ -640,7 +640,7 @@ function prettyHarness(fmt) {
 // Accuracy missing → no metrics.json → in practice, the agent didn't
 // produce a `final_model/` so the eval harness never ran.
 const NO_EVAL_TITLE =
-  "Agent didn't produce a final_model — the evaluation harness never " +
+  "Agent didn't produce a final_model. The evaluation harness never " +
   "ran, so this run has no metrics.json.";
 
 function accCell(r, accMax) {
@@ -670,16 +670,16 @@ function durationCell(r) {
     if (m) return `${m}m`;
     return `${s}s`;
   }
-  return '<span class="muted">—</span>';
+  return '<span class="muted">-</span>';
 }
 
 const COST_MISSING_TITLE =
-  "Cost unknown — the trace doesn't include result events with token cost. " +
+  "Cost unknown. The trace doesn't include result events with token cost. " +
   "Common for runs killed early, older Claude Code containers, or Codex/opencode traces.";
 
 function fmtCost(c) {
   if (c == null || c === 0) {
-    return `<span class="muted cost-missing" data-tip="${COST_MISSING_TITLE}">—</span>`;
+    return `<span class="muted cost-missing" data-tip="${COST_MISSING_TITLE}">-</span>`;
   }
   return '$' + Number(c).toFixed(2);
 }
@@ -710,7 +710,7 @@ function verdictDots(r) {
   // Most rows are "clean" — render as a quiet glyph (no pill) so the
   // column scans for problems. Pending stays as a muted em-dash.
   if (cState === 'pending' || mState === 'pending') {
-    return `<span class="vbadge vbadge-pending" data-tip="${tip}" aria-label="judge pending">—</span>`;
+    return `<span class="vbadge vbadge-pending" data-tip="${tip}" aria-label="judge pending">-</span>`;
   }
   return `<span class="vbadge vbadge-ok" data-tip="${tip}" aria-label="judge clean">${CHECK_SVG}</span>`;
 }
@@ -850,7 +850,7 @@ function makeCustomSelect(selectEl) {
   const menu = document.createElement('ul');
   menu.className = 'cs-menu';
   menu.setAttribute('role', 'listbox');
-  menu.hidden = true;
+  menu.setAttribute('aria-hidden', 'true');
   wrap.appendChild(trigger);
   wrap.appendChild(menu);
 
@@ -876,25 +876,32 @@ function makeCustomSelect(selectEl) {
       menu.appendChild(li);
     }
   };
-  const open = () => {
+  const setInstant = instant => {
+    if (!instant) return;
+    wrap.classList.add('cs-no-motion');
+    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.remove('cs-no-motion')));
+  };
+  const open = ({ instant = false } = {}) => {
+    setInstant(instant);
     rebuildMenu();
-    menu.hidden = false;
     wrap.classList.add('cs-open');
     trigger.setAttribute('aria-expanded', 'true');
+    menu.setAttribute('aria-hidden', 'false');
     document.addEventListener('mousedown', onOutside);
     document.addEventListener('keydown', onKey);
   };
-  const close = () => {
-    menu.hidden = true;
+  const close = ({ instant = false } = {}) => {
+    setInstant(instant);
     wrap.classList.remove('cs-open');
     trigger.setAttribute('aria-expanded', 'false');
+    menu.setAttribute('aria-hidden', 'true');
     document.removeEventListener('mousedown', onOutside);
     document.removeEventListener('keydown', onKey);
     trigger.focus();
   };
   const onOutside = (e) => { if (!wrap.contains(e.target)) close(); };
   const onKey = (e) => {
-    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); close({ instant: true }); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       const items = [...menu.querySelectorAll('.cs-option')];
@@ -910,19 +917,23 @@ function makeCustomSelect(selectEl) {
     if (e.key === 'Enter') {
       e.preventDefault();
       const focused = menu.querySelector('.cs-option.focused') || menu.querySelector('.cs-option.active');
-      if (focused) selectValue(focused.dataset.value);
+      if (focused) selectValue(focused.dataset.value, { instant: true });
     }
   };
-  const selectValue = (v) => {
-    if (selectEl.value === v) { close(); return; }
+  const selectValue = (v, { instant = false } = {}) => {
+    if (selectEl.value === v) { close({ instant }); return; }
     selectEl.value = v;
     selectEl.dispatchEvent(new Event('input', { bubbles: true }));
     selectEl.dispatchEvent(new Event('change', { bubbles: true }));
     syncTrigger();
-    close();
+    close({ instant });
   };
 
-  trigger.addEventListener('click', () => wrap.classList.contains('cs-open') ? close() : open());
+  trigger.addEventListener('click', event => {
+    const options = { instant: event.detail === 0 };
+    if (wrap.classList.contains('cs-open')) close(options);
+    else open(options);
+  });
   menu.addEventListener('click', e => {
     const li = e.target.closest('.cs-option');
     if (li) selectValue(li.dataset.value);
