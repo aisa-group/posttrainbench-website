@@ -49,6 +49,10 @@
     --chart-bar: #95593f;
     --chart-bar-baseline-1: #6b655a;
     --chart-bar-baseline-2: #4a463c;
+    --chart-family-anthropic: #c17d5a;
+    --chart-family-openai: #7f9e97;
+    --chart-family-gemini: #8fa9ce;
+    --chart-family-other: #a48c9a;
 
     /* Effort tag (dark mode) - soft filled pill */
     --tag-bg: rgba(193, 125, 90, 0.14);
@@ -88,6 +92,10 @@
     --chart-bar: #a66b4f;
     --chart-bar-baseline-1: #9a9590;
     --chart-bar-baseline-2: #6b655a;
+    --chart-family-anthropic: #9f654b;
+    --chart-family-openai: #55756f;
+    --chart-family-gemini: #60799a;
+    --chart-family-other: #765f6d;
 
     /* Effort tag (light mode) - outline only */
     --tag-bg: transparent;
@@ -317,6 +325,51 @@ body {
     text-align: center;
 }
 
+.hero-release {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0 auto 1.5rem;
+    padding: 0.42rem 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    line-height: 1.35;
+    text-decoration: none;
+    transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+.hero-release-version {
+    color: var(--accent-text);
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.hero-release-copy {
+    font-family: var(--font-sans);
+}
+
+.hero-release-arrow {
+    color: var(--accent-text);
+    transition: transform 140ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .hero-release:hover {
+        border-color: var(--accent-primary);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    .hero-release:hover .hero-release-arrow {
+        transform: translateX(2px);
+    }
+}
+
 .hero-title {
     font-size: 3.5rem;
     font-weight: 700;
@@ -412,7 +465,7 @@ body {
 
 /* Press feedback — every pressable element scales down slightly so clicks
    feel acknowledged the instant they happen. */
-:where(.btn, .copy-btn, .theme-toggle, .toggle-btn):active {
+:where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .hero-release):active {
     transform: scale(0.97);
 }
 
@@ -700,6 +753,31 @@ section {
     display: none;
 }
 
+.main-chart-key {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.main-chart-key-swatch {
+    width: 1.4rem;
+    height: 0.55rem;
+    flex: 0 0 auto;
+    border-radius: 2px;
+    background-color: var(--chart-bar);
+    background-image: repeating-linear-gradient(
+        135deg,
+        transparent 0 4px,
+        rgba(255, 255, 255, 0.35) 4px 6px
+    );
+}
+
 /* Reserve the chart's rendered height (Chart.js draws these at a 2:1 ratio on
    desktop) before the canvas exists, so it doesn't expand on load and shove the
    changelog down. The time chart sets its own inline height, so it's excluded. */
@@ -881,6 +959,29 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     overflow-x: auto;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
+}
+
+/* At full desktop width the table does not need its horizontal scrollport, so
+   its header can remain visible beneath the sticky navbar during long scans. */
+@media (min-width: 1200px) {
+    .leaderboard-table {
+        overflow: visible;
+    }
+
+    .leaderboard-table th {
+        position: sticky;
+        top: 4.45rem;
+        z-index: 3;
+        background-color: var(--bg-tertiary);
+    }
+
+    .leaderboard-table th:first-child {
+        border-top-left-radius: calc(var(--radius-lg) - 1px);
+    }
+
+    .leaderboard-table th:last-child {
+        border-top-right-radius: calc(var(--radius-lg) - 1px);
+    }
 }
 
 .leaderboard-table th:first-child,
@@ -1073,13 +1174,17 @@ tbody tr {
     transition: background-color 100ms var(--ease-out);
 }
 
+.leaderboard-entry-row > td:first-child {
+    transition: box-shadow 120ms var(--ease-out);
+}
+
 @media (hover: hover) and (pointer: fine) {
     tbody tr:hover {
         background-color: var(--bg-secondary);
     }
 
-    tbody tr:hover td[style*="background-color"] {
-        filter: brightness(1.1);
+    .leaderboard-entry-row:hover > td:first-child {
+        box-shadow: inset 3px 0 0 var(--accent-primary);
     }
 }
 
@@ -1614,6 +1719,12 @@ tbody tr:last-child td {
         text-align: center;
     }
 
+    .main-chart-key {
+        justify-content: center;
+        margin-top: 0.55rem;
+        font-size: 0.68rem;
+    }
+
     .mobile-chart-scope span {
         display: block;
     }
@@ -1923,6 +2034,17 @@ tbody tr:last-child td {
         grid-column: 1 / -1;
     }
 
+    .hero-release {
+        max-width: calc(100% - 1rem);
+        gap: 0.4rem;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.67rem;
+    }
+
+    .hero-release-copy {
+        text-align: left;
+    }
+
     .hero-title {
         font-size: 1.75rem;
     }
@@ -2015,6 +2137,18 @@ tbody tr:last-child td {
     font-size: 0.72rem;
 }
 
+.efficiency-key-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem 1rem;
+}
+
+.efficiency-key-group + .efficiency-key-group {
+    padding-left: 1rem;
+    border-left: 1px solid var(--border-color);
+}
+
 .efficiency-key span {
     display: inline-flex;
     align-items: center;
@@ -2032,6 +2166,22 @@ tbody tr:last-child td {
     height: 0.45rem;
     background: var(--chart-bar);
     border-radius: 50%;
+}
+
+.key-anthropic {
+    background: var(--chart-family-anthropic);
+}
+
+.key-openai {
+    background: var(--chart-family-openai);
+}
+
+.key-gemini {
+    background: var(--chart-family-gemini);
+}
+
+.key-other {
+    background: var(--chart-family-other);
 }
 
 .key-line {
@@ -2078,6 +2228,7 @@ tbody tr:last-child td {
 }
 
 .time-scope-toggle {
+    position: relative;
     display: inline-flex;
     flex: none;
     gap: 0.1rem;
@@ -2085,9 +2236,38 @@ tbody tr:last-child td {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
+    isolation: isolate;
+    overflow: hidden;
+}
+
+.time-scope-toggle::before {
+    position: absolute;
+    z-index: 0;
+    top: 0.15rem;
+    bottom: 0.15rem;
+    left: 0.15rem;
+    width: calc((100% - 0.4rem) / 2);
+    background: var(--bg-primary);
+    border-radius: calc(var(--radius-md) - 2px);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent);
+    content: '';
+    pointer-events: none;
+    transform: translateX(0);
+    transition: transform 180ms var(--ease-out);
+    will-change: transform;
+}
+
+.time-scope-toggle.is-all::before {
+    transform: translateX(calc(100% + 0.1rem));
+}
+
+.time-scope-toggle.is-instant::before {
+    transition-duration: 0ms;
 }
 
 .time-scope-option {
+    position: relative;
+    z-index: 1;
     min-width: 2.7rem;
     padding: 0.25rem 0.55rem;
     background: transparent;
@@ -2098,13 +2278,11 @@ tbody tr:last-child td {
     font-size: 0.68rem;
     line-height: 1.35;
     cursor: pointer;
-    transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out), transform 120ms var(--ease-out);
+    transition: color 120ms var(--ease-out), transform 120ms var(--ease-out);
 }
 
 .time-scope-option.is-active {
-    background: var(--bg-primary);
     color: var(--text-primary);
-    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent);
 }
 
 .time-scope-option:active {
@@ -2163,8 +2341,12 @@ tbody tr:last-child td {
 }
 
 @media (min-width: 1001px) {
+    .budget-chart {
+        scrollbar-gutter: stable;
+    }
+
     .budget-chart.is-all-agents {
-        max-height: 454px;
+        max-height: calc(var(--budget-main-wrapper-height, 480px) + 2rem + 2px);
         overflow-x: hidden;
         overflow-y: auto;
         overscroll-behavior: contain;
@@ -2195,13 +2377,24 @@ tbody tr:last-child td {
 
 @media (max-width: 768px) {
     .efficiency-key {
+        flex-direction: column;
         flex-wrap: nowrap;
-        justify-content: space-between;
-        gap: 0.35rem;
+        gap: 0.5rem;
         margin-top: -0.5rem;
         margin-bottom: 1.5rem;
         padding: 0;
         font-size: clamp(0.62rem, 2.75vw, 0.68rem);
+    }
+
+    .efficiency-key-group {
+        width: 100%;
+        justify-content: space-between;
+        gap: 0.35rem;
+    }
+
+    .efficiency-key-group + .efficiency-key-group {
+        padding-left: 0;
+        border-left: 0;
     }
 
     .efficiency-key span {
@@ -2224,11 +2417,8 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 360px) {
-    .efficiency-key {
-        display: grid;
-        grid-template-columns: repeat(2, max-content);
-        justify-content: space-between;
-        row-gap: 0.45rem;
+    .efficiency-key-group {
+        gap: 0.2rem;
     }
 }
 
@@ -2238,9 +2428,20 @@ tbody tr:last-child td {
     padding: 4rem 0;
 }
 
+.process-flow-version {
+    margin: 0 auto 0.55rem;
+    color: var(--accent-text);
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-align: center;
+    text-transform: uppercase;
+}
+
 .pipeline-diagram {
     width: 100%;
-    margin: 2rem auto;
+    margin: 2rem auto 1.5rem;
     padding: 2rem;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
@@ -2305,6 +2506,15 @@ tbody tr:last-child td {
     position: absolute;
     left: 0;
     color: var(--accent-primary);
+}
+
+.pf-list-note {
+    display: block;
+    margin-top: -0.05rem;
+    color: var(--text-secondary);
+    font-size: 0.66rem;
+    line-height: 1.45;
+    opacity: 0.78;
 }
 
 .pf-body {
@@ -2622,6 +2832,23 @@ tbody tr:last-child td {
     margin-bottom: 0.65rem;
 }
 
+.findings-methods-note {
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    margin: 0.65rem 0.9rem 0;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.findings-methods-note span {
+    color: var(--accent-text);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
 .findings-methods-table th:first-child,
 .findings-methods-table td:first-child {
     width: 17%;
@@ -2917,6 +3144,10 @@ tbody tr:last-child td {
 
     .findings-methods-wrap {
         overflow: visible;
+    }
+
+    .findings-methods-note {
+        margin-inline: 0.1rem;
     }
 
     .findings-methods-table {
@@ -3579,11 +3810,12 @@ html[data-photo-clean] .ptb-photo-caption {
     }
 
     .hamburger-line,
-    .dropdown-selected::after {
+    .dropdown-selected::after,
+    .time-scope-toggle::before {
         transition-duration: 0ms;
     }
 
-    :where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .dropdown-selected):active {
+    :where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .time-scope-option, .dropdown-selected):active {
         transform: none;
     }
 

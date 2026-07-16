@@ -141,6 +141,22 @@ function getChartAgentMeta(entry) {
     };
 }
 
+function getChartModelFamily(agentKey) {
+    if (/^(opus|sonnet|fable)-/.test(agentKey)) return 'anthropic';
+    if (/^gpt-/.test(agentKey)) return 'openai';
+    if (/^gemini-/.test(agentKey)) return 'gemini';
+    return 'other';
+}
+
+function getChartFamilyColors(style) {
+    return {
+        anthropic: style.getPropertyValue('--chart-family-anthropic').trim(),
+        openai: style.getPropertyValue('--chart-family-openai').trim(),
+        gemini: style.getPropertyValue('--chart-family-gemini').trim(),
+        other: style.getPropertyValue('--chart-family-other').trim()
+    };
+}
+
 // Get leaderboard data for specific model or average
 function getLeaderboardDataForModel(modelName) {
     if (modelName === "average") {
@@ -554,12 +570,10 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     // Mobile keeps the useful effort qualifier on one line; desktop splits long
     // names so the complete overview still scans as a vertical bar chart.
     const chartLabels = plottedData.map(d => {
-        const isReprompted = d.reasoningEffort && d.reasoningEffort.includes('Reprompted');
         const isMax = d.reasoningEffort === 'Max';
-        const dagger = isReprompted ? '†' : '';
         const note = agentInfo[d.agentKey]?.footnoteMarker || '';
         const maxSuffix = isMax ? ' (Max)' : '';
-        const displayName = `${d.agent}${dagger}${note}${maxSuffix}`;
+        const displayName = `${d.agent}${note}${maxSuffix}`;
         if (isMobile) {
             if (d.agent === 'Official Instruct Models') return 'Official Instruct²';
             if (d.agent === 'Base Models') return 'Base Models';
@@ -567,7 +581,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                 ? d.reasoningEffort.replace(', Reprompted', '').trim()
                 : '';
             const effortSuffix = cleanEffort ? ` (${cleanEffort})` : '';
-            return `${d.agent}${effortSuffix}${dagger}${note}`;
+            return `${d.agent}${effortSuffix}${note}`;
         }
         // Desktop: split long names into two lines
         if (d.agent === 'Base Models') {
@@ -584,7 +598,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
             const nameLines = maxWords.length >= 3
                 ? [maxWords.slice(0, Math.ceil(maxWords.length / 2)).join(' '), maxWords.slice(Math.ceil(maxWords.length / 2)).join(' ')]
                 : [d.agent];
-            nameLines[nameLines.length - 1] += `${dagger}${note}`;
+            nameLines[nameLines.length - 1] += note;
             nameLines.push('(Max)');
             return nameLines;
         }
@@ -592,7 +606,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         if (words.length >= 3) {
             const midpoint = Math.ceil(words.length / 2);
             const first = words.slice(0, midpoint).join(' ');
-            const second = words.slice(midpoint).join(' ') + dagger;
+            const second = words.slice(midpoint).join(' ');
             return [first, second];
         }
         return displayName;
@@ -637,13 +651,11 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     // Get error bar data (std deviations)
     const errorBars = plottedData.map(d => d.stdDev ? parseFloat(d.stdDev) : null);
 
-    // Mobile preserves the same baseline comparison as desktop. Round its
-    // upper bound to 5 so the official reference does not force excess space;
-    // only regular 10/20-point ticks are labelled below.
+    // Preserve the same baseline comparison at every size, but round to the
+    // next five points so the official reference does not force excess space.
+    // Only regular 10/20-point ticks are labelled below.
     const maxScore = Math.max(...(isMobile ? plottedData : data).map(d => parseFloat(d.averageScore)));
-    const yAxisMax = isMobile
-        ? Math.ceil(maxScore / 5) * 5
-        : Math.ceil(maxScore / 10) * 10;
+    const yAxisMax = Math.ceil(maxScore / 5) * 5;
     const mobileTickStep = yAxisMax <= 60 ? 10 : 20;
 
     // Calculate adaptive font sizes
@@ -751,8 +763,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                 font: { family: "'JetBrains Mono', monospace", size: fontSizes.axisTicks },
                 stepSize: 10,
                 callback: function(value) {
-                    if (value === 65) return null;
-                    return value + '%';
+                    return Number(value) % 10 === 0 ? value + '%' : null;
                 }
             }
         },
@@ -802,9 +813,9 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                 ? { duration: 0 }
                 : motion === 'initial'
                     ? {
-                        duration: 450,
-                        easing: 'easeOutCubic',
-                        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 28 : 0,
+                        duration: 300,
+                        easing: 'easeOutQuart',
+                        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 20 : 0,
                     }
                     : { duration: 190, easing: 'easeOutCubic' },
             // Tooltip only while actually over a bar — intersect: false would
@@ -889,6 +900,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
     const borderColor = style.getPropertyValue('--border-color').trim();
     const bgPrimary = style.getPropertyValue('--bg-primary').trim();
     const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
+    const familyColors = getChartFamilyColors(style);
 
     const isMobile = window.innerWidth <= 768;
 
@@ -898,7 +910,6 @@ function createParetoChart({ motion = 'initial' } = {}) {
         wrapper.style.height = '320px';
     } else {
         wrapper.style.minWidth = '';
-        wrapper.style.height = '420px';
     }
 
     const fontSizes = calculateFontSizes(ctx);
@@ -910,6 +921,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
         .map(d => {
             const t = timeData[d.agentKey];
             const labelMeta = getChartAgentMeta(d);
+            const modelFamily = getChartModelFamily(d.agentKey);
             return {
                 x: t.hours,
                 y: parseFloat(d.averageScore),
@@ -920,12 +932,18 @@ function createParetoChart({ motion = 'initial' } = {}) {
                 scaffold: d.scaffold,
                 time: t.time,
                 stdTime: t.stdHours ? t.stdTime : null,
-                stdDev: d.stdDev ? parseFloat(d.stdDev) : null
+                stdDev: d.stdDev ? parseFloat(d.stdDev) : null,
+                modelFamily,
+                familyColor: familyColors[modelFamily] || chartBar
             };
         })
         .sort((a, b) => a.x - b.x);
 
     if (points.length === 0) return;
+
+    if (!isMobile) {
+        wrapper.style.height = `${Math.max(480, points.length * 40)}px`;
+    }
 
     // Pareto frontier: points no other point beats on both time and score.
     const frontier = points
@@ -1022,14 +1040,16 @@ function createParetoChart({ motion = 'initial' } = {}) {
                     c.lineJoin = 'round';
                     c.font = nameFont;
                     c.strokeText(p.label, textX, rect.top);
-                    c.fillStyle = frontierKeys.has(p.agentKey) ? textPrimary : textSecondary;
+                    c.fillStyle = p.familyColor;
                     c.fillText(p.label, textX, rect.top);
                     if (p.reasoningLabel) {
                         const effortY = rect.top + fontSize + 2;
                         c.font = effortFont;
                         c.strokeText(p.reasoningLabel, textX, effortY);
-                        c.fillStyle = accentPrimary;
+                        c.globalAlpha = 0.82;
+                        c.fillStyle = p.familyColor;
                         c.fillText(p.reasoningLabel, textX, effortY);
+                        c.globalAlpha = 1;
                     }
                     placed.push(rect);
                     break;
@@ -1085,7 +1105,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
                 {
                     label: 'Agents',
                     data: points,
-                    backgroundColor: chartBar,
+                    backgroundColor: points.map(p => p.familyColor),
                     borderColor: bgPrimary,
                     borderWidth: 2,
                     pointRadius: pointRadius,
@@ -1128,11 +1148,10 @@ function createParetoChart({ motion = 'initial' } = {}) {
                             const p = item.raw;
                             const lines = [
                                 `Avg score: ${p.y.toFixed(1)}%${p.stdDev ? ` ± ${p.stdDev.toFixed(1)}%` : ''}`,
-                                `Time: ${p.time}${p.stdTime ? ` ± ${p.stdTime}` : ''}`
+                                `Runtime: ${formatRuntimeDuration(p.time)}${p.stdTime ? ` ± ${formatRuntimeDuration(p.stdTime)}` : ''}`
                             ];
-                            if (p.reasoningEffort) lines.push(`Reasoning effort: ${p.reasoningEffort}`);
+                            if (p.reasoningEffort) lines.push(`Effort: ${p.reasoningEffort}`);
                             if (p.scaffold) lines.push(`Scaffold: ${p.scaffold}`);
-                            if (frontierKeys.has(p.agentKey)) lines.push('On the Pareto frontier');
                             return lines;
                         }
                     }
@@ -1197,8 +1216,25 @@ function createParetoChart({ motion = 'initial' } = {}) {
 
 // Create Time Spent Chart
 let showAllTimeAgents = false;
+let budgetMainRowPitch = null;
+let budgetChartChromeHeight = null;
+let budgetScopeContentAnimation = null;
+
+function formatRuntimeDuration(time) {
+    const [hoursPart, minutesPart] = String(time ?? '').split(':');
+    const hours = Number.parseInt(hoursPart, 10);
+    const minutes = Number.parseInt(minutesPart, 10);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return String(time ?? '');
+    if (hours === 0) return `${minutes}m`;
+    if (minutes === 0) return `${hours}h`;
+    return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+}
 
 function updateTimeScopeControl() {
+    document.querySelectorAll('.time-scope-toggle').forEach((toggle) => {
+        toggle.classList.toggle('is-all', showAllTimeAgents);
+    });
     document.querySelectorAll('[data-time-scope]').forEach((button) => {
         const isActive = button.dataset.timeScope === (showAllTimeAgents ? 'all' : 'main');
         button.classList.toggle('is-active', isActive);
@@ -1210,6 +1246,33 @@ function updateTimeScopeControl() {
             ? 'All agents with recorded runtimes shown.'
             : 'Main-chart agents with recorded runtimes only.';
     }
+}
+
+function animateBudgetScopeContent(showAll) {
+    const wrapper = document.querySelector('.budget-chart .leaderboard-chart-wrapper');
+    if (!wrapper || reducedMotionQuery.matches) return;
+
+    const currentStyle = budgetScopeContentAnimation ? getComputedStyle(wrapper) : null;
+    const fromOpacity = currentStyle?.opacity || '0.72';
+    const fromTransform = currentStyle?.transform && currentStyle.transform !== 'none'
+        ? currentStyle.transform
+        : `translateY(${showAll ? 3 : -3}px)`;
+
+    budgetScopeContentAnimation?.cancel();
+    const animation = wrapper.animate([
+        { opacity: fromOpacity, transform: fromTransform },
+        { opacity: 1, transform: 'translateY(0)' }
+    ], {
+        duration: 180,
+        easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+        fill: 'both'
+    });
+    budgetScopeContentAnimation = animation;
+    animation.finished.then(() => {
+        if (budgetScopeContentAnimation !== animation) return;
+        animation.cancel();
+        budgetScopeContentAnimation = null;
+    }).catch(() => {});
 }
 
 function createTimeSpentChart({ motion = 'initial' } = {}) {
@@ -1236,19 +1299,40 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
     // Set wrapper dimensions based on screen size and agent count
     const wrapper = ctx.closest('.leaderboard-chart-wrapper');
     const chartShell = ctx.closest('.budget-chart');
+    const mainAgentCount = timeSpentData.filter(d =>
+        !d.isBaseline && chartAgentKeys.includes(d.agentKey)).length;
+    const mainDesktopHeight = Math.max(480, mainAgentCount * 40);
+    chartShell?.style.setProperty('--budget-main-wrapper-height', `${mainDesktopHeight}px`);
     chartShell?.classList.toggle('is-all-agents', showAllTimeAgents);
     if (isMobile) {
         const dynamicHeight = Math.max(300, sortedData.length * 36 + 28);
         wrapper.style.minWidth = '';
         wrapper.style.height = `${dynamicHeight}px`;
     } else {
-        const dynamicHeight = Math.max(420, sortedData.length * 32);
+        const hasMainRowMetrics = showAllTimeAgents &&
+            Number.isFinite(budgetMainRowPitch) && Number.isFinite(budgetChartChromeHeight);
+        const dynamicHeight = hasMainRowMetrics
+            ? budgetChartChromeHeight + budgetMainRowPitch * sortedData.length
+            : Math.max(480, sortedData.length * 40);
         wrapper.style.minWidth = '';
         wrapper.style.height = `${dynamicHeight}px`;
     }
 
     // Calculate adaptive font sizes
     const fontSizes = calculateFontSizes(ctx);
+    const labelFontSize = isMobile ? 10 : fontSizes.axisTicks;
+    const labelGutterWidth = (() => {
+        if (isMobile) return 0;
+        const measureContext = ctx.getContext('2d');
+        measureContext.save();
+        measureContext.font = `600 ${labelFontSize}px 'JetBrains Mono', monospace`;
+        const maxLabelWidth = timeSpentData
+            .filter(d => !d.isBaseline && timeChartAgentKeys.includes(d.agentKey))
+            .reduce((maxWidth, d) =>
+                Math.max(maxWidth, measureContext.measureText(getChartAgentMeta(d).name).width), 0);
+        measureContext.restore();
+        return Math.ceil(maxLabelWidth + 18);
+    })();
 
     const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
     const buildAnimation = reduceMotion
@@ -1278,20 +1362,18 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                 const barHeight = bar.height;
 
                 // The bar grows horizontally (bar.x animates from its base to the
-                // final value). Ride the error caps and the time label on the
-                // animated end and fade them in as the bar reaches full length, so
-                // they build in with the bar instead of floating ahead of it.
+                // final value). Keep the error caps attached to that animated end,
+                // while the aligned runtime column fades in at the same pace.
                 const finalX = scales.x.getPixelForValue(value);
                 const grow = finalX !== bar.base
                     ? Math.min(1, Math.max(0, (bar.x - bar.base) / (finalX - bar.base)))
                     : 1;
                 ctx.globalAlpha = grow;
 
-                let labelX = bar.x + 8;
-
                 if (dataItem.stdHours) {
-                    ctx.strokeStyle = '#704028';
-                    ctx.lineWidth = isMobile ? 1 : 2;
+                    ctx.strokeStyle = textSecondary;
+                    ctx.lineWidth = isMobile ? 1 : 1.5;
+                    ctx.globalAlpha = grow * 0.62;
 
                     const capSize = Math.min(barHeight * 0.3, isMobile ? 4 : 6);
                     const stdRightPx = scales.x.getPixelForValue(value + dataItem.stdHours) - finalX;
@@ -1307,8 +1389,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                     ctx.moveTo(xMax, yPos - capSize);
                     ctx.lineTo(xMax, yPos + capSize);
                     ctx.stroke();
-
-                    labelX = xMax + 8;
+                    ctx.globalAlpha = grow;
                 }
 
                 ctx.fillStyle = textSecondary;
@@ -1316,14 +1397,11 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                 if (isMobile) {
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'bottom';
-                    ctx.fillText(dataItem.time, chartArea.right, yPos - Math.max(7, barHeight * 0.75));
+                    ctx.fillText(formatRuntimeDuration(dataItem.time), chartArea.right, yPos - Math.max(7, barHeight * 0.75));
                 } else {
-                    ctx.textAlign = 'left';
+                    ctx.textAlign = 'right';
                     ctx.textBaseline = 'middle';
-                    const labelText = dataItem.stdHours
-                        ? `${dataItem.time} ± ${dataItem.stdTime}`
-                        : dataItem.time;
-                    ctx.fillText(labelText, labelX, yPos);
+                    ctx.fillText(formatRuntimeDuration(dataItem.time), chart.width - 12, yPos);
                 }
             });
 
@@ -1335,8 +1413,6 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
 
     // Agent names carry the comparison; scaffold metadata remains available in
     // the table and tooltip instead of taking a second axis-label line.
-    const labelFontSize = isMobile ? 10 : fontSizes.axisTicks;
-
     const customLabelsPlugin = {
         id: 'customLabels',
         afterDatasetsDraw(chart) {
@@ -1430,9 +1506,8 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
     };
 
     // Vertical dashed line at x=10 to mark the budget. The chart's
-    // x-axis goes to 11 (not 10) so error bars on the top agents
-    // (Opus 4.6 at ~9h with ±std) and their text labels have room
-    // past the budget line. Label sits ABOVE chartArea.top in the
+    // x-axis extends beyond 10 so error bars and the aligned runtime
+    // column have room past the budget line. Label sits ABOVE chartArea.top in the
     // layout's top padding, so it never collides with the top bar's
     // right-side data label.
     const budgetLinePlugin = {
@@ -1463,13 +1538,13 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Time Spent (hours)',
+                label: 'Average runtime',
                 data: sortedData.map(d => d.hours),
                 backgroundColor: timeBarColors,
                 borderColor: chartBar,
                 borderWidth: isMobile ? 0 : 2,
                 borderRadius: isMobile ? 2 : 4,
-                barPercentage: isMobile ? 0.28 : 0.8,
+                barPercentage: isMobile ? 0.28 : 0.64,
                 categoryPercentage: isMobile ? 0.86 : 0.9,
                 datalabels: { display: false }
             }]
@@ -1486,13 +1561,12 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                 axis: 'y',
                 intersect: true
             },
-            // Padding gives the budget label (top) and right-side data
-            // labels (e.g. "9:39 ± 0:53") room without colliding with
-            // the chart's own canvas edges.
+            // Padding gives the budget label room above the plotting area and
+            // reserves a fixed desktop gutter for the aligned runtime values.
             layout: {
                 padding: {
                     top: isMobile ? 16 : 18,
-                    right: isMobile ? 2 : 80,
+                    right: isMobile ? 2 : 74,
                     left: isMobile ? 2 : 0
                 }
             },
@@ -1511,18 +1585,17 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                         },
                         label: function(context) {
                             const dataItem = sortedData[context.dataIndex];
-                            let label = `Time: ${dataItem.time} (${context.parsed.x.toFixed(2)} hours)`;
-                            if (dataItem.stdHours) {
-                                label += ` ± ${dataItem.stdTime}`;
-                            }
-                            return label;
+                            const lines = [`Average runtime: ${formatRuntimeDuration(dataItem.time)}`];
+                            if (dataItem.stdHours) lines.push(`Variation: ±${formatRuntimeDuration(dataItem.stdTime)}`);
+                            if (dataItem.n) lines.push(`Runs: ${dataItem.n}`);
+                            return lines;
                         },
                         afterLabel: function(context) {
                             const dataItem = sortedData[context.dataIndex];
                             const labelMeta = getChartAgentMeta(dataItem);
                             const scaffold = agentInfo[dataItem.agentKey]?.scaffold;
                             return [
-                                labelMeta.effort ? `Reasoning effort: ${labelMeta.effort}` : null,
+                                labelMeta.effort ? `Effort: ${labelMeta.effort}` : null,
                                 scaffold ? `Scaffold: ${scaffold}` : null
                             ].filter(Boolean);
                         }
@@ -1535,10 +1608,10 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
             scales: {
                 x: {
                     beginAtZero: true,
-                    max: isMobile ? 11.1 : 11,
+                    max: isMobile ? 11.1 : 10.2,
                     title: {
                         display: !isMobile,
-                        text: 'Time (hours)',
+                        text: 'Average runtime',
                         color: textPrimary,
                         font: {
                             family: "'JetBrains Mono', monospace",
@@ -1548,7 +1621,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                     },
                     grid: {
                         display: !isMobile,
-                        color: borderColor
+                        color: context => Number(context.tick.value) === 5 ? borderColor : 'transparent'
                     },
                     border: {
                         display: !isMobile
@@ -1559,15 +1632,18 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                             family: "'JetBrains Mono', monospace",
                             size: isMobile ? 10 : fontSizes.axisTicks
                         },
-                        stepSize: isMobile ? 5 : 2,
-                        includeBounds: !isMobile,
+                        stepSize: 5,
+                        includeBounds: false,
                         callback: function(value) {
-                            if (isMobile && ![0, 5, 10].includes(Number(value))) return null;
-                            return value;
+                            if (![0, 5, 10].includes(Number(value))) return null;
+                            return `${value}h`;
                         }
                     }
                 },
                 y: {
+                    afterFit: scale => {
+                        if (!isMobile) scale.width = labelGutterWidth;
+                    },
                     title: {
                         display: false
                     },
@@ -1586,6 +1662,13 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
             }
         }
     });
+
+    // All keeps Main's exact row rhythm. Without this, Chart.js divides the
+    // larger canvas differently, making bars thicker and shifting every label.
+    if (!isMobile && !showAllTimeAgents && timeSpentChart.chartArea) {
+        budgetMainRowPitch = timeSpentChart.chartArea.height / sortedData.length;
+        budgetChartChromeHeight = mainDesktopHeight - timeSpentChart.chartArea.height;
+    }
 }
 
 let resizeTimeout;
@@ -1858,19 +1941,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.documentElement.classList.remove('leaderboard-loading');
     }
 
-    // Wait for the chart font (JetBrains Mono) before drawing the charts so bar
-    // labels don't render in a fallback face and reflow mid-animation. Cap the
-    // wait so a slow font CDN never blocks the charts indefinitely.
-    if (document.fonts && document.fonts.ready) {
+    // Wait specifically for the chart face instead of every page font. This
+    // avoids a blank chart card on slow connections while still preventing its
+    // labels from reflowing halfway through the entrance build.
+    if (document.fonts && document.fonts.load) {
         try {
             await Promise.race([
-                document.fonts.ready,
-                new Promise((resolve) => setTimeout(resolve, 1500)),
+                document.fonts.load("500 16px 'JetBrains Mono'"),
+                new Promise((resolve) => setTimeout(resolve, 600)),
             ]);
         } catch (e) { /* render anyway */ }
     }
 
-    createSimpleChart();
+    // The leaderboard chart is explanatory motion, so reveal it once when the
+    // chart is actually in view. Rebuilds caused by resizing, theme changes, or
+    // keyboard filtering remain instant elsewhere in this file.
+    const performanceChartPanel = document.getElementById('performanceChart')?.closest('.leaderboard-chart');
+    const renderInitialPerformanceChart = () => {
+        if (!performanceChart) createSimpleChart(currentSelectedModel);
+    };
+
+    if (performanceChartPanel && 'IntersectionObserver' in window && !reducedMotionQuery.matches) {
+        const chartObserver = new IntersectionObserver((entries) => {
+            if (!entries.some(entry => entry.isIntersecting)) return;
+            chartObserver.disconnect();
+            renderInitialPerformanceChart();
+        }, { threshold: 0.12 });
+        chartObserver.observe(performanceChartPanel);
+    } else {
+        renderInitialPerformanceChart();
+    }
     createParetoChart();
     createTimeSpentChart();
     handleNavbarLogoVisibility(); // Set initial state based on scroll position
@@ -1880,13 +1980,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         scopeButton.addEventListener('click', (event) => {
             const nextShowAll = scopeButton.dataset.timeScope === 'all';
             if (nextShowAll === showAllTimeAgents) return;
+            const scopeToggle = scopeButton.closest('.time-scope-toggle');
+            const shouldAnimate = event.detail !== 0 && !reducedMotionQuery.matches;
+            if (!shouldAnimate) scopeToggle?.classList.add('is-instant');
             showAllTimeAgents = nextShowAll;
             updateTimeScopeControl();
+            if (!shouldAnimate && scopeToggle) {
+                scopeToggle.getBoundingClientRect();
+                scopeToggle.classList.remove('is-instant');
+            }
             document.querySelector('.budget-chart')?.scrollTo({ top: 0 });
             if (timeSpentChart) {
                 timeSpentChart.destroy();
             }
-            createTimeSpentChart({ motion: event.detail === 0 ? 'none' : 'interaction' });
+            createTimeSpentChart({ motion: 'none' });
+            if (shouldAnimate) animateBudgetScopeContent(showAllTimeAgents);
         });
     });
 

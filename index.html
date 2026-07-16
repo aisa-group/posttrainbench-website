@@ -79,6 +79,11 @@
 
     <section class="hero">
         <div class="container">
+            <a class="hero-release" href="#process-flow">
+                <span class="hero-release-version">New · v1.1</span>
+                <span class="hero-release-copy">Stricter judging and recomputed results</span>
+                <span class="hero-release-arrow" aria-hidden="true">→</span>
+            </a>
             <h1 class="hero-title">
                 <span class="title-main">PostTrain</span><span class="title-accent">Bench</span>
             </h1>
@@ -118,6 +123,10 @@
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="performanceChart"></canvas>
                 </div>
+                <div class="main-chart-key" aria-label="Chart key">
+                    <span class="main-chart-key-swatch" aria-hidden="true"></span>
+                    <span>Reprompted</span>
+                </div>
                 <p class="mobile-chart-scope">
                     <span class="mobile-chart-scope-main">Top ten agents + two baselines</span>
                     <span id="mobile-chart-references">Same comparison as desktop · full ranking below</span>
@@ -140,7 +149,9 @@
                     <div class="changelog-entry">
                         <div class="changelog-date">Jul 15, 2026</div>
                         <ul class="changelog-list">
-                            <li>Recomputed the leaderboard with the v1.1 two-judge pipeline and updated <strong>Fable 5</strong> to two runs. Its GPQA scores fall back to Opus 4.8 (Max).</li>
+                            <li>Released <strong>PostTrainBench v1.1</strong> and recomputed the leaderboard with independent contamination and API-usage judges plus programmatic model-identity checks.</li>
+                            <li>External-model distillation is now disallowed. Flagged runs receive the base-model score.</li>
+                            <li>Updated <strong>Fable 5</strong> to two runs. Its GPQA scores fall back to Opus 4.8 (Max).</li>
                         </ul>
                     </div>
                     <div class="changelog-entry">
@@ -253,7 +264,7 @@
                             <th>Method</th>
                             <th>Avg</th>
                             <th class="benchmark-col">AIME 2025</th>
-                            <th class="benchmark-col">ArenaHard</th>
+                            <th class="benchmark-col">Arena Hard</th>
                             <th class="benchmark-col">BFCL</th>
                             <th class="benchmark-col">GPQA Main</th>
                             <th class="benchmark-col">GSM8K</th>
@@ -276,10 +287,17 @@
             <h2 class="section-title">Efficiency</h2>
             <p class="section-description">Score relative to runtime. Upper-left is better; the dashed line marks the Pareto frontier.</p>
             <div class="efficiency-key">
-                <span><i class="key-dot"></i>Agent</span>
-                <span><i class="key-line key-frontier"></i>Pareto frontier</span>
-                <span><i class="key-line key-budget"></i>10h budget</span>
-                <span><i class="key-stripe"></i>Reprompted</span>
+                <div class="efficiency-key-group" aria-label="Performance plot model families">
+                    <span><i class="key-dot key-anthropic"></i>Anthropic</span>
+                    <span><i class="key-dot key-openai"></i>OpenAI</span>
+                    <span><i class="key-dot key-gemini"></i>Gemini</span>
+                    <span><i class="key-dot key-other"></i>Other</span>
+                </div>
+                <div class="efficiency-key-group" aria-label="Chart notation">
+                    <span><i class="key-line key-frontier"></i>Pareto frontier</span>
+                    <span><i class="key-line key-budget"></i>10h budget</span>
+                    <span><i class="key-stripe"></i>Reprompted</span>
+                </div>
             </div>
             <div class="efficiency-grid">
                 <article class="efficiency-panel">
@@ -313,8 +331,9 @@
 
     <section id="process-flow" class="process-flow">
         <div class="container">
+            <p class="process-flow-version">Version 1.1</p>
             <h2 class="section-title">How a Run Is Scored</h2>
-            <p class="section-description">The agent trains, two independent judges audit the run, and only clean runs earn a benchmark score.</p>
+            <p class="section-description">Version 1.1 replaces the original single judge with independent contamination and API-usage reviews. Programmatic checks verify model identity, and flagged runs receive the base-model score.</p>
             <div class="pipeline-diagram">
                 <div class="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated on the full benchmark for a score.">
                     <div class="pf-card pf-agent">
@@ -330,7 +349,7 @@
                         <div class="pf-title">Judges</div>
                         <ul class="pf-list">
                             <li>Contamination judge</li>
-                            <li>API-usage judge</li>
+                            <li>API-usage judge<span class="pf-list-note">external-model API use and distillation</span></li>
                         </ul>
                         <div class="pf-sub">+ programmatic contamination and model-identity checks</div>
                     </div>
@@ -442,8 +461,8 @@
                         </tr>
                     </tbody>
                 </table>
+                <p class="findings-methods-note"><span>Not observed</span> PPO · KTO</p>
             </div>
-            <p class="findings-note observations-copy">PPO and KTO were not observed in any run.</p>
 
             <h3 id="observations-signal" class="section-subtitle observation-heading">External distillation is now out of scope</h3>
             <p class="findings-lead observations-copy">Earlier runs sometimes drew on stronger models through local teachers, hosted APIs, or packaged reasoning traces. The current judges disallow external-model distillation and score flagged runs as the base model. Agents can still self-generate and filter data with the assigned model, but they cannot import the ability of a stronger teacher.</p>
