@@ -106,7 +106,9 @@
 
         <!-- Footer: utilities (download, copyable id). -->
         <div class="summary-footer">
-          <a id="link-raw" href="#" class="btn btn-secondary btn-small">Download trace</a>
+          <a id="link-raw" href="#" class="btn btn-secondary btn-small"
+             data-goatcounter-click="trace-downloaded"
+             data-goatcounter-title="Download trace">Download trace</a>
           <div class="run-id-block" id="run-id-box" title="Click to copy the run ID">
             <code id="run-id-text"></code>
             <button class="copy-btn" id="copy-id-btn" aria-label="Copy run ID">
@@ -244,5 +246,15 @@
   <script src="assets/tooltip.js"></script>
   <script src="assets/catalog.js"></script>
   <script src="assets/run.js"></script>
+  <script>
+    window.goatcounter = {
+      path: function () {
+        var id = new URLSearchParams(window.location.search).get('id');
+        return window.location.pathname + (id ? '?id=' + encodeURIComponent(id) : '');
+      },
+    };
+  </script>
+  <script data-goatcounter="https://hrdkbhatnagar.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

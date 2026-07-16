@@ -13,6 +13,11 @@ let isThemeTransitioning = false;
 let activeThemeTransition = null;
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+function trackGoatCounterEvent(path, title) {
+    if (typeof window.goatcounter?.count !== 'function') return;
+    window.goatcounter.count({ path, title, event: true });
+}
+
 // Hamburger Menu Toggle
 const hamburgerBtn = document.getElementById('hamburger-btn');
 const navLinks = document.getElementById('nav-links');
@@ -1754,6 +1759,10 @@ function selectModelOption(option, returnFocus = true, { motion = 'interaction',
 
     if (selectedValue !== currentSelectedModel) {
         currentSelectedModel = selectedValue;
+        trackGoatCounterEvent(
+            `leaderboard-model/${encodeURIComponent(selectedValue)}`,
+            `Leaderboard model: ${option.textContent.trim()}`
+        );
         populateLeaderboard(selectedValue);
         if (performanceChart) {
             performanceChart.destroy();
@@ -1984,6 +1993,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const shouldAnimate = event.detail !== 0 && !reducedMotionQuery.matches;
             if (!shouldAnimate) scopeToggle?.classList.add('is-instant');
             showAllTimeAgents = nextShowAll;
+            trackGoatCounterEvent(
+                `budget-scope/${showAllTimeAgents ? 'all' : 'main'}`,
+                `Budget scope: ${showAllTimeAgents ? 'All agents' : 'Main agents'}`
+            );
             updateTimeScopeControl();
             if (!shouldAnimate && scopeToggle) {
                 scopeToggle.getBoundingClientRect();

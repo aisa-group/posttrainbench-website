@@ -74,6 +74,11 @@ const DATA_REQUEST_TIMEOUT_MS = 30000;
 const CHART_LOAD_TIMEOUT_MS = 8000;
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+function trackGoatCounterEvent(path, title) {
+  if (typeof window.goatcounter?.count !== 'function') return;
+  window.goatcounter.count({ path, title, event: true });
+}
+
 async function load() {
   try {
     if (!RUN_ID) {
@@ -1498,6 +1503,9 @@ function setupTabs() {
       url.hash = '';
     }
     history.replaceState(null, '', url.toString());
+    if (!initial) {
+      trackGoatCounterEvent(`trace-tab/${name}`, `Trace tab: ${name}`);
+    }
     if (!initial) {
       if (window.matchMedia('(max-width: 900px)').matches) {
         requestAnimationFrame(() => scrollSectionBelowTabs(sections.get(name)));

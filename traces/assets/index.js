@@ -30,6 +30,11 @@ const TABLE_PAGE_SIZE = 50;
 let OPEN_GROUP_KEY = '';
 let APPLYING_URL_STATE = false;
 
+function trackGoatCounterEvent(path, title) {
+  if (typeof window.goatcounter?.count !== 'function') return;
+  window.goatcounter.count({ path, title, event: true });
+}
+
 // Canonical display order for benchmarks and base models. Used to order
 // matrix rows/columns and to sort groups so the page doesn't open on
 // saturated cells. Benchmarks roughly: hard reasoning first → coding →
@@ -266,6 +271,10 @@ function renderMatrix() {
 }
 
 function filterToCell(benchmark, model) {
+  trackGoatCounterEvent(
+    `trace-matrix-filter/${encodeURIComponent(benchmark)}/${encodeURIComponent(model)}`,
+    `Trace matrix: ${prettyBenchmark(benchmark)} · ${prettyTrainedModel(model)}`
+  );
   APPLYING_URL_STATE = true;
   els.benchFilter.value = benchmark;
   els.modelFilter.value = model;
@@ -923,6 +932,11 @@ function makeCustomSelect(selectEl) {
   const selectValue = (v, { instant = false } = {}) => {
     if (selectEl.value === v) { close({ instant }); return; }
     selectEl.value = v;
+    const selectedLabel = selectEl.selectedOptions[0]?.textContent || v || 'all';
+    trackGoatCounterEvent(
+      `trace-control/${encodeURIComponent(selectEl.id)}/${encodeURIComponent(v || 'all')}`,
+      `Trace control: ${selectEl.id} · ${selectedLabel}`
+    );
     selectEl.dispatchEvent(new Event('input', { bubbles: true }));
     selectEl.dispatchEvent(new Event('change', { bubbles: true }));
     syncTrigger();
@@ -947,5 +961,11 @@ function makeCustomSelect(selectEl) {
 
 [els.benchFilter, els.modelFilter, els.agentFilter, els.expFilter,
  els.groupBy, els.sort].forEach(makeCustomSelect);
+
+els.q.addEventListener('change', () => {
+  if (els.q.value.trim()) {
+    trackGoatCounterEvent('trace-search-used', 'Trace search used');
+  }
+});
 
 load();
