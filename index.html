@@ -18,6 +18,12 @@
                 var t = localStorage.getItem('theme');
                 if (t) root.setAttribute('data-theme', t);
             } catch (e) {}
+            try {
+                var version = new URLSearchParams(window.location.search).get('version');
+                root.setAttribute('data-results-version', version === 'v1' ? 'v1' : 'v1.1');
+            } catch (e) {
+                root.setAttribute('data-results-version', 'v1.1');
+            }
             root.classList.add('leaderboard-loading');
             setTimeout(function () { root.classList.remove('leaderboard-loading'); }, 3000);
         })();
@@ -125,6 +131,17 @@
         <div class="container">
             <h2 class="section-title">Leaderboard</h2>
             <p class="section-description">Average performance across four base models and seven weighted benchmarks.</p>
+            <div class="results-version-control">
+                <span class="results-version-label" id="results-version-label">Results version</span>
+                <div class="results-version-toggle" role="group" aria-labelledby="results-version-label">
+                    <button class="results-version-option is-active" type="button" data-results-version="v1.1" aria-pressed="true">
+                        <span>v1.1</span><small>Current</small>
+                    </button>
+                    <button class="results-version-option" type="button" data-results-version="v1" aria-pressed="false">
+                        <span>v1</span><small>Original</small>
+                    </button>
+                </div>
+            </div>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="performanceChart"></canvas>
@@ -138,7 +155,7 @@
                     <span id="mobile-chart-references">Same comparison as desktop · full ranking below</span>
                 </p>
             </div>
-            <p class="results-status"><span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.</p>
+            <p class="results-status" id="results-status"><span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.</p>
             <div class="leaderboard-meta">
                 <details class="methodology-notes compact-disclosure">
                     <summary>Methodology &amp; caveats</summary>
@@ -146,7 +163,7 @@
                         <p><sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and seven benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). Each run asks a CLI agent to maximize one base model on one benchmark.</p>
                         <p><sup>2</sup> “Official Instruct Models” are the official post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank" rel="noopener noreferrer">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank" rel="noopener noreferrer">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank" rel="noopener noreferrer">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank" rel="noopener noreferrer">Gemma-3-4B-IT</a>. Their training usually exceeds the ten-hour, one-GPU constraint, so they are not directly comparable.</p>
                         <p><sup>†</sup> Reprompted means the agent was manually asked to continue whenever it stopped before the time budget expired.</p>
-                        <p><sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.</p>
+                        <p id="fable-methodology-note"><sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.</p>
                     </div>
                 </details>
                 <details class="changelog compact-disclosure">
@@ -283,7 +300,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="leaderboard-footnote table-footnote">Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.</p>
+            <p class="leaderboard-footnote table-footnote" id="table-footnote">Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.</p>
         </div>
     </section>
 
@@ -331,7 +348,7 @@
                     </div>
                 </article>
             </div>
-            <p class="chart-footnote efficiency-note"><span id="time-scope-note">Main-chart agents with recorded runtimes only.</span> <sup>†</sup> Reprompted.</p>
+            <p class="chart-footnote efficiency-note"><span id="time-scope-note">Main-chart agents with recorded runtimes only.</span> <span id="efficiency-version-note"></span> <sup>†</sup> Reprompted.</p>
         </div>
     </section>
 
@@ -771,6 +788,7 @@ examples.extend(synthetic_examples(1000, 42000))</pre>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="config.js"></script>
+    <script src="scores-v1.js"></script>
     <script src="scores.js"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>

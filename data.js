@@ -8,6 +8,30 @@ let leaderboardData = [];
 let timeSpentData = [];
 let statistics = {};
 
+const CURRENT_RESULTS_VERSION = 'v1.1';
+const ARCHIVED_RESULTS_VERSION = 'v1';
+
+function normalizeResultsVersion(version) {
+    return version === ARCHIVED_RESULTS_VERSION
+        ? ARCHIVED_RESULTS_VERSION
+        : CURRENT_RESULTS_VERSION;
+}
+
+function getInitialResultsVersion() {
+    if (typeof window === 'undefined') return CURRENT_RESULTS_VERSION;
+    const requestedVersion = new URLSearchParams(window.location.search).get('version');
+    return normalizeResultsVersion(requestedVersion);
+}
+
+let activeResultsVersion = getInitialResultsVersion();
+
+function getInlinedScoresData(version = activeResultsVersion) {
+    if (typeof window === 'undefined') return null;
+    return version === ARCHIVED_RESULTS_VERSION
+        ? window.SCORES_DATA_V1
+        : window.SCORES_DATA;
+}
+
 function calculateWeightedAverage(agentKey) {
     const benchmarks = Object.keys(benchmarkWeights);
     let totalWeightedSum = 0;
@@ -177,20 +201,27 @@ function applyScoresData(data) {
     buildTimeSpentData();
 }
 
+function applyResultsVersion(version) {
+    const normalizedVersion = normalizeResultsVersion(version);
+    const data = getInlinedScoresData(normalizedVersion);
+    if (!data) return false;
+
+    activeResultsVersion = normalizedVersion;
+    applyScoresData(data);
+    return true;
+}
+
 // Synchronous init from the inlined scores.js (window.SCORES_DATA). Lets the
 // leaderboard render before first paint. Returns false if the global is absent.
 function loadScoresDataSync() {
-    if (typeof window !== 'undefined' && window.SCORES_DATA) {
-        applyScoresData(window.SCORES_DATA);
-        return true;
-    }
-    return false;
+    return applyResultsVersion(activeResultsVersion);
 }
 
 async function loadScoresData() {
     try {
-        if (typeof window !== 'undefined' && window.SCORES_DATA) {
-            applyScoresData(window.SCORES_DATA);
+        const inlinedData = getInlinedScoresData(activeResultsVersion);
+        if (inlinedData) {
+            applyScoresData(inlinedData);
             return true;
         }
         const response = await fetch('scores.json');

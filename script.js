@@ -12,10 +12,115 @@ let currentSelectedModel = 'average';
 let isThemeTransitioning = false;
 let activeThemeTransition = null;
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+let resultsVersionContentAnimations = [];
+
+const resultsVersionCopy = {
+    'v1.1': {
+        status: '<span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.',
+        methodology: '<sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.',
+        tableFootnote: 'Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.',
+        efficiencyNote: ''
+    },
+    'v1': {
+        status: '<span aria-hidden="true">‡</span> Archived v1 results use the original single-judge pipeline. Fable 5 results are preliminary.',
+        methodology: '<sup>‡</sup> Fable 5 results come from its initial limited-availability period, when rate limits and refusals caused several SmolLM3-3B runs to fail. Those cells use Opus 4.8 (Max) results.',
+        tableFootnote: 'Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Preliminary Fable 5 cell; see Methodology &amp; caveats.',
+        efficiencyNote: 'Fable 5 runtime is from its preliminary v1 run.'
+    }
+};
 
 function trackGoatCounterEvent(path, title) {
     if (typeof window.goatcounter?.count !== 'function') return;
     window.goatcounter.count({ path, title, event: true });
+}
+
+function updateResultsVersionUI({ instant = false } = {}) {
+    const version = normalizeResultsVersion(activeResultsVersion);
+    const toggle = document.querySelector('.results-version-toggle');
+    if (instant && toggle) {
+        toggle.classList.add('is-instant');
+        requestAnimationFrame(() => requestAnimationFrame(() => toggle.classList.remove('is-instant')));
+    }
+    toggle?.classList.toggle('is-v1', version === ARCHIVED_RESULTS_VERSION);
+
+    document.querySelectorAll('[data-results-version]').forEach((button) => {
+        const isActive = button.dataset.resultsVersion === version;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+
+    document.documentElement.setAttribute('data-results-version', version);
+    const copy = resultsVersionCopy[version];
+    const status = document.getElementById('results-status');
+    const methodology = document.getElementById('fable-methodology-note');
+    const tableFootnote = document.getElementById('table-footnote');
+    const efficiencyNote = document.getElementById('efficiency-version-note');
+    if (status) status.innerHTML = copy.status;
+    if (methodology) methodology.innerHTML = copy.methodology;
+    if (tableFootnote) tableFootnote.innerHTML = copy.tableFootnote;
+    if (efficiencyNote) efficiencyNote.textContent = copy.efficiencyNote;
+}
+
+function updateResultsVersionURL(version) {
+    const url = new URL(window.location.href);
+    if (version === CURRENT_RESULTS_VERSION) {
+        url.searchParams.delete('version');
+    } else {
+        url.searchParams.set('version', version);
+    }
+    window.history.pushState({ ...window.history.state, resultsVersion: version }, '', url);
+}
+
+function animateResultsVersionContent(version) {
+    if (reducedMotionQuery.matches || typeof Element.prototype.animate !== 'function') return;
+
+    resultsVersionContentAnimations.forEach(animation => animation.cancel());
+    resultsVersionContentAnimations = [
+        document.querySelector('#leaderboard .results-status'),
+        document.querySelector('#leaderboard .leaderboard-table'),
+        document.querySelector('#time-spent .efficiency-grid'),
+        document.querySelector('#time-spent .efficiency-note')
+    ].filter(Boolean).map((element) => element.animate(
+        [
+            { opacity: 0.72, transform: `translateY(${version === ARCHIVED_RESULTS_VERSION ? 3 : -3}px)` },
+            { opacity: 1, transform: 'translateY(0)' }
+        ],
+        {
+            duration: 180,
+            easing: 'cubic-bezier(0.23, 1, 0.32, 1)'
+        }
+    ));
+}
+
+function renderResultsVersion(version, { updateURL = true, animate = true, track = true } = {}) {
+    const normalizedVersion = normalizeResultsVersion(version);
+    if (normalizedVersion === activeResultsVersion) {
+        updateResultsVersionUI({ instant: !animate });
+        return false;
+    }
+    if (!applyResultsVersion(normalizedVersion)) return false;
+
+    updateResultsVersionUI({ instant: !animate });
+    populateLeaderboard(currentSelectedModel);
+
+    if (performanceChart) {
+        performanceChart.destroy();
+        createSimpleChart(currentSelectedModel, { motion: 'none' });
+    }
+    if (paretoChart) paretoChart.destroy();
+    createParetoChart({ motion: 'none' });
+    if (timeSpentChart) timeSpentChart.destroy();
+    createTimeSpentChart({ motion: 'none' });
+
+    if (updateURL) updateResultsVersionURL(normalizedVersion);
+    if (track) {
+        trackGoatCounterEvent(
+            `results-version/${encodeURIComponent(normalizedVersion)}`,
+            `Results version: ${normalizedVersion}`
+        );
+    }
+    if (animate) animateResultsVersionContent(normalizedVersion);
+    return true;
 }
 
 // Hamburger Menu Toggle
@@ -1949,6 +2054,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         populateStatistics();
         document.documentElement.classList.remove('leaderboard-loading');
     }
+    updateResultsVersionUI({ instant: true });
 
     // Wait specifically for the chart face instead of every page font. This
     // avoids a blank chart card on slow connections while still preventing its
@@ -1983,6 +2089,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     createParetoChart();
     createTimeSpentChart();
     handleNavbarLogoVisibility(); // Set initial state based on scroll position
+
+    document.querySelectorAll('[data-results-version]').forEach((versionButton) => {
+        versionButton.addEventListener('click', (event) => {
+            const shouldAnimate = event.detail !== 0 && !reducedMotionQuery.matches;
+            renderResultsVersion(versionButton.dataset.resultsVersion, {
+                animate: shouldAnimate
+            });
+        });
+    });
+
+    window.addEventListener('popstate', () => {
+        renderResultsVersion(getInitialResultsVersion(), {
+            updateURL: false,
+            animate: !reducedMotionQuery.matches,
+            track: false
+        });
+    });
 
     // Switch the budget chart's scope without changing the surrounding layout.
     document.querySelectorAll('[data-time-scope]').forEach((scopeButton) => {
@@ -2123,6 +2246,7 @@ if (typeof loadScoresDataSync === 'function' && loadScoresDataSync()) {
     populateLeaderboard();
     populateTasks();
     populateStatistics();
+    updateResultsVersionUI({ instant: true });
     document.documentElement.classList.remove('leaderboard-loading');
     window.__ptbDataReady = true;
 }
