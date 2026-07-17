@@ -18,6 +18,7 @@
     --accent-fill: #c17d5a;
     --accent-fill-hover: #d08b68;
     --accent-on-fill: #1a1612;
+    --selection-bg: rgba(193, 125, 90, 0.42);
     --border-color: #3d3728;
     --success: #10b981;
     --warning: #f59e0b;
@@ -82,9 +83,10 @@
     --accent-primary: #a66b4f;
     --accent-secondary: #8d5d45;
     --accent-text: #895940;
-    --accent-fill: #895940;
-    --accent-fill-hover: #744a35;
+    --accent-fill: #a66b4f;
+    --accent-fill-hover: #8d5d45;
     --accent-on-fill: #faf8f3;
+    --selection-bg: rgba(166, 107, 79, 0.28);
     --danger: #b04a3c;
     --ok: #6f7d45;
 
@@ -153,8 +155,8 @@ body {
 }
 
 ::selection {
-    background: var(--accent-primary);
-    color: var(--bg-primary);
+    background: var(--selection-bg);
+    color: var(--text-primary);
 }
 
 .container {

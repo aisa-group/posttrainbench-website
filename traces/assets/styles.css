@@ -13,6 +13,7 @@
   --accent-primary:   #c17d5a;
   --accent-secondary: #a66b4f;
   --accent-text: #d08b68;
+  --selection-bg: rgba(193, 125, 90, 0.42);
   --border-color: #3d3728;
   --success: #10b981;
   --warning: #f59e0b;
@@ -44,6 +45,7 @@
   --accent-primary:   #a66b4f;
   --accent-secondary: #8d5d45;
   --accent-text: #895940;
+  --selection-bg: rgba(166, 107, 79, 0.28);
   --danger: #b04a3c;
 
   --tag-bg: transparent;
@@ -92,8 +94,8 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 .muted { color: var(--text-secondary); }
 
 ::selection {
-  background: var(--accent-primary);
-  color: var(--bg-primary);
+  background: var(--selection-bg);
+  color: var(--text-primary);
 }
 
 /* ---------- Custom tooltip ---------------------------------------- */
