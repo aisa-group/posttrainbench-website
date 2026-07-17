@@ -308,7 +308,6 @@
     <section id="time-spent" class="time-spent efficiency">
         <div class="container">
             <h2 class="section-title">Efficiency</h2>
-            <p class="section-description">Score relative to runtime. Upper-left is better; the dashed line marks the Pareto frontier.</p>
             <div class="efficiency-key">
                 <div class="efficiency-key-group" aria-label="Performance plot model families">
                     <span><i class="key-dot key-anthropic"></i>Anthropic</span>
@@ -325,7 +324,6 @@
             <div class="efficiency-grid">
                 <article class="efficiency-panel">
                     <h3 class="efficiency-title">Performance vs. runtime</h3>
-                    <p class="efficiency-copy">Agents that no other agent beats on both speed and score define the frontier.</p>
                     <div class="leaderboard-chart efficiency-chart">
                         <div class="leaderboard-chart-wrapper">
                             <canvas id="paretoChart"></canvas>
@@ -340,7 +338,6 @@
                             <button class="time-scope-option" type="button" data-time-scope="all" aria-pressed="false">All</button>
                         </div>
                     </div>
-                    <p class="efficiency-copy">Runtime shows how fully each agent used the ten-hour budget.</p>
                     <div class="leaderboard-chart efficiency-chart budget-chart">
                         <div class="leaderboard-chart-wrapper">
                             <canvas id="timeSpentChart"></canvas>

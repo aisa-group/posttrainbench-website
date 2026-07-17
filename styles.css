@@ -2228,7 +2228,7 @@ tbody tr:last-child td {
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.55rem 1rem;
-    margin: -0.75rem 0 1.75rem;
+    margin: 0 0 1.75rem;
     color: var(--text-secondary);
     font-family: var(--font-sans);
     font-size: 0.72rem;
@@ -2318,6 +2318,7 @@ tbody tr:last-child td {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .efficiency-panel-head .efficiency-title {
@@ -2387,20 +2388,11 @@ tbody tr:last-child td {
 }
 
 .efficiency-title {
-    margin: 0 0 0.3rem;
+    margin: 0 0 0.75rem;
     color: var(--text-primary);
     font-size: 1rem;
     font-weight: 700;
     letter-spacing: -0.01em;
-}
-
-.efficiency-copy {
-    min-height: 2.6em;
-    margin: 0 0 0.75rem;
-    color: var(--text-secondary);
-    font-family: var(--font-sans);
-    font-size: 0.84rem;
-    line-height: 1.5;
 }
 
 .efficiency-chart {
@@ -2467,9 +2459,6 @@ tbody tr:last-child td {
         gap: 2rem;
     }
 
-    .efficiency-copy {
-        min-height: 0;
-    }
 }
 
 @media (max-width: 768px) {
@@ -2477,7 +2466,7 @@ tbody tr:last-child td {
         flex-direction: column;
         flex-wrap: nowrap;
         gap: 0.5rem;
-        margin-top: -0.5rem;
+        margin-top: 0;
         margin-bottom: 1.5rem;
         padding: 0;
         font-size: clamp(0.62rem, 2.75vw, 0.68rem);
