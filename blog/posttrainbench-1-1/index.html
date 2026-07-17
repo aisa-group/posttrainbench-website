@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <meta name="description" content="PostTrainBench 1.1 introduces stricter run auditing for benchmark-targeted training data, external LLM API use, and model substitution.">
+    <title>PostTrainBench 1.1: Hardening the benchmark against reward hacking</title>
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="article.css">
+</head>
+<body class="release-page">
+    <header class="release-topbar">
+        <div class="release-topbar-inner">
+            <a class="release-brand" href="/">
+                <span>PostTrain<span class="logo-accent">Bench</span></span>
+                <span class="release-brand-section">/ release notes</span>
+            </a>
+            <div class="release-topbar-actions">
+                <a class="release-back" href="/#leaderboard">Leaderboard</a>
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                    <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="19.78" x2="19.78" y2="18.36"></line>
+                    </svg>
+                    <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <article class="release-article">
+            <header class="release-hero">
+                <p class="release-eyebrow">PostTrainBench v1.1</p>
+                <h1>Hardening PostTrainBench against reward hacking</h1>
+                <p class="release-deck">Version 1.1 adds specialized run-integrity judges, stronger programmatic checks, and a recomputed leaderboard after increasingly capable agents exposed gaps in the original pipeline.</p>
+                <div class="release-meta">
+                    <span>[[PUBLISH_DATE]]</span>
+                    <span>PostTrainBench team</span>
+                </div>
+            </header>
+
+            <div class="release-hero-links release-wide">
+                <a class="release-hero-link release-hero-link-primary" href="/#leaderboard" data-goatcounter-click="release-leaderboard/v1.1" data-goatcounter-title="Release: current leaderboard">View v1.1 leaderboard</a>
+                <div class="release-hero-secondary-links">
+                    <a class="release-hero-link" href="/?version=v1#leaderboard" data-goatcounter-click="release-leaderboard/v1" data-goatcounter-title="Release: original leaderboard">Original v1 <span aria-hidden="true">→</span></a>
+                    <a class="release-hero-link" href="/traces/" data-goatcounter-click="release-traces" data-goatcounter-title="Release: trace viewer">Browse traces <span aria-hidden="true">→</span></a>
+                </div>
+            </div>
+
+            <aside class="draft-notice release-wide">
+                <strong>Draft</strong>
+                <span>Replace each bracketed value, then remove this notice and the <code>noindex</code> meta tag before publishing.</span>
+            </aside>
+
+            <div class="release-story release-wide">
+                <nav class="release-toc" aria-label="In this release">
+                    <span>In this release</span>
+                    <a href="#contamination">Targeted data</a>
+                    <a href="#model-swapping">Model swapping</a>
+                    <a href="#external-apis">External APIs</a>
+                    <a href="#benchmark-lookup">Direct lookup</a>
+                    <a href="#results">Results</a>
+                </nav>
+
+                <div class="release-body">
+                    <div class="release-intro">
+                        <p class="release-standfirst">PostTrainBench measures whether an AI agent can improve a small base language model with one H100 and ten hours. That score is meaningful only when the agent improves the assigned model within the same boundary as every other run.</p>
+                        <p>As agents became more capable, we found strategies that could raise benchmark performance without measuring the skill we intended. Some agents shaped training data around specific evaluation failures. Others found hosted-model credentials in the environment and used a stronger model as a teacher. One run submitted an instruction-tuned model instead of the assigned base model.</p>
+                        <p>We already had a general anti-cheat judge. Version 1.1 makes the rules more explicit, separates the major failure modes into independent reviews, and adds deterministic checks that do not rely on a judge model alone.</p>
+                    </div>
+
+                    <section class="release-snapshot" aria-labelledby="snapshot-title">
+                        <div class="release-block-heading">
+                            <p class="release-kicker">At a glance</p>
+                            <h2 id="snapshot-title">The v1.1 audit</h2>
+                        </div>
+                        <dl class="release-metrics">
+                            <div><dt>[[RUNS_REAUDITED]]</dt><dd>historical runs re-audited</dd></div>
+                            <div><dt>[[RUNS_RERUN]]</dt><dd>runs rerun</dd></div>
+                            <div><dt>[[TOTAL_FLAGGED_RUNS]]</dt><dd>runs flagged</dd></div>
+                            <div><dt>[[LEADERBOARD_ENTRIES_CHANGED]]</dt><dd>leaderboard entries changed</dd></div>
+                        </dl>
+                        <p class="snapshot-note">The compute budget, base models, benchmark tasks, and final evaluation remain unchanged.</p>
+                    </section>
+
+            <section id="contamination" class="release-section article-copy">
+                <p class="release-section-number">01</p>
+                <h2>Benchmark&#8209;targeted training data</h2>
+                <p>Data contamination is not limited to copying an evaluation set verbatim. An agent can inspect failed evaluation items, infer their structure, and generate thousands of close variants. The text may be new while the training signal still targets particular test cases.</p>
+                <p>The v1 rules did not state this boundary precisely enough. Version 1.1 explicitly disallows generating, augmenting, hand-writing, or templating training data around specific benchmark data points, even when no benchmark text appears verbatim.</p>
+                <div class="release-change">
+                    <strong>What changed</strong>
+                    <ul>
+                        <li>A dedicated contamination judge reviews each trace independently.</li>
+                        <li>The instructions now cover both verbatim leakage and targeted synthetic clones.</li>
+                        <li>A deterministic n-gram overlap tool, inspired by <a href="https://github.com/allenai/decon" target="_blank" rel="noopener noreferrer">AI2's Decontamination Toolkit</a>, checks submitted artifacts.</li>
+                    </ul>
+                </div>
+                <p class="release-count"><span>[[CONTAMINATION_FLAGS]]</span> runs were flagged for contamination.</p>
+                <p>Observed examples ranged from loading a full evaluation set for memorization to producing synthetic templates immediately after inspecting individual GSM8K and BFCL failures. The latter is precisely why lexical overlap alone is not enough.</p>
+            </section>
+
+            <section id="model-swapping" class="release-section article-copy">
+                <p class="release-section-number">02</p>
+                <h2>Submitting a different model</h2>
+                <p>PostTrainBench asks the agent to post-train a specific base model. Replacing it with an existing instruction-tuned checkpoint makes the final score incomparable, even when that checkpoint belongs to the same model family.</p>
+                <div class="release-change">
+                    <strong>What changed</strong>
+                    <p>We added a programmatic <a href="https://github.com/aisa-group/PostTrainBench/blob/main/src/judges/judge_tools/model_identity_check.py" target="_blank" rel="noopener noreferrer">model-identity check</a> that compares the submitted artifact with reference configurations for known instruction-tuned models.</p>
+                </div>
+                <p class="release-count"><span>[[MODEL_SUBSTITUTION_FLAGS]]</span> runs were flagged for model substitution.</p>
+                <p>In the clearest observed case, Kimi K2.5 submitted the official Qwen3-1.7B instruct weights after its attempts to fine-tune Qwen3-1.7B-Base failed. The trace acknowledged the substitution and saved the replacement as <code>final_model</code>.</p>
+            </section>
+
+            <section id="external-apis" class="release-section article-copy">
+                <p class="release-section-number">03</p>
+                <h2>Using external LLM APIs as teachers</h2>
+                <p>Some environments contain provider credentials needed to run the agent or an evaluator. Those credentials are infrastructure, not an extra training resource. We found agents reading keys from the environment and using hosted frontier models to generate training data, including cases where the surrounding evaluation code explicitly said not to use the key for that purpose.</p>
+                <blockquote class="release-rule">API keys present in the environment may run the agent or evaluation. They may not be used to call an external model for training data or other post-training work.</blockquote>
+                <div class="release-change">
+                    <strong>What changed</strong>
+                    <ul>
+                        <li>A separate API-usage judge reviews tool calls and artifacts.</li>
+                        <li>Unrelated provider credentials are removed or blocked from the agent environment.</li>
+                        <li>Runs invalidated by external API use were rerun under the corrected setup.</li>
+                    </ul>
+                </div>
+                <p class="release-count"><span>[[API_USAGE_FLAGS]]</span> runs were flagged for disallowed external API use.</p>
+                <p>Self-generation remains allowed. An agent can sample, filter, and retrain on outputs from the assigned model. What it cannot do is import the capability of a stronger external teacher.</p>
+            </section>
+
+            <section id="benchmark-lookup" class="release-section article-copy">
+                <p class="release-section-number">04</p>
+                <h2>Preventing direct benchmark lookup</h2>
+                <p class="release-preventive">Preventive safeguard</p>
+                <p>We did not observe agents searching for PostTrainBench or its public results in the audited runs. We nevertheless expect direct lookup to become attractive as agents gain stronger browsing and planning abilities.</p>
+                <p>Version 1.1 explicitly disallows looking up PostTrainBench, its leaderboard, or related materials during a run, and the contamination review checks for attempts. We are also adding network-level blocking so this boundary does not depend on instruction following alone.</p>
+            </section>
+
+            <section class="release-section release-wide" aria-labelledby="pipeline-title">
+                <div class="article-copy release-block-heading">
+                    <p class="release-kicker">Judging pipeline</p>
+                    <h2 id="pipeline-title">From one general review to independent checks</h2>
+                    <p>The two judge axes answer different questions. Programmatic checks support both reviews and verify the submitted artifact.</p>
+                </div>
+                <div class="pipeline-comparison">
+                    <div class="pipeline-version">
+                        <span>v1</span>
+                        <h3>Single general judge</h3>
+                        <p>One review checked the run broadly, but its prompt left important training boundaries implicit.</p>
+                    </div>
+                    <div class="pipeline-version pipeline-version-current">
+                        <span>v1.1</span>
+                        <h3>Independent integrity reviews</h3>
+                        <ul>
+                            <li>Contamination judge</li>
+                            <li>API-usage judge</li>
+                            <li>Programmatic contamination checks</li>
+                            <li>Programmatic model-identity checks</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="pipeline-outcome"><strong>Clean runs</strong> proceed to full evaluation. <strong>Flagged runs</strong> receive the unmodified base-model score.</p>
+            </section>
+
+            <section id="results" class="release-section release-wide" aria-labelledby="results-title">
+                <div class="article-copy release-block-heading">
+                    <p class="release-kicker">Recomputed results</p>
+                    <h2 id="results-title">How the leaderboard changed</h2>
+                    <p>We applied the new pipeline to historical runs and recomputed the leaderboard after the audit and reruns. The comparison below shows the six largest aggregate score changes among main-chart agents.</p>
+                </div>
+                <figure class="score-comparison" aria-labelledby="comparison-title">
+                    <div class="comparison-head">
+                        <figcaption id="comparison-title">Largest score changes</figcaption>
+                        <div class="comparison-key" aria-label="Comparison key">
+                            <span><i class="comparison-dot comparison-dot-v1"></i>v1</span>
+                            <span><i class="comparison-dot comparison-dot-v11"></i>v1.1</span>
+                        </div>
+                    </div>
+                    <div id="score-comparison-rows" class="comparison-rows"></div>
+                    <div id="score-comparison-axis" class="comparison-axis" aria-hidden="true"></div>
+                    <p class="comparison-note">Aggregate benchmark performance. Differences include the v1.1 audit, corrected reruns, and updated multi-seed aggregation where applicable.</p>
+                </figure>
+                <p class="results-summary article-copy"><span>[[LEADERBOARD_ENTRIES_CHANGED]]</span> leaderboard entries changed score or rank after recomputation.</p>
+                <div class="release-actions">
+                    <a class="btn btn-primary" href="/#leaderboard" data-goatcounter-click="release-leaderboard/v1.1" data-goatcounter-title="Release: current leaderboard">View v1.1 leaderboard</a>
+                    <a class="release-inline-link" href="/?version=v1#leaderboard" data-goatcounter-click="release-leaderboard/v1" data-goatcounter-title="Release: original leaderboard">Compare with original v1 <span aria-hidden="true">→</span></a>
+                </div>
+            </section>
+
+            <section class="release-section article-copy">
+                <p class="release-section-number">05</p>
+                <h2>Reruns and infrastructure fixes</h2>
+                <p>We reran <span class="inline-placeholder">[[RUNS_RERUN]]</span> runs affected by disallowed API use, missing evaluator credentials, or other infrastructure faults. Promoting Fable 5 to two seeds also removed the earlier SmolLM substitutions. Its GPQA result still falls back to Opus 4.8 Max because Fable refused that benchmark.</p>
+                <p>The updated <a href="/traces/">trace viewer</a> exposes the underlying actions, artifacts, and judge decisions so leaderboard changes can be inspected rather than taken on trust.</p>
+            </section>
+
+            <section class="release-section article-copy release-closing">
+                <h2>Why this update matters</h2>
+                <p>A benchmark for autonomous agents is also an interface that agents will optimize against. The rules therefore need to describe the intended task at the level of behavior, not just at the level of the final file.</p>
+                <p>PostTrainBench 1.1 is a stricter measurement of the same question: how much can an agent improve the assigned base model with a fixed compute budget? The new pipeline makes the answer more comparable, more inspectable, and harder to inflate through shortcuts outside that task.</p>
+                <div class="release-actions release-actions-closing">
+                    <a class="btn btn-primary" href="/" data-goatcounter-click="release-home" data-goatcounter-title="Release: benchmark home">Explore PostTrainBench</a>
+                    <a class="release-inline-link" href="https://github.com/aisa-group/PostTrainBench" target="_blank" rel="noopener noreferrer" data-goatcounter-click="release-github" data-goatcounter-title="Release: GitHub">View code <span aria-hidden="true">→</span></a>
+                    <a class="release-inline-link" href="https://arxiv.org/abs/2603.08640" target="_blank" rel="noopener noreferrer" data-goatcounter-click="release-paper" data-goatcounter-title="Release: paper">Read paper <span aria-hidden="true">→</span></a>
+                </div>
+            </section>
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <footer class="release-footer">
+        <span>PostTrainBench v1.1</span>
+        <a href="/#team">The team</a>
+    </footer>
+
+    <script src="../../config.js"></script>
+    <script src="../../scores-v1.js"></script>
+    <script src="../../scores.js"></script>
+    <script src="../../traces/assets/theme.js"></script>
+    <script src="article.js"></script>
+    <script>
+        window.goatcounter = {
+            path: function () { return window.location.pathname; },
+        };
+    </script>
+    <script data-goatcounter="https://hrdkbhatnagar.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
