@@ -306,16 +306,7 @@
     text-wrap: pretty;
 }
 
-.release-standfirst {
-    margin-bottom: 2rem !important;
-    color: var(--text-primary) !important;
-    font-size: clamp(1.2rem, 2vw, 1.35rem);
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    line-height: 1.62;
-}
-
-.release-intro > p:not(.release-standfirst),
+.release-intro > p,
 .release-section > p,
 .release-change p,
 .release-change li,
@@ -324,13 +315,6 @@
 .release-block-heading > p:not(.release-kicker) {
     font-size: 1rem;
     line-height: 1.78;
-}
-
-.release-snapshot {
-    margin-top: 4.5rem;
-    padding: 2rem 0 1.25rem !important;
-    border-top: 1px solid var(--text-primary);
-    border-bottom: 1px solid var(--border-color);
 }
 
 .release-block-heading h2,
@@ -353,44 +337,6 @@
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-}
-
-.release-metrics {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 2rem;
-    margin: 2rem 0 0;
-}
-
-.release-metrics > div {
-    min-width: 0;
-    padding: 1.05rem 0 1.2rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.release-metrics dt {
-    overflow-wrap: anywhere;
-    color: var(--accent-text);
-    font-family: var(--font-mono);
-    font-size: 0.73rem;
-    font-weight: 700;
-    line-height: 1.35;
-}
-
-.release-metrics dd {
-    margin-top: 0.32rem;
-    color: var(--text-secondary);
-    font-family: var(--font-sans);
-    font-size: 0.76rem;
-    line-height: 1.4;
-}
-
-.snapshot-note {
-    margin: 0.45rem 0 0;
-    color: var(--text-secondary);
-    font-family: var(--font-sans);
-    font-size: 0.76rem;
-    line-height: 1.5;
 }
 
 .release-section {
@@ -449,8 +395,7 @@
 }
 
 .release-count span,
-.results-summary span,
-.inline-placeholder {
+.results-summary span {
     color: var(--accent-text);
     font-family: var(--font-mono);
     font-size: 0.72rem;
@@ -485,36 +430,38 @@
 
 .pipeline-comparison {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: 2rem;
+    margin-top: 1.6rem;
     border-top: 1px solid var(--text-primary);
-    border-bottom: 1px solid var(--border-color);
 }
 
 .pipeline-version {
+    display: grid;
+    grid-template-columns: 4.25rem minmax(0, 1fr);
+    gap: 0.2rem 1.4rem;
     min-width: 0;
-    padding: 1.6rem 1.6rem 1.8rem 0;
+    padding: 1.35rem 1rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .pipeline-version + .pipeline-version {
-    padding-right: 0;
-    padding-left: 1.6rem;
-    border-left: 1px solid var(--border-color);
+    border-left: 0;
 }
 
 .pipeline-version-current {
-    background: transparent;
+    background: color-mix(in srgb, var(--accent-primary) 4%, transparent);
 }
 
 .pipeline-version > span {
+    grid-row: 1 / 3;
     color: var(--accent-text);
     font-family: var(--font-mono);
     font-size: 0.63rem;
     font-weight: 700;
+    letter-spacing: 0.035em;
 }
 
 .pipeline-version h3 {
-    margin: 0.55rem 0 0.8rem;
+    margin: 0 0 0.45rem;
     font-family: var(--font-mono);
     font-size: 1rem;
     font-style: normal;
@@ -525,21 +472,74 @@
 
 .pipeline-version p,
 .pipeline-version ul {
+    grid-column: 2;
     margin: 0;
     color: var(--text-secondary);
 }
 
 .pipeline-version ul {
-    padding-left: 1.1rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 1.4rem;
+    padding-left: 0;
+    list-style: none;
+}
+
+.pipeline-version li {
+    position: relative;
+    padding-left: 0.85rem;
+}
+
+.pipeline-version li::before {
+    position: absolute;
+    left: 0;
+    color: var(--accent-text);
+    content: '•';
 }
 
 .pipeline-outcome {
-    margin: 1rem 0 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pipeline-outcome p {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0;
+    padding: 0.8rem 1rem;
     color: var(--text-secondary);
     font-family: var(--font-sans);
-    font-size: 0.76rem;
-    line-height: 1.5;
-    text-align: center;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.pipeline-outcome p + p {
+    border-left: 1px solid var(--border-color);
+}
+
+.pipeline-outcome strong {
+    flex: none;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+}
+
+.pipeline-outcome span {
+    text-align: right;
+}
+
+.pipeline-section .release-block-heading h2 {
+    max-width: 35rem;
+    font-size: clamp(1.65rem, 3vw, 2rem);
+}
+
+.pipeline-section .release-block-heading > p:not(.release-kicker) {
+    max-width: 40rem;
+    margin-bottom: 0;
 }
 
 .score-comparison {
@@ -811,24 +811,6 @@
         margin-top: 4.75rem;
     }
 
-    .release-standfirst {
-        font-size: 1.2rem;
-    }
-
-    .pipeline-comparison {
-        grid-template-columns: 1fr;
-    }
-
-    .pipeline-version,
-    .pipeline-version + .pipeline-version {
-        padding: 1.45rem 0 1.6rem;
-        border-left: 0;
-    }
-
-    .pipeline-version + .pipeline-version {
-        border-top: 1px solid var(--border-color);
-    }
-
     .comparison-row {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 0.45rem 0.75rem;
@@ -918,6 +900,30 @@
         padding-left: 0.82rem;
     }
 
+    .pipeline-version {
+        grid-template-columns: 3.25rem minmax(0, 1fr);
+        gap: 0.2rem 0.8rem;
+        padding: 1.15rem 0.75rem;
+    }
+
+    .pipeline-version ul {
+        grid-template-columns: 1fr;
+        gap: 0.28rem;
+    }
+
+    .pipeline-outcome {
+        grid-template-columns: 1fr;
+    }
+
+    .pipeline-outcome p {
+        padding: 0.7rem 0.75rem;
+    }
+
+    .pipeline-outcome p + p {
+        border-top: 1px solid var(--border-color);
+        border-left: 0;
+    }
+
     .draft-notice {
         align-items: flex-start;
         flex-direction: column;
@@ -929,7 +935,7 @@
         margin-top: 4rem;
     }
 
-    .release-intro > p:not(.release-standfirst),
+    .release-intro > p,
     .release-section > p,
     .release-change p,
     .release-change li,
@@ -937,19 +943,6 @@
     .pipeline-version li,
     .release-block-heading > p:not(.release-kicker) {
         font-size: 1rem;
-    }
-
-    .release-standfirst {
-        font-size: 1.15rem;
-        line-height: 1.65;
-    }
-
-    .release-snapshot {
-        margin-top: 3.8rem;
-    }
-
-    .release-metrics {
-        gap: 0 1rem;
     }
 
     .release-section {

@@ -636,6 +636,22 @@ section {
     text-underline-offset: 2px;
 }
 
+.changelog-list a {
+    color: var(--accent-primary);
+    font-weight: 700;
+    text-decoration-color: color-mix(in srgb, var(--accent-primary) 60%, transparent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition: color 120ms var(--ease-out), text-decoration-color 120ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .changelog-list a:hover {
+        color: var(--accent-text);
+        text-decoration-color: currentColor;
+    }
+}
+
 .changelog-content {
     max-height: 13rem;
     overflow-y: auto;
