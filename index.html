@@ -358,7 +358,7 @@
             <h2 class="section-title">How a Run Is Scored</h2>
             <p class="section-description">Version 1.1 replaces the original single judge with independent contamination and API-usage reviews. Programmatic checks verify model identity, and flagged runs receive the base-model score.</p>
             <div class="pipeline-diagram">
-                <div class="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated on the full benchmark for a score.">
+                <div class="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated and aggregated into a leaderboard score across four base models and seven benchmarks.">
                     <div class="pf-card pf-agent">
                         <div class="pf-title">Agent post-trains the LLM</div>
                         <ul class="pf-list">
@@ -383,15 +383,14 @@
                     </div>
                     <div class="pf-arrow pf-a3" aria-hidden="true"><span class="pf-glyph">→</span></div>
                     <div class="pf-card pf-score">
-                        <div class="pf-title">Benchmark score<sup>†</sup></div>
-                        <div class="pf-body">Joins the leaderboard</div>
+                        <div class="pf-title">Leaderboard score</div>
+                        <div class="pf-body">Weighted average across 4 base models × 7 benchmarks</div>
                     </div>
                     <div class="pf-arrow pf-branch" aria-hidden="true"><span class="pf-glyph">↓</span><span class="pf-arrow-label pf-flag">flagged</span></div>
                     <div class="pf-card pf-fail">
                         <div class="pf-title">Scored as base LLM</div>
                     </div>
                 </div>
-                <p class="chart-footnote"><sup>†</sup> Averaged across 4 base LLMs × 7 benchmarks.</p>
             </div>
         </div>
     </section>

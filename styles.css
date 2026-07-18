@@ -2805,10 +2805,6 @@ tbody tr:last-child td {
     gap: 0.45rem;
 }
 
-.pipeline-diagram .chart-footnote {
-    margin-top: 1.25rem;
-}
-
 /* Phones/tablets: turn the judge outcome into two parallel tracks. The fail
    card now terminates beside Evaluation instead of visually feeding into it. */
 @media (max-width: 960px) {
