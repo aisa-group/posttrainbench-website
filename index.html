@@ -260,19 +260,22 @@
             </details>
             </div>
             <div class="leaderboard-controls">
-                <span class="model-select-label" id="model-select-label">Filter by model:</span>
-                <div class="custom-dropdown" id="model-dropdown">
-                    <button class="dropdown-selected" id="model-select-display" type="button"
-                        aria-haspopup="listbox" aria-expanded="false" aria-controls="model-select-options"
-                        aria-labelledby="model-select-label model-select-value">
-                        <span id="model-select-value">Average (all models)</span>
-                    </button>
-                    <div class="dropdown-options" id="model-select-options" role="listbox" aria-labelledby="model-select-label">
-                        <button class="dropdown-option active" type="button" role="option" aria-selected="true" tabindex="-1" data-value="average">Average (all models)</button>
-                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Qwen3-1.7B">Qwen3-1.7B</button>
-                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Qwen3-4B">Qwen3-4B</button>
-                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="SmolLM3-3B">SmolLM3-3B</button>
-                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Gemma-3-4B">Gemma-3-4B</button>
+                <p class="table-encoding-note">Mean ± SD across seeds <span aria-hidden="true">·</span> darker = higher within column</p>
+                <div class="model-select-control">
+                    <span class="model-select-label" id="model-select-label">Base model:</span>
+                    <div class="custom-dropdown" id="model-dropdown">
+                        <button class="dropdown-selected" id="model-select-display" type="button"
+                            aria-haspopup="listbox" aria-expanded="false" aria-controls="model-select-options"
+                            aria-labelledby="model-select-label model-select-value">
+                            <span id="model-select-value">All base models</span>
+                        </button>
+                        <div class="dropdown-options" id="model-select-options" role="listbox" aria-labelledby="model-select-label">
+                            <button class="dropdown-option active" type="button" role="option" aria-selected="true" tabindex="-1" data-value="average">All base models</button>
+                            <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Qwen3-1.7B">Qwen3-1.7B</button>
+                            <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Qwen3-4B">Qwen3-4B</button>
+                            <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="SmolLM3-3B">SmolLM3-3B</button>
+                            <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-value="Gemma-3-4B">Gemma-3-4B</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -300,7 +303,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="leaderboard-footnote table-footnote" id="table-footnote">Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.</p>
+            <p class="leaderboard-footnote table-footnote" id="table-footnote"><sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.</p>
         </div>
     </section>
 

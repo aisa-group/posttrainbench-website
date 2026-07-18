@@ -18,13 +18,13 @@ const resultsVersionCopy = {
     'v1.1': {
         status: '<span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.',
         methodology: '<sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.',
-        tableFootnote: 'Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.',
         efficiencyNote: ''
     },
     'v1': {
         status: '<span aria-hidden="true">‡</span> Archived v1 results use the original single-judge pipeline. Fable 5 results are preliminary.',
         methodology: '<sup>‡</sup> Fable 5 results come from its initial limited-availability period, when rate limits and refusals caused several SmolLM3-3B runs to fail. Those cells use Opus 4.8 (Max) results.',
-        tableFootnote: 'Cell shading is normalized within each score column. &nbsp;&nbsp; <sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Preliminary Fable 5 cell; see Methodology &amp; caveats.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Preliminary Fable 5 cell; see Methodology &amp; caveats.',
         efficiencyNote: 'Fable 5 runtime is from its preliminary v1 run.'
     }
 };
@@ -313,9 +313,9 @@ function getLeaderboardDataForModel(modelName) {
         }));
 }
 
-// Get heatmap color based on normalized value (0-1 scale)
-// Uses site's terracotta accent color (#c17d5a) with varying intensity
-function getHeatmapColor(normalizedValue) {
+// Get heatmap color based on normalized value (0-1 scale). The summary
+// column carries a little more contrast than the diagnostic benchmarks.
+function getHeatmapColor(normalizedValue, emphasis = 'benchmark') {
     const currentTheme = html.getAttribute('data-theme');
     const value = Math.max(0, Math.min(1, normalizedValue));
 
@@ -324,10 +324,10 @@ function getHeatmapColor(normalizedValue) {
     const g = 125;
     const b = 90;
 
-    // Vary opacity based on value - low scores subtle, high scores prominent
+    const isSummary = emphasis === 'summary';
     const alpha = currentTheme === 'dark'
-        ? 0.1 + (0.5 * value)   // 0.1 → 0.6
-        : 0.08 + (0.42 * value); // 0.08 → 0.5
+        ? (isSummary ? 0.1 + (0.38 * value) : 0.07 + (0.3 * value))
+        : (isSummary ? 0.07 + (0.31 * value) : 0.035 + (0.245 * value));
 
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
@@ -363,6 +363,28 @@ function getBenchmarkStd(score) {
     return null;
 }
 
+function formatStdValue(std) {
+    const value = Number.parseFloat(std);
+    return Number.isFinite(value) ? value.toFixed(1) : std;
+}
+
+function formatSourceLabel(sourceLabel) {
+    return sourceLabel?.replace(/\s+Max$/, '') || '';
+}
+
+function formatScoreProvenance(sourceLabel, standalone = false) {
+    if (!sourceLabel) return '';
+    const prefix = standalone ? 'via ' : '<span class="score-provenance-separator">·</span> ';
+    return `<span class="score-provenance${standalone ? ' score-provenance-standalone' : ''}">${prefix}<span class="score-provenance-source">${formatSourceLabel(sourceLabel)}</span></span>`;
+}
+
+function formatStdDisplay(std, sourceLabel = null) {
+    if (std === null || std === undefined) {
+        return '';
+    }
+    return `<span class="std-value">± ${formatStdValue(std)}%${formatScoreProvenance(sourceLabel)}</span>`;
+}
+
 // Helper to format benchmark value with fallback marker (only in model-specific view)
 function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
     const value = getBenchmarkValue(score);
@@ -383,12 +405,10 @@ function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
     }
 
     // Add std display if available and requested
-    if (showStd && std !== null) {
-        valueStr += `<span class="std-value">± ${std}%</span>`;
-    }
-
-    if (sourceLabel) {
-        valueStr += `<span class="score-provenance">from ${sourceLabel}</span>`;
+    if (showStd) {
+        valueStr += formatStdDisplay(std, sourceLabel);
+    } else if (sourceLabel) {
+        valueStr += formatScoreProvenance(sourceLabel, true);
     }
 
     return valueStr;
@@ -405,16 +425,21 @@ function populateLeaderboard(modelName = "average") {
     // Only show markers in model-specific view, not average
     const showMarkers = modelName !== "average";
 
-    // Collect all values for each column to find min/max
+    // Reference models are context, not leaderboard entries. Excluding them
+    // keeps the heatmap useful for comparing the ranked agents themselves.
+    const rankedData = data.filter(entry => !entry.isBaseline);
+    const heatmapData = rankedData.length > 0 ? rankedData : data;
+
+    // Collect all ranked-agent values for each column to find min/max.
     const columns = {
-        average: data.map(e => parseFloat(e.averageScore)),
-        aime2025: data.map(e => getBenchmarkValue(e.benchmarkScores.aime2025)),
-        arenahardwriting: data.map(e => getBenchmarkValue(e.benchmarkScores.arenahardwriting)),
-        bfcl: data.map(e => getBenchmarkValue(e.benchmarkScores.bfcl)),
-        gpqamain: data.map(e => getBenchmarkValue(e.benchmarkScores.gpqamain)),
-        gsm8k: data.map(e => getBenchmarkValue(e.benchmarkScores.gsm8k)),
-        healthbench: data.map(e => getBenchmarkValue(e.benchmarkScores.healthbench)),
-        humaneval: data.map(e => getBenchmarkValue(e.benchmarkScores.humaneval))
+        average: heatmapData.map(e => parseFloat(e.averageScore)),
+        aime2025: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.aime2025)),
+        arenahardwriting: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.arenahardwriting)),
+        bfcl: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.bfcl)),
+        gpqamain: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.gpqamain)),
+        gsm8k: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.gsm8k)),
+        healthbench: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.healthbench)),
+        humaneval: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.humaneval))
     };
 
     // Find min and max for each column
@@ -435,7 +460,7 @@ function populateLeaderboard(modelName = "average") {
 
     data.forEach(entry => {
         const row = document.createElement('tr');
-        row.className = 'leaderboard-entry-row';
+        row.className = `leaderboard-entry-row${entry.isBaseline ? ' reference-row' : ''}`;
 
         // Handle null ranks for baselines
         const rankDisplay = entry.rank !== null ? entry.rank : '-';
@@ -453,7 +478,7 @@ function populateLeaderboard(modelName = "average") {
         const healthValue = getBenchmarkValue(entry.benchmarkScores.healthbench);
         const humanValue = getBenchmarkValue(entry.benchmarkScores.humaneval);
 
-        const avgColor = getHeatmapColor(normalize(avgValue, 'average'));
+        const avgColor = getHeatmapColor(normalize(avgValue, 'average'), 'summary');
         const aimeColor = getHeatmapColor(normalize(aimeValue, 'aime2025'));
         const arenaColor = getHeatmapColor(normalize(arenaValue, 'arenahardwriting'));
         const bfclColor = getHeatmapColor(normalize(bfclValue, 'bfcl'));
@@ -463,7 +488,7 @@ function populateLeaderboard(modelName = "average") {
         const humanColor = getHeatmapColor(normalize(humanValue, 'humaneval'));
 
         // Format std display (only show if available)
-        const stdDisplay = entry.stdDev ? `<span class="std-value">± ${entry.stdDev}%</span>` : '';
+        const stdDisplay = formatStdDisplay(entry.stdDev);
         // Show std for benchmarks in average view (when showMarkers is false)
         const showStd = !showMarkers;
 
@@ -478,6 +503,8 @@ function populateLeaderboard(modelName = "average") {
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
             agentNameHtml = `${displayAgent}${markerHtml}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}</span>`;
+        } else if (entry.agent === 'Official Instruct Models') {
+            agentNameHtml = `${displayAgent}${markerHtml}<span class="scaffold-label reference-context">Reference · outside 10h budget</span>`;
         }
 
         row.innerHTML = `
@@ -505,7 +532,7 @@ function populateLeaderboard(modelName = "average") {
             ['HumanEval', entry.benchmarkScores.humaneval, humanColor]
         ];
         const detailRow = document.createElement('tr');
-        detailRow.className = 'benchmark-detail-row';
+        detailRow.className = `benchmark-detail-row${entry.isBaseline ? ' reference-detail-row' : ''}`;
         detailRow.hidden = true;
         detailRow.innerHTML = `
             <td colspan="3">

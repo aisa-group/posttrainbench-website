@@ -936,7 +936,27 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     align-items: center;
     gap: 1rem;
     margin-bottom: 1.5rem;
-    justify-content: flex-end;
+    justify-content: space-between;
+}
+
+.table-encoding-note {
+    margin: 0;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    line-height: 1.5;
+}
+
+.table-encoding-note span {
+    margin: 0 0.3rem;
+    color: var(--border-color);
+}
+
+.model-select-control {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: none;
 }
 
 .model-select-label {
@@ -1076,11 +1096,44 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     border-radius: var(--radius-lg);
 }
 
-/* At full desktop width the table does not need its horizontal scrollport, so
-   its header can remain visible beneath the sticky navbar during long scans. */
+/* Keep the score area on a regular matrix. Rank and Method retain their
+   reading widths; Avg stays distinct; all seven benchmark columns share the
+   remaining space equally. Below the mobile breakpoint the compact disclosure
+   layout provides its own column geometry. */
+@media (min-width: 769px) {
+    .leaderboard-table table {
+        min-width: 71rem;
+        table-layout: fixed;
+    }
+
+    .leaderboard-table th:first-child {
+        width: 5.75%;
+    }
+
+    .leaderboard-table th:nth-child(2) {
+        width: 21.5%;
+    }
+
+    .leaderboard-table th:nth-child(3) {
+        width: 7.5%;
+    }
+
+    .leaderboard-table th:nth-child(n + 4) {
+        width: 9.321%;
+    }
+
+    .leaderboard-table .benchmark-col {
+        padding-left: 0.3rem;
+        padding-right: 0.3rem;
+    }
+}
+
+/* At full desktop width the table does not need its horizontal scrollport.
+   Clip to the rounded shell without creating a scroll container, so the
+   header can remain sticky beneath the navbar during long scans. */
 @media (min-width: 1200px) {
     .leaderboard-table {
-        overflow: visible;
+        overflow: clip;
     }
 
     .leaderboard-table th {
@@ -1088,14 +1141,6 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
         top: 4.45rem;
         z-index: 3;
         background-color: var(--bg-tertiary);
-    }
-
-    .leaderboard-table th:first-child {
-        border-top-left-radius: calc(var(--radius-lg) - 1px);
-    }
-
-    .leaderboard-table th:last-child {
-        border-top-right-radius: calc(var(--radius-lg) - 1px);
     }
 }
 
@@ -1105,6 +1150,11 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
 .leaderboard-table td:nth-child(n + 3) {
     text-align: center;
     font-variant-numeric: tabular-nums;
+}
+
+.leaderboard-table th:nth-child(3),
+.leaderboard-entry-row > td:nth-child(3) {
+    border-right: 1px solid var(--border-color);
 }
 
 .method-cell {
@@ -1154,16 +1204,32 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     color: var(--text-secondary);
     opacity: 0.7;
     margin-top: 0.2rem;
+    white-space: nowrap;
+}
+
+.reference-context {
+    color: var(--text-secondary);
 }
 
 .score-provenance {
-    display: block;
-    margin-top: 0.15rem;
-    color: var(--accent-text);
-    font-size: 0.5rem;
-    font-weight: 500;
+    display: inline;
+    margin-left: 0.2rem;
+    color: inherit;
+    font-size: 0.78em;
+    font-weight: 400;
     line-height: 1.2;
-    white-space: normal;
+    white-space: nowrap;
+}
+
+.score-provenance-source {
+    color: var(--accent-text);
+    font-weight: 500;
+}
+
+.score-provenance-standalone {
+    display: block;
+    margin: 0.15rem 0 0;
+    font-size: 0.5rem;
 }
 
 /* Scaffold label in method column */
@@ -1275,7 +1341,7 @@ th {
 td {
     font-size: 0.875rem;
     line-height: 1.45;
-    transition: background-color 200ms ease;
+    transition: background-color 120ms var(--ease-out), box-shadow 100ms var(--ease-out);
     white-space: nowrap;
 }
 
@@ -1289,8 +1355,12 @@ tbody tr {
     transition: background-color 100ms var(--ease-out);
 }
 
-.leaderboard-entry-row > td:first-child {
-    transition: box-shadow 120ms var(--ease-out);
+.leaderboard-entry-row.reference-row > td {
+    background-color: var(--bg-secondary) !important;
+}
+
+.reference-detail-row .benchmark-detail-item {
+    background-color: var(--bg-secondary) !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1298,8 +1368,17 @@ tbody tr {
         background-color: var(--bg-secondary);
     }
 
+    .leaderboard-entry-row:hover > td {
+        box-shadow:
+            inset 0 1px 0 color-mix(in srgb, var(--accent-primary) 24%, transparent),
+            inset 0 -1px 0 color-mix(in srgb, var(--accent-primary) 24%, transparent);
+    }
+
     .leaderboard-entry-row:hover > td:first-child {
-        box-shadow: inset 3px 0 0 var(--accent-primary);
+        box-shadow:
+            inset 3px 0 0 var(--accent-primary),
+            inset 0 1px 0 color-mix(in srgb, var(--accent-primary) 24%, transparent),
+            inset 0 -1px 0 color-mix(in srgb, var(--accent-primary) 24%, transparent);
     }
 }
 
@@ -1620,16 +1699,18 @@ tbody tr:last-child td {
 }
 
 .rank-other {
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 0;
+    font-weight: 600;
 }
 
 .rank-ref {
     width: 2rem;
     min-width: 2rem;
     padding: 0;
-    border-radius: 50%;
-    background-color: var(--bg-tertiary);
+    border-radius: 0;
+    background: transparent;
     color: var(--text-secondary);
     font-size: 0.875rem;
     letter-spacing: 0;
@@ -1666,6 +1747,21 @@ tbody tr:last-child td {
 @media (max-width: 768px) {
     .container {
         padding: 0 1rem;
+    }
+
+    .leaderboard-controls {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .model-select-control {
+        align-self: flex-end;
+        order: 1;
+    }
+
+    .table-encoding-note {
+        order: 2;
     }
 
     .hero {
@@ -2179,7 +2275,21 @@ tbody tr:last-child td {
     .leaderboard-controls {
         align-items: stretch;
         flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .model-select-control {
+        align-self: stretch;
+        align-items: stretch;
+        flex-direction: column;
         gap: 0.4rem;
+        order: 1;
+    }
+
+    .table-encoding-note {
+        order: 2;
+        font-size: 0.65rem;
+        text-align: center;
     }
 
     .custom-dropdown {
