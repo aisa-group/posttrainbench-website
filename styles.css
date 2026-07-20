@@ -1096,6 +1096,58 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     border-radius: var(--radius-lg);
 }
 
+.leaderboard-disclosure {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.65rem;
+}
+
+.leaderboard-disclosure[hidden] {
+    display: none;
+}
+
+.leaderboard-disclosure-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.65rem;
+    background: transparent;
+    color: var(--accent-text);
+    border: 0;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: color 120ms var(--ease-out), transform 120ms var(--ease-out);
+}
+
+.leaderboard-disclosure-icon {
+    display: inline-block;
+    font-size: 0.78rem;
+    transition: transform 150ms var(--ease-out);
+}
+
+.leaderboard-disclosure-button[aria-expanded="true"] .leaderboard-disclosure-icon {
+    transform: rotate(180deg);
+}
+
+.leaderboard-disclosure-button:active {
+    transform: scale(0.97);
+}
+
+.leaderboard-disclosure-button:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 1px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .leaderboard-disclosure-button:hover {
+        color: var(--text-primary);
+    }
+}
+
 /* Keep the score area on a regular matrix. Rank and Method retain their
    reading widths; Avg stays distinct; all seven benchmark columns share the
    remaining space equally. Below the mobile breakpoint the compact disclosure
@@ -2086,7 +2138,7 @@ tbody tr:last-child td {
         display: none;
     }
 
-    .leaderboard-table.has-expanded-row + .table-footnote {
+    .leaderboard-table.has-expanded-row ~ .table-footnote {
         display: block;
         font-size: 0.7rem;
         line-height: 1.5;
@@ -4068,11 +4120,12 @@ html[data-photo-clean] .ptb-photo-caption {
 
     .hamburger-line,
     .dropdown-selected::after,
-    .time-scope-toggle::before {
+    .time-scope-toggle::before,
+    .leaderboard-disclosure-icon {
         transition-duration: 0ms;
     }
 
-    :where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .time-scope-option, .dropdown-selected):active {
+    :where(.btn, .copy-btn, .theme-toggle, .toggle-btn, .time-scope-option, .dropdown-selected, .leaderboard-disclosure-button):active {
         transform: none;
     }
 

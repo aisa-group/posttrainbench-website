@@ -9,6 +9,8 @@ let performanceChart = null;
 let paretoChart = null;
 let timeSpentChart = null;
 let currentSelectedModel = 'average';
+const LEADERBOARD_PREVIEW_LIMIT = 10;
+let showAllLeaderboardAgents = false;
 let isThemeTransitioning = false;
 let activeThemeTransition = null;
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -415,8 +417,9 @@ function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
 }
 
 // Populate Leaderboard
-function populateLeaderboard(modelName = "average") {
+function populateLeaderboard(modelName = "average", { animateReveal = false } = {}) {
     const tbody = document.getElementById('leaderboard-data');
+    if (!tbody) return;
     tbody.innerHTML = ''; // Clear existing data
     document.querySelector('.leaderboard-table')?.classList.remove('has-expanded-row');
 
@@ -429,6 +432,24 @@ function populateLeaderboard(modelName = "average") {
     // keeps the heatmap useful for comparing the ranked agents themselves.
     const rankedData = data.filter(entry => !entry.isBaseline);
     const heatmapData = rankedData.length > 0 ? rankedData : data;
+    const previewEntries = new Set(rankedData.slice(0, LEADERBOARD_PREVIEW_LIMIT));
+    const visibleData = showAllLeaderboardAgents
+        ? data
+        : data.filter(entry => entry.isBaseline || previewEntries.has(entry));
+    const canToggleLeaderboard = rankedData.length > LEADERBOARD_PREVIEW_LIMIT;
+    const disclosure = document.getElementById('leaderboard-disclosure');
+    const disclosureButton = document.getElementById('leaderboard-disclosure-button');
+    const disclosureLabel = document.getElementById('leaderboard-disclosure-label');
+
+    if (disclosure) disclosure.hidden = !canToggleLeaderboard;
+    if (disclosureButton) {
+        disclosureButton.setAttribute('aria-expanded', String(showAllLeaderboardAgents));
+    }
+    if (disclosureLabel) {
+        disclosureLabel.textContent = showAllLeaderboardAgents
+            ? `Show top ${LEADERBOARD_PREVIEW_LIMIT}`
+            : `Show all ${rankedData.length} agents`;
+    }
 
     // Collect all ranked-agent values for each column to find min/max.
     const columns = {
@@ -458,7 +479,7 @@ function populateLeaderboard(modelName = "average") {
         return (value - range.min) / (range.max - range.min);
     };
 
-    data.forEach(entry => {
+    visibleData.forEach(entry => {
         const row = document.createElement('tr');
         row.className = `leaderboard-entry-row${entry.isBaseline ? ' reference-row' : ''}`;
 
@@ -521,6 +542,22 @@ function populateLeaderboard(modelName = "average") {
         `;
 
         tbody.appendChild(row);
+
+        if (
+            animateReveal
+            && !entry.isBaseline
+            && !previewEntries.has(entry)
+            && !reducedMotionQuery.matches
+            && typeof row.animate === 'function'
+        ) {
+            row.animate(
+                [{ opacity: 0.35 }, { opacity: 1 }],
+                {
+                    duration: 160,
+                    easing: 'cubic-bezier(0.23, 1, 0.32, 1)'
+                }
+            );
+        }
 
         const detailScores = [
             ['AIME 2025', entry.benchmarkScores.aime2025, aimeColor],
@@ -1976,6 +2013,39 @@ if (modelDropdown && dropdownDisplay && dropdownOptions) {
 // per agent instead of a second table hidden off-screen.
 const leaderboardTable = document.querySelector('.leaderboard-table');
 const leaderboardBody = document.getElementById('leaderboard-data');
+const leaderboardDisclosureButton = document.getElementById('leaderboard-disclosure-button');
+
+if (leaderboardDisclosureButton) {
+    leaderboardDisclosureButton.addEventListener('click', (event) => {
+        const isCollapsing = showAllLeaderboardAgents;
+        const previousButtonTop = isCollapsing
+            ? leaderboardDisclosureButton.getBoundingClientRect().top
+            : null;
+
+        showAllLeaderboardAgents = !showAllLeaderboardAgents;
+        populateLeaderboard(currentSelectedModel, {
+            animateReveal: !isCollapsing && event.detail !== 0
+        });
+
+        trackGoatCounterEvent(
+            showAllLeaderboardAgents ? 'leaderboard/show-all' : 'leaderboard/show-top-10',
+            showAllLeaderboardAgents ? 'Leaderboard: show all agents' : 'Leaderboard: show top 10'
+        );
+
+        // When collapsing a long table, keep the control anchored under the
+        // pointer instead of dropping the reader much farther down the page.
+        if (isCollapsing && previousButtonTop !== null) {
+            requestAnimationFrame(() => {
+                const nextButtonTop = leaderboardDisclosureButton.getBoundingClientRect().top;
+                window.scrollBy({
+                    top: nextButtonTop - previousButtonTop,
+                    left: 0,
+                    behavior: 'auto'
+                });
+            });
+        }
+    });
+}
 
 function setLeaderboardRowExpanded(row, shouldExpand) {
     const detailRow = row.nextElementSibling;
