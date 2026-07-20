@@ -242,12 +242,11 @@ function getChartAgentMeta(entry) {
     const effortParts = entry.reasoningEffort
         ? entry.reasoningEffort.split(',').map(part => part.trim())
         : [];
-    const isReprompted = effortParts.includes('Reprompted');
     const effort = effortParts.find(part => part !== 'Reprompted') || '';
     const footnote = agentInfo[entry.agentKey]?.footnoteMarker || '';
 
     return {
-        name: `${entry.agent}${isReprompted ? '†' : ''}${footnote}`,
+        name: `${entry.agent}${footnote}`,
         effort,
         effortLabel: effort
     };
@@ -708,6 +707,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
+    const isCompactDesktop = !isMobile && window.innerWidth < 1250;
     // Desktop keeps the complete vertical ranking overview. Phones switch to a
     // shorter horizontal comparison so labels remain readable without rotation.
     const xLabelRotation = window.innerWidth < 1250 ? 45 : 0;
@@ -974,8 +974,8 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                 borderColor: chartColors,
                 borderWidth: isMobile ? 1 : 2,
                 borderRadius: isMobile ? 2 : 4,
-                barPercentage: isMobile ? 0.62 : 0.8,
-                categoryPercentage: isMobile ? 0.82 : 0.9
+                barPercentage: isMobile ? 0.62 : (isCompactDesktop ? 0.86 : 0.8),
+                categoryPercentage: isMobile ? 0.82 : (isCompactDesktop ? 0.92 : 0.9)
             }]
         },
         plugins: [errorBarPlugin],
@@ -1031,9 +1031,9 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                         return isMobile ? 'start' : 'end';
                     },
                     offset: 4,
-                    // Size each label off the ACTUAL rendered bar width so
-                    // "XX.X%" fits inside its bar. Keeps the normal size on wide
-                    // bars, shrinks only when a bar is too narrow to hold it.
+                    // Size each label from the rendered bar width. Compact
+                    // desktop bars reserve a stronger inset so values never
+                    // appear pressed against their edges.
                     font: function(context) {
                         const value = Number(context.dataset.data[context.dataIndex]);
                         if (isMobile && value < 12) {
@@ -1042,10 +1042,13 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                         const meta = context.chart.getDatasetMeta(context.datasetIndex);
                         const bar = meta && meta.data && meta.data[context.dataIndex];
                         const barWidth = (bar && bar.width) ? bar.width : 40;
-                        // Monospace char ≈ 0.6em; "XX.X%" is 5 chars, keep within ~90% of the bar.
-                        const fit = Math.floor((barWidth * 0.9) / (5 * 0.6));
-                        const size = Math.max(8, Math.min(fontSizes.axisTicks, fit));
-                        return { family: "'JetBrains Mono', monospace", size: size, weight: 500 };
+                        const labelLength = `${value.toFixed(1)}%`.length;
+                        const widthAllowance = isCompactDesktop ? 0.76 : 0.9;
+                        const maxSize = fontSizes.axisTicks;
+                        // JetBrains Mono characters are approximately 0.6em wide.
+                        const fit = Math.floor((barWidth * widthAllowance) / (labelLength * 0.6));
+                        const size = Math.max(8, Math.min(maxSize, fit));
+                        return { family: "'JetBrains Mono', monospace", size: size, weight: 600 };
                     },
                     formatter: function(value) {
                         return value.toFixed(1) + '%';
@@ -1462,6 +1465,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
+    const mobileRuntimeGutter = 50;
     updateTimeScopeControl();
 
     // Sort by hours (descending), filter out baselines
@@ -1571,7 +1575,11 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                 if (isMobile) {
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'bottom';
-                    ctx.fillText(formatRuntimeDuration(dataItem.time), chartArea.right, yPos - Math.max(7, barHeight * 0.75));
+                    ctx.fillText(
+                        formatRuntimeDuration(dataItem.time),
+                        chart.width - 6,
+                        yPos - Math.max(7, barHeight * 0.75)
+                    );
                 } else {
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'middle';
@@ -1736,11 +1744,11 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                 intersect: true
             },
             // Padding gives the budget label room above the plotting area and
-            // reserves a fixed desktop gutter for the aligned runtime values.
+            // reserves a fixed gutter for the aligned runtime values.
             layout: {
                 padding: {
                     top: isMobile ? 16 : 18,
-                    right: isMobile ? 2 : 74,
+                    right: isMobile ? mobileRuntimeGutter : 74,
                     left: isMobile ? 2 : 0
                 }
             },
@@ -1782,7 +1790,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
             scales: {
                 x: {
                     beginAtZero: true,
-                    max: isMobile ? 11.1 : 10.2,
+                    max: 10.2,
                     title: {
                         display: !isMobile,
                         text: 'Average runtime',

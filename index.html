@@ -152,7 +152,7 @@
                 </div>
                 <p class="mobile-chart-scope">
                     <span class="mobile-chart-scope-main">Top ten agents + two baselines</span>
-                    <span id="mobile-chart-references">Same comparison as desktop · full ranking below</span>
+                    <span id="mobile-chart-references">Full ranking below</span>
                 </p>
             </div>
             <p class="results-status" id="results-status"><span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.</p>
@@ -162,7 +162,7 @@
                     <div class="methodology-content">
                         <p><sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and seven benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). Each run asks a CLI agent to maximize one base model on one benchmark.</p>
                         <p><sup>2</sup> “Official Instruct Models” are the official post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank" rel="noopener noreferrer">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank" rel="noopener noreferrer">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank" rel="noopener noreferrer">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank" rel="noopener noreferrer">Gemma-3-4B-IT</a>. Their training usually exceeds the ten-hour, one-GPU constraint, so they are not directly comparable.</p>
-                        <p><sup>†</sup> Reprompted means the agent was manually asked to continue whenever it stopped before the time budget expired.</p>
+                        <p><strong>Reprompted</strong> means the agent was manually asked to continue whenever it stopped before the time budget expired.</p>
                         <p id="fable-methodology-note"><sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.</p>
                     </div>
                 </details>
@@ -354,7 +354,7 @@
                     </div>
                 </article>
             </div>
-            <p class="chart-footnote efficiency-note"><span id="time-scope-note">Main-chart agents with recorded runtimes only.</span> <span id="efficiency-version-note"></span> <sup>†</sup> Reprompted.</p>
+            <p class="chart-footnote efficiency-note"><span id="time-scope-note">Main-chart agents with recorded runtimes only.</span> <span id="efficiency-version-note"></span></p>
         </div>
     </section>
 
