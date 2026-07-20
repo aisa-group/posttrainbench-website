@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <meta name="description" content="PostTrainBench 1.1 introduces stricter run auditing for benchmark-targeted training data, external LLM API use, and model substitution.">
+    <meta name="description" content="PostTrainBench 1.1 introduces stricter run auditing for train-test contamination, external LLM API use, model substitution, and direct benchmark lookup.">
     <title>PostTrainBench 1.1: Hardening the benchmark against reward hacking</title>
     <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -87,6 +87,7 @@
                     <div class="release-intro">
                         <p>As agents became more capable, we found strategies that could raise benchmark performance without measuring the skill we intended. Some agents inspected evaluation failures and then generated training examples that closely mirrored the held-out cases. Others found hosted-model credentials in the environment and used a stronger model as a teacher. One agent submitted an instruction-tuned model instead of the assigned base model.</p>
                         <p>The original release already included a general anti-cheat judge. We re-audited all historical runs with the new pipeline, which flagged 234 runs for train-test contamination, 12 for disallowed external API use, and 10 for model substitution, including violations the original judge had missed.</p>
+                        <p>A newer GPT-5.6 (Sol) run was separately flagged for directly looking up PostTrainBench and consulting published traces from earlier runs.</p>
                         <p>Version 1.1 makes the rules more explicit, separates the major failure modes into specialized reviews, and adds deterministic checks that do not rely on a judge model alone. The compute budget, base models, benchmark tasks, and final evaluation remain unchanged.</p>
                     </div>
 
@@ -138,10 +139,12 @@
 
             <section id="benchmark-lookup" class="release-section article-copy">
                 <p class="release-section-number">04</p>
-                <h2>Preventing direct benchmark lookup</h2>
-                <p class="release-preventive">Preventive safeguard</p>
-                <p class="release-count"><span>0</span> runs were flagged for direct PostTrainBench lookup.</p>
-                <p>We nevertheless expect direct lookup to become attractive as agents gain stronger browsing and planning abilities.</p>
+                <h2>Direct benchmark lookup</h2>
+                <p class="release-preventive">Observed in a newer evaluation</p>
+                <p class="release-count"><span>1</span> run was flagged for direct PostTrainBench lookup.</p>
+                <p>In a GPT-5.6 (Sol) HumanEval run on Qwen3-1.7B, the agent searched for PostTrainBench by name, cloned the public repository, opened the trace viewer, and located the public trajectory corpus. It then narrowed the corpus to earlier runs on the same benchmark and base model.</p>
+                <blockquote class="release-rule release-trace-quote"><span class="release-quote-source">Agent trace</span><span class="release-quote-copy">Prior clean runs on this exact setup establish a useful ceiling...</span></blockquote>
+                <p>The run downloaded earlier agents' traces and training scripts, then extracted their data mix, learning-rate schedule, checkpoint-selection logic, decoding choice, and GRPO settings. This is not test-set leakage, but it gives the run benchmark-specific strategy and outcome information produced by earlier agents. That breaks the intended independence between runs.</p>
                 <p>Version 1.1 disallows looking up PostTrainBench, its leaderboard, or related materials during a run, and a dedicated lookup judge checks for attempts. We are also adding network-level blocking so this boundary becomes clear to the agent.</p>
             </section>
 

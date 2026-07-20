@@ -3270,13 +3270,49 @@ tbody tr:last-child td {
     font-style: normal;
 }
 
-.trace-entry blockquote {
-    margin: 0.35rem 0 0;
-    border-left: none;
+.trace-entry .trace-quote {
+    margin: 0.4rem 0 0;
+    border-left: 2px solid var(--accent-primary);
+    border-radius: 0;
     background: none;
-    padding: 0;
+    padding: 0.1rem 0 0.15rem 0.8rem;
+    color: var(--text-primary);
+    font-style: normal;
     font-size: 0.88rem;
     line-height: 1.65;
+}
+
+.trace-speaker {
+    display: block;
+    margin-bottom: 0.18rem;
+    color: var(--accent-text);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
+
+.trace-quote-copy {
+    margin: 0;
+    quotes: "\201c" "\201d";
+}
+
+.trace-quote-copy::before {
+    content: open-quote;
+}
+
+.trace-quote-copy::after {
+    content: close-quote;
+}
+
+.trace-source-quote {
+    border-left-color: var(--border-color);
+}
+
+.trace-source-quote .trace-speaker {
+    color: var(--text-secondary);
 }
 
 /* In-page trace excerpts as a mini-timeline — the same visual vocabulary
@@ -3726,6 +3762,34 @@ tbody tr:last-child td {
 
 .judge-verdict-copy {
     display: block;
+}
+
+/* Verbatim judge output uses the same source-first grammar as agent quotes.
+   Paraphrased audit findings retain the outlined status label above. */
+.judge-verdict-quote {
+    gap: 0.25rem;
+    border-left: 2px solid var(--danger);
+    padding: 0.1rem 0 0.15rem 0.8rem;
+}
+
+.judge-verdict-quote .judge-verdict-badge {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+}
+
+.judge-verdict-quote .judge-verdict-copy {
+    color: var(--text-primary);
+    font-size: 0.84rem;
+    quotes: "\201c" "\201d";
+}
+
+.judge-verdict-quote .judge-verdict-copy::before {
+    content: open-quote;
+}
+
+.judge-verdict-quote .judge-verdict-copy::after {
+    content: close-quote;
 }
 
 @media (max-width: 768px) {

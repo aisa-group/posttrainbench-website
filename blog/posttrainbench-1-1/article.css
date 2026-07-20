@@ -415,6 +415,34 @@
     line-height: 1.65;
 }
 
+.release-trace-quote {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.release-quote-source {
+    color: var(--accent-text);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
+
+.release-quote-copy {
+    quotes: "\201c" "\201d";
+}
+
+.release-quote-copy::before {
+    content: open-quote;
+}
+
+.release-quote-copy::after {
+    content: close-quote;
+}
+
 .release-preventive {
     display: block;
     margin: -0.2rem 0 1.25rem !important;
