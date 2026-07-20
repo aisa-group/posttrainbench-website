@@ -218,8 +218,20 @@ function renderMatrix() {
   for (const b of rows) {
     const rh = document.createElement('div');
     rh.className = 'matrix-rowhead';
-    rh.textContent = prettyBenchmark(b);
-    rh.title = b;
+    const benchmarkLabel = prettyBenchmark(b);
+    if (String(b).toLowerCase() === 'arenahardwriting') {
+      const fullLabel = document.createElement('span');
+      fullLabel.className = 'matrix-label-full';
+      fullLabel.textContent = benchmarkLabel;
+      const compactLabel = document.createElement('span');
+      compactLabel.className = 'matrix-label-compact';
+      compactLabel.textContent = 'Arena Hard';
+      rh.append(fullLabel, compactLabel);
+      rh.setAttribute('aria-label', benchmarkLabel);
+    } else {
+      rh.textContent = benchmarkLabel;
+    }
+    rh.title = benchmarkLabel;
     grid.appendChild(rh);
 
     const max = rowMax.get(b) || 0;
@@ -259,7 +271,7 @@ function renderMatrix() {
 
   // Legend.
   els.matrixLegend.innerHTML = `
-    <span class="legend-label">shade = best accuracy (within task)</span>
+    <span class="legend-label">Darker = higher within task</span>
     <span class="legend-scale" aria-hidden="true">
       <span class="legend-step" style="--cell-intensity:0.15"></span>
       <span class="legend-step" style="--cell-intensity:0.40"></span>
@@ -392,9 +404,10 @@ function render() {
   const filtered = rows.length;
   const anyFilter = els.q.value || els.expFilter.value || els.benchFilter.value
                     || els.modelFilter.value || els.agentFilter.value;
-  els.resultCount.textContent =
-    anyFilter ? `${filtered.toLocaleString()} of ${total.toLocaleString()} runs` :
-                `${total.toLocaleString()} runs`;
+  els.resultCount.textContent = anyFilter
+    ? `${filtered.toLocaleString()} of ${total.toLocaleString()} runs`
+    : '';
+  els.resultCount.classList.toggle('hidden', !anyFilter);
   els.resetFilters.classList.toggle('hidden', !anyFilter);
 
   if (rows.length === 0) {

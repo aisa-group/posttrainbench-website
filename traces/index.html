@@ -48,7 +48,6 @@
           <div class="matrix-scroll-frame">
             <div id="matrix" class="matrix"></div>
           </div>
-          <p class="matrix-scroll-hint" aria-hidden="true">Swipe to compare all four base models →</p>
           <div class="matrix-legend" id="matrix-legend" aria-hidden="true"></div>
         </div>
         <aside class="hero-stats" id="hero-stats" aria-label="Corpus stats"></aside>
@@ -56,7 +55,7 @@
     </div>
   </section>
 
-  <main class="container">
+  <main class="container traces-browser">
     <!-- Filter dock — chip-style filters lead; search is the secondary
          affordance pinned to the right. -->
     <section class="filter-dock" role="search">
@@ -102,7 +101,7 @@
         </select>
       </div>
       <div class="view-controls-right">
-        <span id="result-count" class="results-count muted"></span>
+        <span id="result-count" class="results-count muted hidden"></span>
         <button id="reset-filters" class="link-btn hidden" type="button">clear filters</button>
       </div>
     </div>
