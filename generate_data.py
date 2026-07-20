@@ -28,6 +28,7 @@ AGGREGATED_NAME_TO_KEY = {
     "Opus-4.8 (Max)": "opus-4.8-max",
     "GLM 5.2": "glm-5.2",
     "Fable 5 (Max)": "fable-5",
+    "Kimi Kismet (1M)": "kimi-kismet-1m",
 }
 
 CSV_TO_AGENT = {
@@ -48,6 +49,7 @@ CSV_TO_AGENT = {
     "aggregated_avg_Opus-4.8_(Max).csv": "opus-4.8-max",
     "aggregated_avg_GLM_5.2.csv": "glm-5.2",
     "aggregated_avg_Fable_5_(Max).csv": "fable-5",
+    "aggregated_avg_Kimi_Kismet_(1M).csv": "kimi-kismet-1m",
 }
 
 STD_CSV_TO_AGENT = {
@@ -68,6 +70,7 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_Opus-4.8_(Max).csv": "opus-4.8-max",
     "aggregated_std_GLM_5.2.csv": "glm-5.2",
     "aggregated_std_Fable_5_(Max).csv": "fable-5",
+    "aggregated_std_Kimi_Kismet_(1M).csv": "kimi-kismet-1m",
 }
 
 # Single-run variants: per-model scores from a final_*.csv,
@@ -145,6 +148,7 @@ TIME_AGGREGATED_TO_KEY = {
     "Opus-4.8 (Max)": "opus-4.8-max",
     "GLM 5.2": "glm-5.2",
     "Fable 5 (Max)": "fable-5",
+    "Kimi Kismet (1M)": "kimi-kismet-1m",
 }
 
 

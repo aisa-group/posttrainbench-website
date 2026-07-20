@@ -2453,6 +2453,128 @@
         }
       }
     },
+    "kimi-kismet-1m": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 5.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 31.69,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 30.13,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 77.1,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 7.54,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 64.94,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 21.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 55.4,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 21.43,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 88.48,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 13.38,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 79.88,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 18.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 29.97,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 16.63,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 79.49,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 31.71,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 1.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 34.04,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 6.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 11.94,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 63.38,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 20.9,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 46.34,
+          "fallbackType": false
+        }
+      }
+    },
     "sonnet-4.5": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
@@ -4218,6 +4340,11 @@
       "std": 1.78,
       "n": 3
     },
+    "kimi-kismet-1m": {
+      "avg": 25.72,
+      "std": 1.57,
+      "n": 2
+    },
     "opus-4.5": {
       "avg": 15.75,
       "std": 5.11,
@@ -4895,6 +5022,44 @@
         "healthbench": 0.0,
         "humaneval": 5.17
       }
+    },
+    "kimi-kismet-1m": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 2.36,
+        "arenahardwriting": 22.03,
+        "bfcl": 0.0,
+        "gpqamain": 0.32,
+        "gsm8k": 1.5,
+        "healthbench": 0.0,
+        "humaneval": 1.29
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 2.36,
+        "arenahardwriting": 29.72,
+        "bfcl": 0.0,
+        "gpqamain": 15.15,
+        "gsm8k": 5.79,
+        "healthbench": 0.0,
+        "humaneval": 0.86
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 2.36,
+        "arenahardwriting": 21.82,
+        "bfcl": 0.0,
+        "gpqamain": 16.57,
+        "gsm8k": 0.05,
+        "healthbench": 0.0,
+        "humaneval": 36.22
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 2.36,
+        "arenahardwriting": 47.73,
+        "bfcl": 0.0,
+        "gpqamain": 14.68,
+        "gsm8k": 3.75,
+        "healthbench": 5.47,
+        "humaneval": 4.31
+      }
     }
   },
   "timeData": {
@@ -5011,10 +5176,17 @@
       "n": 3
     },
     "fable-5": {
-      "hours": 8.449,
+      "hours": 8.447,
       "time": "8:26",
-      "stdHours": 0.058,
+      "stdHours": 0.062,
       "stdTime": "0:03",
+      "n": 2
+    },
+    "kimi-kismet-1m": {
+      "hours": 7.933,
+      "time": "7:55",
+      "stdHours": 0.306,
+      "stdTime": "0:18",
       "n": 2
     },
     "sonnet-4.6": {
