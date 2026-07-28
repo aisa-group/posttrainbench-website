@@ -252,6 +252,10 @@ function getChartAgentMeta(entry) {
     };
 }
 
+function getAgentStatusNote(agentKey) {
+    return agentInfo[agentKey]?.statusNote || '';
+}
+
 function getChartModelFamily(agentKey) {
     if (/^(opus|sonnet|fable)-/.test(agentKey)) return 'anthropic';
     if (/^gpt-/.test(agentKey)) return 'openai';
@@ -519,12 +523,16 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
         }
         const footnoteMarker = agentInfo[entry.agentKey]?.footnoteMarker || '';
         const markerHtml = footnoteMarker ? `<sup>${footnoteMarker}</sup>` : '';
-        let agentNameHtml = `${displayAgent}${markerHtml}`;
+        const statusNote = getAgentStatusNote(entry.agentKey);
+        const displayAgentHtml = statusNote
+            ? `<span class="agent-name-status" data-tip="${statusNote}">${displayAgent}<span class="agent-status-dot" aria-hidden="true"></span></span>${markerHtml}`
+            : `${displayAgent}${markerHtml}`;
+        let agentNameHtml = displayAgentHtml;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
-            agentNameHtml = `${displayAgent}${markerHtml}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}</span>`;
+            agentNameHtml = `${displayAgentHtml}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}</span>`;
         } else if (entry.agent === 'Official Instruct Models') {
-            agentNameHtml = `${displayAgent}${markerHtml}<span class="scaffold-label reference-context">Reference · outside 10h budget</span>`;
+            agentNameHtml = `${displayAgentHtml}<span class="scaffold-label reference-context">Reference · outside 10h budget</span>`;
         }
 
         row.innerHTML = `
@@ -1015,6 +1023,9 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                             const stdText = std ? ` ± ${std}%` : '';
                             const value = isMobile ? context.parsed.x : context.parsed.y;
                             return `Average score: ${value.toFixed(1)}%${stdText}`;
+                        },
+                        afterLabel: function(context) {
+                            return getAgentStatusNote(plottedData[context.dataIndex].agentKey) || null;
                         }
                     }
                 }),
@@ -1110,6 +1121,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
                 time: t.time,
                 stdTime: t.stdHours ? t.stdTime : null,
                 stdDev: d.stdDev ? parseFloat(d.stdDev) : null,
+                statusNote: getAgentStatusNote(d.agentKey),
                 modelFamily,
                 familyColor: familyColors[modelFamily] || chartBar
             };
@@ -1329,6 +1341,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
                             ];
                             if (p.reasoningEffort) lines.push(`Effort: ${p.reasoningEffort}`);
                             if (p.scaffold) lines.push(`Scaffold: ${p.scaffold}`);
+                            if (p.statusNote) lines.push(p.statusNote);
                             return lines;
                         }
                     }
@@ -1778,7 +1791,8 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                             const scaffold = agentInfo[dataItem.agentKey]?.scaffold;
                             return [
                                 labelMeta.effort ? `Effort: ${labelMeta.effort}` : null,
-                                scaffold ? `Scaffold: ${scaffold}` : null
+                                scaffold ? `Scaffold: ${scaffold}` : null,
+                                getAgentStatusNote(dataItem.agentKey) || null
                             ].filter(Boolean);
                         }
                     }

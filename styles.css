@@ -1310,6 +1310,22 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     color: var(--text-secondary);
 }
 
+.agent-name-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+    cursor: help;
+}
+
+.agent-status-dot {
+    width: 0.32rem;
+    height: 0.32rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    transform: translateY(-0.08rem);
+}
+
 /* Custom instant tooltip (see tooltip.js) — a single floating div at the
    <body> level, triggered by data-tip. Replaces slow native title hovers. */
 .tt-pop {
