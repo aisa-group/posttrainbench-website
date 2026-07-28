@@ -16,6 +16,8 @@ const modelDisplayNames = {
 const chartAgentKeys = [
     "human",
     "fable-5",
+    "gpt-5.6-sol",
+    "grok-4.5-high",
     "glm-5.2",
     "opus-4.8",
     "opus-4.8-max",
@@ -24,7 +26,7 @@ const chartAgentKeys = [
     "opus-4.6-1m",
     // "gpt-5.2",
     // "gpt-5.1-codex-max",
-    "kimi-kismet-1m",
+    "kimi-k3",
     "gpt-5.4-high",
     "gpt-5.4-high-reprompted",
     "gpt-5.5-xhigh",
@@ -36,6 +38,8 @@ const chartAgentKeys = [
 // Agents to show in time spent chart
 const timeChartAgentKeys = [
     "fable-5",
+    "gpt-5.6-sol",
+    "grok-4.5-high",
     "glm-5.2",
     "opus-4.8",
     "opus-4.8-max",
@@ -58,7 +62,7 @@ const timeChartAgentKeys = [
     "gpt-5.5-xhigh-reprompted",
     "glm-5",
     "kimi-k2.5",
-    "kimi-kismet-1m",
+    "kimi-k3",
     "minimax-m2.5",
     "qwen3-max",
     "sonnet-4.6",
@@ -70,6 +74,9 @@ const timeChartAgentKeys = [
 const allAgentKeys = [
     "human",
     "fable-5",
+    "gpt-5.6-sol",
+    "grok-4.5-high",
+    "kimi-k3",
     "glm-5.2",
     "opus-4.8",
     "opus-4.8-max",
@@ -93,7 +100,6 @@ const allAgentKeys = [
     "gpt-5.1-codex-max-opencode",
     "kimi-k2",
     "kimi-k2.5",
-    "kimi-kismet-1m",
     "minimax-m2.5",
     "glm-5",
     "gemini-3.1-pro",
@@ -125,7 +131,7 @@ const agentInfo = {
     "gpt-5.1-codex-max-opencode": { name: "GPT 5.1 Codex Max", description: "GPT 5.1 Codex Max with OpenCode", isOpenCode: true, scaffold: "OpenCode" },
     "kimi-k2": { name: "Kimi K2 Thinking", description: "Kimi K2 Thinking agent", isOpenCode: true, scaffold: "OpenCode" },
     "kimi-k2.5": { name: "Kimi K2.5", description: "Kimi K2.5 agent", isOpenCode: true, scaffold: "OpenCode" },
-    "kimi-kismet-1m": { name: "Kimi Kismet (1M)", description: "Kimi Kismet with 1M context window", scaffold: "Claude Code" },
+    "kimi-k3": { name: "Kimi K3", description: "Kimi K3 agent with a 1M context window", scaffold: "Claude Code" },
     "minimax-m2.5": { name: "MiniMax M2.5", description: "MiniMax M2.5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "glm-5": { name: "GLM 5", description: "GLM 5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "glm-5.2": { name: "GLM 5.2", description: "GLM 5.2 agent", scaffold: "Claude Code", reasoningEffort: "Max" },
@@ -140,6 +146,8 @@ const agentInfo = {
     "gpt-5.4-high-reprompted": { name: "GPT 5.4", description: "GPT 5.4 high reasoning agent (reprompted)", scaffold: "Codex CLI", reasoningEffort: "High, Reprompted" },
     "gpt-5.5-xhigh": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "xHigh" },
     "gpt-5.5-xhigh-reprompted": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent (reprompted)", scaffold: "Codex CLI", reasoningEffort: "xHigh, Reprompted" },
+    "gpt-5.6-sol": { name: "GPT 5.6 (Sol)", description: "GPT 5.6 Sol max reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Max" },
+    "grok-4.5-high": { name: "Grok 4.5", description: "Grok 4.5 high reasoning agent", scaffold: "Cursor CLI", reasoningEffort: "High" },
     "qwen3-max": { name: "Qwen3 Max", description: "Qwen3 Max agent", isOpenCode: true, scaffold: "Claude Code" },
     "fable-5": { name: "Fable 5", description: "Claude Fable 5 with 1M context, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max", footnoteMarker: "‡" }
 };

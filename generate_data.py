@@ -10,6 +10,25 @@ OUTPUT_FILE = Path("scores.json")
 BASE_MODELS = ["Qwen3-1.7B-Base", "Qwen3-4B-Base", "SmolLM3-3B-Base", "gemma-3-4b-pt"]
 HUMAN_MODELS = ["Qwen3-1.7B", "Qwen3-4B", "SmolLM3-3B", "gemma-3-4b-it"]
 
+# Only these entries are published in the current v1.1 results. The archived
+# v1 data is stored separately in scores-v1.js and is not affected by this
+# generator.
+V11_AGENT_KEYS = {
+    "human",
+    "base-model",
+    "fable-5",
+    "gpt-5.6-sol",
+    "grok-4.5-high",
+    "opus-4.8",
+    "opus-4.8-max",
+    "glm-5.2",
+    "kimi-k3",
+    "opus-4.7",
+    "gpt-5.5-xhigh",
+    "gemini-3.1-pro",
+    "gpt-5.4-high",
+}
+
 AGGREGATED_NAME_TO_KEY = {
     "GPT-5.2": "gpt-5.2",
     "GPT-5.1-Codex-Max": "gpt-5.1-codex-max",
@@ -28,7 +47,8 @@ AGGREGATED_NAME_TO_KEY = {
     "Opus-4.8 (Max)": "opus-4.8-max",
     "GLM 5.2": "glm-5.2",
     "Fable 5 (Max)": "fable-5",
-    "Kimi Kismet (1M)": "kimi-kismet-1m",
+    "GPT-5.6-Sol": "gpt-5.6-sol",
+    "Kimi K3": "kimi-k3",
 }
 
 CSV_TO_AGENT = {
@@ -49,7 +69,8 @@ CSV_TO_AGENT = {
     "aggregated_avg_Opus-4.8_(Max).csv": "opus-4.8-max",
     "aggregated_avg_GLM_5.2.csv": "glm-5.2",
     "aggregated_avg_Fable_5_(Max).csv": "fable-5",
-    "aggregated_avg_Kimi_Kismet_(1M).csv": "kimi-kismet-1m",
+    "aggregated_avg_GPT-5.6-Sol.csv": "gpt-5.6-sol",
+    "aggregated_avg_Kimi_K3.csv": "kimi-k3",
 }
 
 STD_CSV_TO_AGENT = {
@@ -70,7 +91,8 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_Opus-4.8_(Max).csv": "opus-4.8-max",
     "aggregated_std_GLM_5.2.csv": "glm-5.2",
     "aggregated_std_Fable_5_(Max).csv": "fable-5",
-    "aggregated_std_Kimi_Kismet_(1M).csv": "kimi-kismet-1m",
+    "aggregated_std_GPT-5.6-Sol.csv": "gpt-5.6-sol",
+    "aggregated_std_Kimi_K3.csv": "kimi-k3",
 }
 
 # Single-run variants: per-model scores from a final_*.csv,
@@ -78,6 +100,7 @@ STD_CSV_TO_AGENT = {
 SINGLE_RUN_FINAL_TO_KEY = {
     "final_codex_non_api_high_reprompt_gpt-5.4_10h.csv": "gpt-5.4-high-reprompted",
     "final_codex_non_api_xhigh_reprompt_gpt-5.5_10h.csv": "gpt-5.5-xhigh-reprompted",
+    "final_cursor_cli_cursor-grok-4.5-high_10h_run1.csv": "grok-4.5-high",
 }
 
 # Optional cell-level substitutions for unpatched source data. Fable's GPQA
@@ -128,6 +151,7 @@ TIME_OVERVIEW_TO_KEY = {
     "opencode_opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
     "codex_non_api_high_reprompt_gpt-5.4_10h": "gpt-5.4-high-reprompted",
     "codex_non_api_xhigh_reprompt_gpt-5.5_10h": "gpt-5.5-xhigh-reprompted",
+    "cursor_cli_cursor-grok-4.5-high_10h_run1": "grok-4.5-high",
 }
 
 TIME_AGGREGATED_TO_KEY = {
@@ -148,7 +172,8 @@ TIME_AGGREGATED_TO_KEY = {
     "Opus-4.8 (Max)": "opus-4.8-max",
     "GLM 5.2": "glm-5.2",
     "Fable 5 (Max)": "fable-5",
-    "Kimi Kismet (1M)": "kimi-kismet-1m",
+    "GPT-5.6-Sol": "gpt-5.6-sol",
+    "Kimi K3": "kimi-k3",
 }
 
 
@@ -402,6 +427,32 @@ def generate_scores_json():
                     std_data[agent_key][model][bm] = val
 
     time_data = load_time_data()
+
+    missing_agents = sorted(V11_AGENT_KEYS - model_benchmark_data.keys())
+    if missing_agents:
+        raise RuntimeError(f"Missing v1.1 score data for: {', '.join(missing_agents)}")
+
+    competitor_keys = V11_AGENT_KEYS - {"human", "base-model"}
+    missing_runtimes = sorted(competitor_keys - time_data.keys())
+    if missing_runtimes:
+        raise RuntimeError(f"Missing v1.1 runtime data for: {', '.join(missing_runtimes)}")
+
+    model_benchmark_data = {
+        key: value for key, value in model_benchmark_data.items()
+        if key in V11_AGENT_KEYS
+    }
+    aggregated_scores = {
+        key: value for key, value in aggregated_scores.items()
+        if key in V11_AGENT_KEYS
+    }
+    std_data = {
+        key: value for key, value in std_data.items()
+        if key in V11_AGENT_KEYS
+    }
+    time_data = {
+        key: value for key, value in time_data.items()
+        if key in V11_AGENT_KEYS
+    }
 
     output = {
         "benchmarkWeights": weights,
