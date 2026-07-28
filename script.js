@@ -693,15 +693,6 @@ function chartTooltipOptions(style, isMobile, overrides = {}) {
     }, overrides);
 }
 
-// Default tooltip title for category charts: multi-line axis labels are
-// arrays, which Chart.js would otherwise join with a comma ("Fable 5‡,(Max)").
-function chartTooltipTitle(items) {
-    if (!items.length) return '';
-    const labels = items[0].chart.data.labels;
-    const raw = labels ? labels[items[0].dataIndex] : items[0].label;
-    return Array.isArray(raw) ? raw.join(' ') : raw;
-}
-
 // Create Simple Performance Chart (average view)
 function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     const ctx = document.getElementById('performanceChart');
@@ -712,6 +703,9 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     const textSecondary = style.getPropertyValue('--text-secondary').trim();
     const accentPrimary = style.getPropertyValue('--accent-primary').trim();
     const borderColor = style.getPropertyValue('--border-color').trim();
+    const effortColor = /^#[0-9a-f]{6}$/i.test(textSecondary)
+        ? `${textSecondary}a3`
+        : textSecondary;
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
@@ -749,21 +743,19 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         ].filter(Boolean)
         : [...data].reverse();
 
-    // Mobile keeps the useful effort qualifier on one line; desktop splits long
-    // names so the complete overview still scans as a vertical bar chart.
-    const chartLabels = plottedData.map(d => {
-        const isMax = d.reasoningEffort === 'Max';
-        const note = agentInfo[d.agentKey]?.footnoteMarker || '';
-        const maxSuffix = isMax ? ' (Max)' : '';
-        const displayName = `${d.agent}${note}${maxSuffix}`;
+    const effortLabels = plottedData.map(d => getChartAgentMeta(d).effort);
+    const mobileModelLabels = plottedData.map(d => {
+        if (d.agent === 'Official Instruct Models') return 'Official Instruct²';
+        if (d.agent === 'Base Models') return 'Base Models';
+        return getChartAgentMeta(d).name;
+    });
+
+    // Mobile reserves the combined inline width, then a canvas layer redraws
+    // the two parts with distinct size and color. Wide desktop labels are
+    // redrawn as compact per-model stacks for the same hierarchy.
+    const chartLabels = plottedData.map((d, index) => {
         if (isMobile) {
-            if (d.agent === 'Official Instruct Models') return 'Official Instruct²';
-            if (d.agent === 'Base Models') return 'Base Models';
-            const cleanEffort = d.reasoningEffort
-                ? d.reasoningEffort.replace(', Reprompted', '').trim()
-                : '';
-            const effortSuffix = cleanEffort ? ` (${cleanEffort})` : '';
-            return `${d.agent}${effortSuffix}${note}`;
+            return [mobileModelLabels[index], effortLabels[index]].filter(Boolean).join(' ');
         }
         // Desktop: split long names into two lines
         if (d.agent === 'Base Models') {
@@ -772,26 +764,19 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         if (d.agent === 'Official Instruct Models') {
             return ['Official', 'Instruct', 'Models²'];
         }
-        // Max-reasoning variants: name first, then "(Max)" on the last line.
-        // Split multi-word names (e.g. "Fable 5 (1M)") so a trailing "(1M)"
-        // gets its own line instead of colliding with the neighbour.
-        if (isMax) {
-            const maxWords = d.agent.split(' ');
-            const nameLines = maxWords.length >= 3
-                ? [maxWords.slice(0, Math.ceil(maxWords.length / 2)).join(' '), maxWords.slice(Math.ceil(maxWords.length / 2)).join(' ')]
-                : [d.agent];
-            nameLines[nameLines.length - 1] += note;
-            nameLines.push('(Max)');
-            return nameLines;
-        }
         const words = d.agent.split(' ');
+        const nameLines = [];
         if (words.length >= 3) {
             const midpoint = Math.ceil(words.length / 2);
-            const first = words.slice(0, midpoint).join(' ');
-            const second = words.slice(midpoint).join(' ');
-            return [first, second];
+            nameLines.push(
+                words.slice(0, midpoint).join(' '),
+                words.slice(midpoint).join(' ')
+            );
+        } else {
+            nameLines.push(d.agent);
         }
-        return displayName;
+        nameLines[nameLines.length - 1] += agentInfo[d.agentKey]?.footnoteMarker || '';
+        return nameLines.length === 1 ? nameLines[0] : nameLines;
     });
 
     // Create stripe pattern for reprompted agents
@@ -904,6 +889,88 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         }
     };
 
+    // Chart.js styles a multi-line tick as one text run. On mobile, redraw the
+    // category labels so effort can be genuinely smaller and quieter while
+    // preserving the width Chart.js calculated from the combined labels.
+    const mobileEffortLabelsPlugin = {
+        id: 'mobileEffortLabels',
+        afterDraw(chart) {
+            if (!isMobile) return;
+
+            const { ctx: chartContext, chartArea, scales: { y } } = chart;
+            const nameFontSize = 10;
+            const effortFontSize = 8;
+            const rightEdge = chartArea.left - 7;
+
+            chartContext.save();
+            chartContext.textAlign = 'right';
+            chartContext.textBaseline = 'middle';
+
+            plottedData.forEach((_, index) => {
+                const modelLabel = mobileModelLabels[index];
+                const effort = effortLabels[index];
+                const yPos = y.getPixelForTick(index);
+
+                if (effort) {
+                    chartContext.font = `500 ${effortFontSize}px 'JetBrains Mono', monospace`;
+                    const effortWidth = chartContext.measureText(effort).width;
+                    chartContext.fillStyle = effortColor;
+                    chartContext.fillText(effort, rightEdge, yPos + 0.5);
+
+                    chartContext.font = `500 ${nameFontSize}px 'JetBrains Mono', monospace`;
+                    chartContext.fillStyle = textSecondary;
+                    chartContext.fillText(modelLabel, rightEdge - effortWidth - 5, yPos);
+                } else {
+                    chartContext.font = `500 ${nameFontSize}px 'JetBrains Mono', monospace`;
+                    chartContext.fillStyle = textSecondary;
+                    chartContext.fillText(modelLabel, rightEdge, yPos);
+                }
+            });
+
+            chartContext.restore();
+        }
+    };
+
+    const desktopEffortLabelsPlugin = {
+        id: 'desktopEffortLabels',
+        afterDraw(chart) {
+            if (isMobile || isCompactDesktop) return;
+
+            const { ctx: chartContext, chartArea, scales: { x } } = chart;
+            const nameFontSize = Math.max(8, fontSizes.axisTicks - 2);
+            const effortFontSize = Math.max(8, nameFontSize - 2);
+            const lineHeight = Math.round(nameFontSize * 1.2);
+            const labelTop = chartArea.bottom + 9;
+
+            chartContext.save();
+            chartContext.textAlign = 'center';
+            chartContext.textBaseline = 'top';
+
+            chartLabels.forEach((rawLabel, index) => {
+                const lines = Array.isArray(rawLabel) ? rawLabel : [rawLabel];
+                const xPos = x.getPixelForTick(index);
+
+                chartContext.fillStyle = textSecondary;
+                chartContext.font = `500 ${nameFontSize}px 'JetBrains Mono', monospace`;
+                lines.forEach((line, lineIndex) => {
+                    chartContext.fillText(line, xPos, labelTop + lineIndex * lineHeight);
+                });
+
+                if (effortLabels[index]) {
+                    chartContext.fillStyle = effortColor;
+                    chartContext.font = `500 ${effortFontSize}px 'JetBrains Mono', monospace`;
+                    chartContext.fillText(
+                        effortLabels[index],
+                        xPos,
+                        labelTop + lines.length * lineHeight + 1
+                    );
+                }
+            });
+
+            chartContext.restore();
+        }
+    };
+
     const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning;
     const chartScales = isMobile ? {
         x: {
@@ -920,7 +987,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         y: {
             grid: { display: false },
             ticks: {
-                color: textSecondary,
+                color: 'transparent',
                 font: { family: "'JetBrains Mono', monospace", size: 10, weight: 500 },
                 autoSkip: false
             }
@@ -962,7 +1029,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
             },
             grid: { display: false },
             ticks: {
-                color: textSecondary,
+                color: isCompactDesktop ? textSecondary : 'transparent',
                 font: { family: "'JetBrains Mono', monospace", size: Math.max(8, fontSizes.axisTicks - 2) },
                 maxRotation: xLabelRotation,
                 minRotation: xLabelRotation,
@@ -986,7 +1053,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                 categoryPercentage: isMobile ? 0.82 : (isCompactDesktop ? 0.92 : 0.9)
             }]
         },
-        plugins: [errorBarPlugin],
+        plugins: [errorBarPlugin, mobileEffortLabelsPlugin, desktopEffortLabelsPlugin],
         options: {
             indexAxis: isMobile ? 'y' : 'x',
             responsive: true,
@@ -1017,12 +1084,18 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                 },
                 tooltip: chartTooltipOptions(style, isMobile, {
                     callbacks: {
-                        title: chartTooltipTitle,
+                        title: function(items) {
+                            if (!items.length) return '';
+                            return getChartAgentMeta(plottedData[items[0].dataIndex]).name;
+                        },
                         label: function(context) {
                             const std = errorBars[context.dataIndex];
                             const stdText = std ? ` ± ${std}%` : '';
                             const value = isMobile ? context.parsed.x : context.parsed.y;
-                            return `Average score: ${value.toFixed(1)}%${stdText}`;
+                            const lines = [`Average score: ${value.toFixed(1)}%${stdText}`];
+                            const effort = getChartAgentMeta(plottedData[context.dataIndex]).effort;
+                            if (effort) lines.push(`Effort: ${effort}`);
+                            return lines;
                         },
                         afterLabel: function(context) {
                             return getAgentStatusNote(plottedData[context.dataIndex].agentKey) || null;
