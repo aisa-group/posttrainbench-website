@@ -3183,93 +3183,6 @@ tbody tr:last-child td {
     }
 }
 
-.observation-block {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem 2rem;
-    margin-bottom: 2rem;
-}
-
-.observation-block p {
-    font-family: var(--font-sans);
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-    line-height: 1.7;
-}
-
-.observation-block p strong {
-    color: var(--text-primary);
-}
-
-.observation-reading-card {
-    max-width: 48rem;
-    margin-inline: auto;
-}
-
-.observation-block ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.observation-block li {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    padding: 0.5rem 0;
-    padding-left: 1.5rem;
-    position: relative;
-}
-
-.observation-block li::before {
-    content: "•";
-    position: absolute;
-    left: 0;
-    color: var(--accent-primary);
-    font-weight: bold;
-}
-
-.observation-block code {
-    background: var(--bg-tertiary);
-    color: var(--accent-text);
-    padding: 0.15rem 0.4rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-}
-
-.observation-block a {
-    color: var(--accent-text);
-    text-decoration: underline;
-    transition: color 120ms var(--ease-out);
-}
-
-.observation-block a:hover {
-    color: var(--text-primary);
-}
-
-.observation-block blockquote {
-    border-left: 3px solid var(--accent-primary);
-    margin: 1rem 0;
-    padding: 0.75rem 1.25rem;
-    background: var(--bg-tertiary);
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    font-style: italic;
-    color: var(--text-secondary);
-}
-
-.observation-block blockquote code {
-    font-style: normal;
-    font-size: 0.85em;
-    background: var(--bg-secondary);
-    padding: 0.15em 0.4em;
-    border-radius: 0.2rem;
-}
-
-.observation-block blockquote strong {
-    color: var(--text-primary);
-    font-style: normal;
-}
-
 .trace-entry .trace-quote {
     margin: 0.4rem 0 0;
     border-left: 2px solid var(--accent-primary);
@@ -3867,10 +3780,6 @@ tbody tr:last-child td {
 @media (max-width: 768px) {
     .observations {
         padding: 3rem 0;
-    }
-
-    .observation-block {
-        padding: 1.25rem;
     }
 
     .takeaway-item {

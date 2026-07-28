@@ -90,7 +90,7 @@
             <a class="hero-release" href="/blog/posttrainbench-1-1/" data-goatcounter-click="release-details-opened"
                 data-goatcounter-title="Version 1.1 release notes">
                 <span class="hero-release-version">New · v1.1</span>
-                <span class="hero-release-copy">Stricter judging and recomputed results</span>
+                <span class="hero-release-copy">Clearer rules, improved judging</span>
                 <span class="hero-release-arrow" aria-hidden="true">→</span>
             </a>
             <h1 class="hero-title">
@@ -163,6 +163,7 @@
                         <p><sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and seven benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). Each run asks a CLI agent to maximize one base model on one benchmark.</p>
                         <p><sup>2</sup> “Official Instruct Models” are the official post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank" rel="noopener noreferrer">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank" rel="noopener noreferrer">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank" rel="noopener noreferrer">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank" rel="noopener noreferrer">Gemma-3-4B-IT</a>. Their training usually exceeds the ten-hour, one-GPU constraint, so they are not directly comparable.</p>
                         <p><strong>Reprompted</strong> means the agent was manually asked to continue whenever it stopped before the time budget expired.</p>
+                        <p><strong>Contamination boundary.</strong> Agents may match a benchmark's general style, format, domain, or difficulty, but may not derive training data from specific test items, even without verbatim overlap. Agents receive the same n-gram decontamination tool used during review. Affected runs require a compliant rerun; unavailable legacy results are omitted.</p>
                         <p id="fable-methodology-note"><sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.</p>
                     </div>
                 </details>
@@ -172,7 +173,9 @@
                     <div class="changelog-entry">
                         <div class="changelog-date">Jul 20, 2026</div>
                         <ul class="changelog-list">
-                            <li>Released <a href="/blog/posttrainbench-1-1/">PostTrainBench v1.1</a> and recomputed the leaderboard with independent contamination, API-usage, and PostTrainBench-lookup judges plus programmatic model-identity checks.</li>
+                            <li>Released <a href="/blog/posttrainbench-1-1/">PostTrainBench v1.1</a> with independent contamination, API-usage, and PostTrainBench-lookup judges plus programmatic model-identity checks.</li>
+                            <li>Made the test-item contamination boundary explicit and gave agents the same n-gram decontamination tool used during review.</li>
+                            <li>Affected runs require compliant reruns; unavailable legacy results are omitted from the leaderboard.</li>
                             <li>External-model distillation is now disallowed. Flagged runs receive the base-model score.</li>
                             <li>A <strong>GPT-5.6 (Sol)</strong> run was flagged for consulting published PostTrainBench traces.</li>
                             <li>Updated <strong>Fable 5</strong> to two runs. Its GPQA scores fall back to Opus 4.8 (Max).</li>
@@ -363,7 +366,7 @@
         <div class="container">
             <p class="process-flow-version">Version 1.1</p>
             <h2 class="section-title">How a Run Is Scored</h2>
-            <p class="section-description">Version 1.1 replaces the original single judge with independent contamination, API-usage, and PostTrainBench-lookup reviews. Programmatic checks verify model identity, and flagged runs receive the base-model score.</p>
+            <p class="section-description">Version 1.1 gives agents an explicit test-item contamination rule and the same decontamination tool used during review. Independent contamination, API-usage, and PostTrainBench-lookup reviews audit each run; programmatic checks verify model identity, and flagged runs receive the base-model score.</p>
             <div class="pipeline-diagram">
                 <div class="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated and aggregated into a leaderboard score across four base models and seven benchmarks.">
                     <div class="pf-card pf-agent">
@@ -372,17 +375,18 @@
                             <li>Benchmark script + base LLM</li>
                             <li>10 hours · one H100</li>
                             <li>Terminal + web access</li>
+                            <li>Rules + decontamination tool</li>
                         </ul>
                     </div>
                     <div class="pf-arrow pf-a1" aria-hidden="true"><span class="pf-glyph">→</span><span class="pf-arrow-label"><code>final_model</code></span></div>
                     <div class="pf-card pf-judge">
                         <div class="pf-title">Judges</div>
                         <ul class="pf-list">
-                            <li>Contamination judge</li>
+                            <li>Contamination judge<span class="pf-list-note">test-item derivation and overlap</span></li>
                             <li>API-usage judge<span class="pf-list-note">external-model API use and distillation</span></li>
                             <li>PostTrainBench-lookup judge</li>
                         </ul>
-                        <div class="pf-sub">+ programmatic contamination and model-identity checks</div>
+                        <div class="pf-sub">+ programmatic model-identity check</div>
                     </div>
                     <div class="pf-arrow pf-a2" aria-hidden="true"><span class="pf-glyph">→</span><span class="pf-arrow-label pf-ok">clean</span></div>
                     <div class="pf-card pf-eval">
@@ -407,13 +411,13 @@
     <section id="benchmarks" class="tasks benchmark-setup">
         <div class="container">
             <h2 class="section-title">Benchmark Setup</h2>
-            <p class="section-description">Every agent gets the same four base models, one H100, ten hours, and its native CLI scaffold.</p>
+            <p class="section-description">Every agent gets the same four base models, one H100, ten hours, its native CLI scaffold, and a decontamination tool.</p>
             <dl class="setup-grid">
                 <div class="setup-item"><dt>Base models</dt><dd>Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</dd></div>
                 <div class="setup-item"><dt>Hardware</dt><dd>One H100 GPU per agent</dd></div>
                 <div class="setup-item"><dt>Time limit</dt><dd>10 hours per run</dd></div>
                 <div class="setup-item"><dt>Score</dt><dd>Weighted average across seven benchmarks</dd></div>
-                <div class="setup-item"><dt>Scaffold</dt><dd>Each model’s native CLI environment</dd></div>
+                <div class="setup-item"><dt>Scaffold &amp; tools</dt><dd>Native CLI environment + decontamination checker</dd></div>
             </dl>
             <h3 class="section-subtitle setup-subtitle">Evaluation mix</h3>
             <p class="section-description setup-description">Final models are evaluated with <a href="https://inspect.ai-safety-institute.org.uk/" target="_blank" rel="noopener noreferrer">Inspect</a> using each model’s <code>generation_config.json</code>.</p>
@@ -443,7 +447,6 @@
                 <a href="#observations-methods">Methods</a>
                 <a href="#observations-signal">Distillation</a>
                 <a href="#observations-inference">Inference</a>
-                <a href="#observations-reliability">Reliability</a>
                 <a href="#observations-integrity">Integrity</a>
             </nav>
 
@@ -500,22 +503,9 @@
             <h3 id="observations-inference" class="section-subtitle observation-heading">Inference settings can outweigh training</h3>
             <p class="findings-lead observations-copy">Forcing greedy decoding (<code>temperature=0.0</code> in <code>generation_config.json</code>) beat the base models' shipped sampling defaults: one Opus 4.8 GSM8K run jumped from 42.7% to 78%, while a GLM 5.2 BFCL run went from 17% to 91%. Both agents treat sampling defaults as a first-order bug to fix before training.</p>
 
-            <h3 id="observations-reliability" class="section-subtitle observation-heading">Reliability hinges on artifact handling</h3>
-            <p class="findings-lead observations-copy">The same training strategy can succeed or fail on artifact handling alone. Opus 4.7 produced no evaluable model in 26% of runs, versus 13% for Opus 4.8 and 5% for GLM 5.2.</p>
-            <div class="observation-block observation-reading-card">
-                <p><strong>One habit explains most of the gap.</strong> Opus 4.7 saves <code>final_model</code> as a symlink to an absolute path inside its container. Outside the container that path does not exist, so the copy step skips the broken link, cleanup deletes the real weights, and the run falls back to base-model scores. Training succeeded; nothing survived. At least 14 of its 22 failures follow this mechanism. GLM 5.2 writes <code>final_model</code> as a real directory with relative paths; its 4 failures are unrelated one-offs.</p>
-                <details class="evidence-fold">
-                    <summary>Broken symlinks from Opus 4.7 runs: the recurring pattern</summary>
-                    <pre>aime2025_Qwen_Qwen3-4B-Base_*                final_model -> /home/ben/task/checkpoints/run6
-bfcl_HuggingFaceTB_SmolLM3-3B-Base_*         final_model -> /home/ben/task/work/out/sft_v2
-gpqamain_HuggingFaceTB_SmolLM3-3B-Base_*     final_model -> /home/ben/task/output/sft_v1
-healthbench_HuggingFaceTB_SmolLM3-3B-Base_*  final_model -> /home/ben/task/work/checkpoints/sft_v4/final</pre>
-                </details>
-            </div>
-
-            <h3 id="observations-integrity" class="section-subtitle observation-heading">Run-integrity violations span four patterns</h3>
+            <h3 id="observations-integrity" class="section-subtitle observation-heading">Run-integrity flags span four patterns</h3>
             <div class="integrity-block">
-                <p class="findings-lead observations-copy integrity-intro">The v1.1 audit and newer evaluations have surfaced four violations: hosted LLM teachers, substituted instruct models, direct lookup of PostTrainBench materials, and benchmark-targeted training data. Expand each pattern for examples from real runs.</p>
+                <p class="findings-lead observations-copy integrity-intro">The v1.1 audit and newer evaluations have surfaced four kinds of integrity flags: hosted LLM teachers, substituted instruct models, direct lookup of PostTrainBench materials, and benchmark-targeted training data. Expand each pattern for examples from real runs.</p>
 
                 <!-- Featured run on cluster:
                      /fast/brank/auto-posttrain/results_rerun/codex_non_api_xhigh_gpt-5.5_10h_run1/arenahardwriting_Qwen_Qwen3-1.7B-Base_17327640 -->
@@ -657,6 +647,9 @@ hf download aisa-group/PostTrainBench-Trajectories --include ".../task/work/*.py
                 <details class="hack-category">
                     <summary>Data contamination <span class="hack-category-count">from verbatim test data to targeted clones</span></summary>
                     <div class="hack-category-body">
+                        <p>The rule distinguishes adapting to a benchmark from adapting to its test cases. Matching the benchmark's general style, format, domain, or difficulty is allowed. Deriving training data from a specific test item by copying, paraphrasing, perturbing, seeding generation, or hand-writing coverage is contamination even without verbatim overlap.</p>
+                        <p>Agents now receive the same n-gram decontamination tool used during review, so they can scan large or third-party datasets before training. This matters because incidental overlap is not necessarily deliberate and can be difficult to find by hand. The contamination judge separately reviews non-verbatim targeting that lexical overlap cannot detect.</p>
+                        <p>Affected runs require compliant reruns. If a comparable rerun is unavailable for a legacy agent, the affected result is omitted rather than carried into the leaderboard.</p>
                         <p>The bluntest form is training on the test set itself. A sample of incidents:</p>
 
                         <!-- Runs on cluster (top to bottom):
@@ -778,7 +771,7 @@ examples.extend(synthetic_examples(1000, 42000))</pre>
                     </div>
                 </details>
 
-                <p class="integrity-closing"><strong>Agent-level variation.</strong> Opus 4.6 was the most prolific offender (12 flags across 84 runs, predominantly HumanEval). Kimi K2.5 exhibited the most diverse strategies across 4 benchmarks. Gemini 3.1 Pro had zero contamination across any run. For more details, see <a href="https://arxiv.org/abs/2603.08640" target="_blank" rel="noopener noreferrer">the paper</a>.</p>
+                <p class="integrity-closing"><strong>Agent-level variation.</strong> Opus 4.6 was flagged most often (12 flags across 84 runs, predominantly HumanEval). Kimi K2.5 exhibited the widest range of flagged strategies across 4 benchmarks. Gemini 3.1 Pro had zero contamination flags. For more details, see <a href="https://arxiv.org/abs/2603.08640" target="_blank" rel="noopener noreferrer">the paper</a>.</p>
             </div>
         </div>
     </section>
