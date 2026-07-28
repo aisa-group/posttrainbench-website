@@ -1571,8 +1571,10 @@ tbody tr:last-child td {
     padding: 0;
     list-style: none;
     text-align: center;
+    font-family: var(--font-sans);
     font-size: 1.05rem;
-    line-height: 1.9;
+    line-height: 1.7;
+    letter-spacing: -0.01em;
 }
 
 .team-member {
@@ -1585,14 +1587,15 @@ tbody tr:last-child td {
 }
 
 .team-list a {
-    color: var(--accent-text);
+    color: var(--text-primary);
     text-decoration: none;
     font-weight: 600;
     transition: color 120ms var(--ease-out);
 }
 
 .team-member.team-lead a {
-    font-size: 1.12rem;
+    color: var(--accent-text);
+    font-size: inherit;
     font-weight: 700;
 }
 
@@ -1603,6 +1606,7 @@ tbody tr:last-child td {
 
 .team-list sup {
     color: var(--text-secondary);
+    font-family: var(--font-mono);
     font-size: 0.6rem;
     font-weight: 400;
 }
@@ -1611,6 +1615,7 @@ tbody tr:last-child td {
     max-width: 900px;
     margin: 0 auto;
     color: var(--text-secondary);
+    font-family: var(--font-mono);
     font-size: 0.8rem;
     line-height: 1.8;
 }
@@ -3812,7 +3817,7 @@ tbody tr:last-child td {
     }
 
     .team-member.team-lead a {
-        font-size: 1rem;
+        font-size: inherit;
     }
 
     .team-list sup {
