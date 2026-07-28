@@ -9,7 +9,7 @@ let performanceChart = null;
 let paretoChart = null;
 let timeSpentChart = null;
 let currentSelectedModel = 'average';
-const LEADERBOARD_PREVIEW_LIMIT = 10;
+const LEADERBOARD_PREVIEW_LIMIT = 25;
 let showAllLeaderboardAgents = false;
 let isThemeTransitioning = false;
 let activeThemeTransition = null;
@@ -2036,8 +2036,12 @@ if (leaderboardDisclosureButton) {
         });
 
         trackGoatCounterEvent(
-            showAllLeaderboardAgents ? 'leaderboard/show-all' : 'leaderboard/show-top-10',
-            showAllLeaderboardAgents ? 'Leaderboard: show all agents' : 'Leaderboard: show top 10'
+            showAllLeaderboardAgents
+                ? 'leaderboard/show-all'
+                : `leaderboard/show-top-${LEADERBOARD_PREVIEW_LIMIT}`,
+            showAllLeaderboardAgents
+                ? 'Leaderboard: show all agents'
+                : `Leaderboard: show top ${LEADERBOARD_PREVIEW_LIMIT}`
         );
 
         // When collapsing a long table, keep the control anchored under the
