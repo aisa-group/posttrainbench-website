@@ -89,11 +89,12 @@
             <section id="contamination" class="release-section article-copy">
                 <p class="release-section-number">01</p>
                 <h2>Train-test contamination</h2>
+                <p class="release-count"><span>234</span> runs were flagged for train-test contamination.</p>
                 <p>Running <code>evaluate.py</code>, inspecting mistakes, and responding to a general weakness are part of the task. An agent may notice poor percent to decimal conversion, weak multilingual medical answers, or unreliable function calling for Python primitives, then generate diverse examples that exercise the underlying skill across many contexts and phrasings.</p>
                 <p>The boundary is crossed when the resulting training data clusters around particular test items. Paraphrases, close variants, and shadow examples covering the same specific scenarios encode heldout information even when they share little text with the originals. The judgment therefore depends on the distribution of the actual training data, not simply on whether the agent examined the benchmark first.</p>
                 <p>Version 1.1 makes this distinction explicit in both the agent instructions and judge criteria. Broad failure mode targeting and matching a benchmark's general style, format, domain, or difficulty are allowed. Item specific targeting is not.</p>
                 <p>This distinction matters especially on BFCL, where an agent can legitimately improve general function calling weaknesses. Building broad training data for those skills demonstrates post-training ability. Manufacturing examples around observed test scenarios can instead produce a large PostTrainBench jump without a comparable general improvement.</p>
-                <blockquote class="release-rule"><strong>Final boundary:</strong> Agents may inspect benchmark failures and train broadly against the underlying failure mode. They may not generate training examples that cluster around particular test items, including paraphrases, variants, or shadow items covering the same specific scenarios.</blockquote>
+                <blockquote class="release-rule">Agents may inspect benchmark failures and train broadly against the underlying failure mode. They may not generate training examples that cluster around particular test items, including paraphrases, variants, or shadow items covering the same specific scenarios.</blockquote>
                 <div class="release-change">
                     <strong>What changed</strong>
                     <ul>
@@ -104,7 +105,6 @@
                         <li>Affected runs require a compliant rerun. If a comparable rerun is unavailable for a legacy agent, the affected result is omitted.</li>
                     </ul>
                 </div>
-                <p class="release-count"><span>234</span> runs were flagged for train-test contamination.</p>
                 <p>We re-audited historical runs under this policy. Clear violations ranged from loading a full evaluation set for memorization to producing synthetic templates around individual GSM8K and BFCL items. Runs that generalized an observed weakness across genuinely diverse examples are allowed.</p>
                 <p>Large third party datasets can contain accidental overlap that an agent cannot feasibly inspect by hand, so the shared tool lets the agent find and remove those items before training. Style matching alone is never contamination.</p>
             </section>
@@ -166,7 +166,7 @@
                     <div class="pipeline-version">
                         <span>v1</span>
                         <h3>Single general judge</h3>
-                        <p>One review checked the run for data contamination and model swapping, but its prompt left important boundaries implicit.</p>
+                        <p>One review checked runs for data contamination and model swapping, but its criteria did not clearly distinguish broad failure-mode training from item-specific training or explicitly cover external LLM API use.</p>
                     </div>
                     <div class="pipeline-version pipeline-version-current">
                         <span>v1.1</span>
@@ -190,7 +190,7 @@
                 <div class="article-copy release-block-heading">
                     <p class="release-kicker">Recomputed results</p>
                     <h2 id="results-title">How the leaderboard changed</h2>
-                    <p>We applied the new pipeline to historical runs and recomputed the leaderboard after the audit and reruns. Runs affected by the finalized contamination boundary require a compliant rerun; a legacy result is omitted when no comparable rerun is available. The comparison below shows the six largest aggregate score changes among main-chart agents.</p>
+                    <p>We applied the new pipeline to historical runs and recomputed the leaderboard after the audit and reruns. Runs affected by the v1.1 contamination policy require a compliant rerun; a legacy result is omitted when no comparable rerun is available. The comparison below shows the six largest aggregate score changes among main-chart agents.</p>
                 </div>
                 <figure class="score-comparison" aria-labelledby="comparison-title">
                     <div class="comparison-head">
@@ -202,7 +202,8 @@
                     </div>
                     <div id="score-comparison-rows" class="comparison-rows"></div>
                     <div id="score-comparison-axis" class="comparison-axis" aria-hidden="true"></div>
-                    <p class="comparison-note">Aggregate benchmark performance. Differences include the v1.1 audit, reruns under the finalized contamination policy, and updated multi-seed aggregation where applicable.</p>
+                    <p class="comparison-note">Aggregate benchmark performance. Differences include the v1.1 audit, reruns under the v1.1 contamination policy, and updated multi-seed aggregation where applicable.</p>
+                    <p class="comparison-note comparison-note-caveat">Fable 5's v1 result was collected during its first 72 hours of availability, when rate limits and refusals affected several runs, and should be treated as preliminary.</p>
                 </figure>
                 <div class="release-actions">
                     <a class="btn btn-primary" href="/#leaderboard" data-goatcounter-click="release-leaderboard/v1.1" data-goatcounter-title="Release: current leaderboard">View v1.1 leaderboard</a>
@@ -214,13 +215,13 @@
                 <p class="release-section-number">05</p>
                 <h2>Reruns and infrastructure fixes</h2>
                 <p>We reran 121 runs affected by disallowed API use, missing eval credentials, or other infrastructure faults. Promoting Fable 5 to two seeds also removed the earlier SmolLM substitutions. Its GPQA result still falls back to Opus 4.8 Max because Fable refused that benchmark.</p>
-                <p>Runs affected by the finalized contamination boundary were rerun with the new settings. When an older agent cannot be rerun comparably, such as when it is no longer available through its API, we leave the affected result unreported rather than carry it into the leaderboard.</p>
+                <p>Runs affected by the v1.1 contamination policy were rerun with the new settings. When an older agent cannot be rerun comparably, such as when it is no longer available through its API, we leave the affected result unreported rather than carry it into the leaderboard.</p>
                 <p>The updated <a href="/traces/">trace viewer</a> exposes the underlying actions, artifacts, and judge decisions so leaderboard changes can be inspected.</p>
             </section>
 
             <section class="release-section article-copy release-closing">
                 <h2>Conclusion</h2>
-                <p>PostTrainBench v1.1 is a more precise measurement of the same question: how much can an agent improve a base model with a fixed compute budget? The final policy preserves legitimate benchmark hill climbing while excluding training data built around particular test items. The agent now sees the same contamination boundary used to review its run and has a tool to check its own data before training.</p>
+                <p>PostTrainBench v1.1 is a more precise measurement of the same question: how much can an agent improve a base model with a fixed compute budget? The v1.1 policy preserves legitimate benchmark hill climbing while excluding training data built around particular test items. The agent now sees the same contamination boundary used to review its run and has a tool to check its own data before training.</p>
                 <div class="release-actions release-actions-closing">
                     <a class="btn btn-primary" href="/" data-goatcounter-click="release-home" data-goatcounter-title="Release: benchmark home">Explore PostTrainBench</a>
                     <a class="release-inline-link" href="https://github.com/aisa-group/PostTrainBench" target="_blank" rel="noopener noreferrer" data-goatcounter-click="release-github" data-goatcounter-title="Release: GitHub">View code <span aria-hidden="true">→</span></a>

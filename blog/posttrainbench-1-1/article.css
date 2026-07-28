@@ -723,6 +723,10 @@
     line-height: 1.55;
 }
 
+.comparison-note-caveat {
+    margin-top: 0.35rem;
+}
+
 .release-actions {
     display: flex;
     flex-wrap: wrap;
