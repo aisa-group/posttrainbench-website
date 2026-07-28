@@ -21,6 +21,8 @@ claude_non_api_claude-opus-4-7_10h_run2,7:27:05,74.5%
 claude_non_api_claude-opus-4-7_10h_run3,8:15:31,82.6%
 claude_non_api_claude-opus-4-8_10h_run1,8:40:58,86.8%
 claude_non_api_claude-opus-4-8_10h_run2,8:32:40,85.4%
+claude_non_api_claude-opus-5_10h_run1,8:29:02,84.8%
+claude_non_api_claude-opus-5_10h_run2,8:38:00,86.3%
 claude_non_api_claude-sonnet-4-6_10h,8:30:39,85.1%
 claude_non_api_claude-sonnet-5_10h_sonnet5,N/A,N/A
 claude_non_api_max_claude-fable-5_1m__10h_run1,9:00:44,90.1%
@@ -68,7 +70,7 @@ codexhigh_gpt-5.1-codex-max_10h_v7_seed1,5:06:37,51.1%
 codexlow_gpt-5.1-codex-max_10h_v7,3:53:45,39.0%
 codexlow_gpt-5.1-codex-max_10h_v7_seed1,3:45:11,37.5%
 cursor_cli_cursor-grok-4.5-high_10h_run1,9:08:13,91.4%
-cursor_cli_cursor-grok-4.5-high_10h_run2,8:34:27,85.7%
+cursor_cli_cursor-grok-4.5-high_10h_run2,8:38:36,86.4%
 gemini_models_gemini-3-pro-preview_10h_final_v3,6:56:20,69.4%
 gemini_models_gemini-3-pro-preview_10h_v5,5:35:47,56.0%
 gemini_models_gemini-3-pro-preview_10h_v6_seed1,7:02:41,70.4%
@@ -78,10 +80,13 @@ gemini_models_gemini-3-pro-preview_5h_v4,3:57:57,39.7%
 glmx_glm-5.2-preview_1m__10h_run1,8:37:00,86.2%
 glmx_glm-5.2-preview_1m__10h_run2,8:15:15,82.5%
 glmx_glm-5.2-preview_1m__10h_run3,8:23:32,83.9%
+kimi_claude_biui-0724_10h_run1,5:11:04,51.8%
+kimi_claude_biui-0724_10h_run2,6:54:30,69.1%
+kimi_claude_biui-0724_10h_run3,5:26:38,54.4%
 kimi_claude_kismet-0715_10h_older_runs,8:16:21,82.7%
 kimi_claude_kismet-0715_1m__10h_run1,8:14:43,82.5%
 kimi_claude_kismet-0715_1m__10h_run2,8:29:22,84.9%
-kimi_claude_kismet-0715_1m__10h_run3,7:49:07,78.2%
+kimi_claude_kismet-0715_1m__10h_run3,7:49:55,78.3%
 opencode_anthropic_claude-opus-4-5_10h,7:55:27,79.2%
 opencode_opencode_gemini-3-pro_10h,6:16:59,62.8%
 opencode_opencode_gemini-3.1-pro_10h_run1,4:22:20,43.7%

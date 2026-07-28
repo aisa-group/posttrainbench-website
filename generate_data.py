@@ -19,6 +19,7 @@ V11_AGENT_KEYS = {
     "fable-5",
     "gpt-5.6-sol",
     "grok-4.5-high",
+    "opus-5",
     "opus-4.8",
     "opus-4.8-max",
     "glm-5.2",
@@ -49,6 +50,7 @@ AGGREGATED_NAME_TO_KEY = {
     "Fable 5 (Max)": "fable-5",
     "GPT-5.6-Sol": "gpt-5.6-sol",
     "Kimi K3": "kimi-k3",
+    "Grok 4.5": "grok-4.5-high",
 }
 
 CSV_TO_AGENT = {
@@ -71,6 +73,7 @@ CSV_TO_AGENT = {
     "aggregated_avg_Fable_5_(Max).csv": "fable-5",
     "aggregated_avg_GPT-5.6-Sol.csv": "gpt-5.6-sol",
     "aggregated_avg_Kimi_K3.csv": "kimi-k3",
+    "aggregated_avg_Grok_4.5.csv": "grok-4.5-high",
 }
 
 STD_CSV_TO_AGENT = {
@@ -93,6 +96,7 @@ STD_CSV_TO_AGENT = {
     "aggregated_std_Fable_5_(Max).csv": "fable-5",
     "aggregated_std_GPT-5.6-Sol.csv": "gpt-5.6-sol",
     "aggregated_std_Kimi_K3.csv": "kimi-k3",
+    "aggregated_std_Grok_4.5.csv": "grok-4.5-high",
 }
 
 # Single-run variants: per-model scores from a final_*.csv,
@@ -100,7 +104,7 @@ STD_CSV_TO_AGENT = {
 SINGLE_RUN_FINAL_TO_KEY = {
     "final_codex_non_api_high_reprompt_gpt-5.4_10h.csv": "gpt-5.4-high-reprompted",
     "final_codex_non_api_xhigh_reprompt_gpt-5.5_10h.csv": "gpt-5.5-xhigh-reprompted",
-    "final_cursor_cli_cursor-grok-4.5-high_10h_run1.csv": "grok-4.5-high",
+    "final_claude_non_api_claude-opus-5_10h_run1.csv": "opus-5",
 }
 
 # Optional cell-level substitutions for unpatched source data. Fable's GPQA
@@ -151,7 +155,7 @@ TIME_OVERVIEW_TO_KEY = {
     "opencode_opencode_gemini-3.1-pro_10h_run2": "gemini-3.1-pro",
     "codex_non_api_high_reprompt_gpt-5.4_10h": "gpt-5.4-high-reprompted",
     "codex_non_api_xhigh_reprompt_gpt-5.5_10h": "gpt-5.5-xhigh-reprompted",
-    "cursor_cli_cursor-grok-4.5-high_10h_run1": "grok-4.5-high",
+    "claude_non_api_claude-opus-5_10h_run1": "opus-5",
 }
 
 TIME_AGGREGATED_TO_KEY = {
@@ -174,6 +178,7 @@ TIME_AGGREGATED_TO_KEY = {
     "Fable 5 (Max)": "fable-5",
     "GPT-5.6-Sol": "gpt-5.6-sol",
     "Kimi K3": "kimi-k3",
+    "Grok 4.5": "grok-4.5-high",
 }
 
 

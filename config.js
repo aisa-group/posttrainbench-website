@@ -17,6 +17,7 @@ const chartAgentKeys = [
     "human",
     "fable-5",
     "gpt-5.6-sol",
+    "opus-5",
     "grok-4.5-high",
     "glm-5.2",
     "opus-4.8",
@@ -39,6 +40,7 @@ const chartAgentKeys = [
 const timeChartAgentKeys = [
     "fable-5",
     "gpt-5.6-sol",
+    "opus-5",
     "grok-4.5-high",
     "glm-5.2",
     "opus-4.8",
@@ -75,6 +77,7 @@ const allAgentKeys = [
     "human",
     "fable-5",
     "gpt-5.6-sol",
+    "opus-5",
     "grok-4.5-high",
     "kimi-k3",
     "glm-5.2",
@@ -147,6 +150,7 @@ const agentInfo = {
     "gpt-5.5-xhigh": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "xHigh" },
     "gpt-5.5-xhigh-reprompted": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent (reprompted)", scaffold: "Codex CLI", reasoningEffort: "xHigh, Reprompted" },
     "gpt-5.6-sol": { name: "GPT 5.6 (Sol)", description: "GPT 5.6 Sol max reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Max" },
+    "opus-5": { name: "Opus 5", description: "Claude Opus 5 agent", scaffold: "Claude Code", statusNote: "Single-run result. Multi-seed results coming soon." },
     "grok-4.5-high": { name: "Grok 4.5", description: "Grok 4.5 high reasoning agent", scaffold: "Cursor CLI", reasoningEffort: "High" },
     "qwen3-max": { name: "Qwen3 Max", description: "Qwen3 Max agent", isOpenCode: true, scaffold: "Claude Code" },
     "fable-5": { name: "Fable 5", description: "Claude Fable 5 with 1M context, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max", footnoteMarker: "‡" }
