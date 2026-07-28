@@ -3,6 +3,7 @@
 // groupable run table.
 
 const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './data/';
+const CATALOG = window.PTB_Catalog;
 
 const els = {
   q: document.getElementById('q'),
@@ -24,62 +25,92 @@ const els = {
 };
 
 let DATA = { runs: [], experiments: [], benchmarks: [], build_ts: null };
+const DATA_REQUEST_TIMEOUT_MS = 30000;
+const TABLE_PAGE_SIZE = 50;
+let OPEN_GROUP_KEY = '';
+let APPLYING_URL_STATE = false;
+
+function trackGoatCounterEvent(path, title) {
+  if (typeof window.goatcounter?.count !== 'function') return;
+  window.goatcounter.count({ path, title, event: true });
+}
 
 // Canonical display order for benchmarks and base models. Used to order
 // matrix rows/columns and to sort groups so the page doesn't open on
 // saturated cells. Benchmarks roughly: hard reasoning first → coding →
 // writing/math → general → tool-calling (BFCL last because it saturates
 // near 100% and reads as a flat block).
-const BENCHMARK_ORDER = [
-  'aime2025', 'aime2024',
-  'gpqamain', 'gpqa_main', 'gpqa',
-  'healthbench',
-  'humaneval', 'mbpp', 'livecodebench', 'swebench',
-  'arena_hard', 'arenahard', 'arenahardwriting',
-  'gsm8k', 'math500', 'minervamath',
-  'mmlu', 'ifeval',
-  'bfcl',
-];
+const BENCHMARK_ORDER = CATALOG.BENCHMARK_ORDER;
 // Base models ordered by parameter count descending — largest first so
 // the matrix's left-most column carries the model the eye anchors on.
-const MODEL_ORDER = [
-  'Qwen_Qwen3-4B-Base',
-  'google_gemma-3-4b-pt',
-  'HuggingFaceTB_SmolLM3-3B-Base',
-  'Qwen_Qwen3-1.7B-Base',
-];
-
-function orderIndex(orderList, value) {
-  if (!value) return Infinity;
-  const v = String(value).toLowerCase();
-  for (let i = 0; i < orderList.length; i++) {
-    if (orderList[i].toLowerCase() === v) return i;
-  }
-  return Infinity;
-}
+const MODEL_ORDER = CATALOG.MODEL_ORDER;
 
 async function load() {
-  let resp;
   try {
-    resp = await fetch(`${DATA_BASE}index.json`, { cache: 'no-store' });
-  } catch (e) {
-    return showFatal(`Network error fetching the corpus index: ${e.message}`);
-  }
-  if (!resp.ok) {
-    return showFatal(`Could not load <code>${DATA_BASE}index.json</code> (HTTP ${resp.status}). Run <code>build.py</code> first.`);
-  }
-  DATA = await resp.json();
+    DATA = await fetchJsonWithTimeout(`${DATA_BASE}index.json`);
+    if (!DATA || !Array.isArray(DATA.runs)) {
+      throw new Error('The corpus index has an invalid format.');
+    }
 
-  populateFilters();
-  renderHeroStats();
-  renderMatrix();
-  els.loading.classList.add('hidden');
-  render();
+    populateFilters();
+    applyUrlState();
+    renderHeroStats();
+    renderMatrix();
+    els.loading.classList.add('hidden');
+    render();
+  } catch (error) {
+    console.error('Failed to load the trace corpus index:', error);
+    const detail = error.status
+      ? `The data server returned HTTP ${error.status}.`
+      : error.code === 'ETIMEDOUT'
+        ? 'The data request timed out.'
+        : 'Check your connection and try again.';
+    showFatal(`Could not load the trace corpus. ${detail}`);
+  }
 }
 
-function showFatal(msg) {
+async function fetchJsonWithTimeout(url, timeoutMs = DATA_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!resp.ok) {
+      const error = new Error(`HTTP ${resp.status}`);
+      error.status = resp.status;
+      throw error;
+    }
+    return await resp.json();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error(`Request timed out after ${timeoutMs}ms`);
+      timeoutError.code = 'ETIMEDOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function showFatal(message) {
   els.loading.classList.add('hidden');
-  els.runs.innerHTML = `<p class="muted" style="padding:1rem 0">${msg}</p>`;
+  els.empty.classList.add('hidden');
+
+  const box = document.createElement('div');
+  box.className = 'empty-state';
+  const text = document.createElement('p');
+  text.className = 'muted';
+  text.textContent = message;
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'btn btn-secondary';
+  retry.textContent = 'Retry';
+  retry.addEventListener('click', () => window.location.reload());
+  box.append(text, retry);
+  els.runs.replaceChildren(box);
 }
 
 // ---------- Hero stats line --------------------------------------------
@@ -187,8 +218,20 @@ function renderMatrix() {
   for (const b of rows) {
     const rh = document.createElement('div');
     rh.className = 'matrix-rowhead';
-    rh.textContent = prettyBenchmark(b);
-    rh.title = b;
+    const benchmarkLabel = prettyBenchmark(b);
+    if (String(b).toLowerCase() === 'arenahardwriting') {
+      const fullLabel = document.createElement('span');
+      fullLabel.className = 'matrix-label-full';
+      fullLabel.textContent = benchmarkLabel;
+      const compactLabel = document.createElement('span');
+      compactLabel.className = 'matrix-label-compact';
+      compactLabel.textContent = 'Arena Hard';
+      rh.append(fullLabel, compactLabel);
+      rh.setAttribute('aria-label', benchmarkLabel);
+    } else {
+      rh.textContent = benchmarkLabel;
+    }
+    rh.title = benchmarkLabel;
     grid.appendChild(rh);
 
     const max = rowMax.get(b) || 0;
@@ -199,7 +242,7 @@ function renderMatrix() {
       cellEl.className = 'matrix-cell';
       if (!c) {
         cellEl.classList.add('matrix-cell-empty');
-        cellEl.innerHTML = `<span class="matrix-empty">—</span>`;
+        cellEl.innerHTML = `<span class="matrix-empty">-</span>`;
         cellEl.disabled = true;
         cellEl.setAttribute('aria-label', `${prettyBenchmark(b)} · ${prettyTrainedModel(tm)}: no runs`);
       } else {
@@ -207,7 +250,7 @@ function renderMatrix() {
         cellEl.style.setProperty('--cell-intensity', intensity.toFixed(3));
         const accLabel = c.bestAcc != null
           ? `${(c.bestAcc * 100).toFixed(1)}%`
-          : '—';
+          : '-';
         // Cell face shows only the best accuracy + shade — keeps a clean
         // heatmap read. Best agent name lives in the tooltip.
         cellEl.innerHTML = `<span class="matrix-acc">${accLabel}</span>`;
@@ -228,7 +271,7 @@ function renderMatrix() {
 
   // Legend.
   els.matrixLegend.innerHTML = `
-    <span class="legend-label">shade = best accuracy (within task)</span>
+    <span class="legend-label">Darker = higher within task</span>
     <span class="legend-scale" aria-hidden="true">
       <span class="legend-step" style="--cell-intensity:0.15"></span>
       <span class="legend-step" style="--cell-intensity:0.40"></span>
@@ -240,13 +283,23 @@ function renderMatrix() {
 }
 
 function filterToCell(benchmark, model) {
+  trackGoatCounterEvent(
+    `trace-matrix-filter/${encodeURIComponent(benchmark)}/${encodeURIComponent(model)}`,
+    `Trace matrix: ${prettyBenchmark(benchmark)} · ${prettyTrainedModel(model)}`
+  );
+  APPLYING_URL_STATE = true;
   els.benchFilter.value = benchmark;
   els.modelFilter.value = model;
   // Sync custom-select triggers.
   els.benchFilter.dispatchEvent(new Event('change', { bubbles: true }));
   els.modelFilter.dispatchEvent(new Event('change', { bubbles: true }));
+  APPLYING_URL_STATE = false;
+  if (els.groupBy.value === 'task-model') OPEN_GROUP_KEY = `${benchmark}|${model}`;
+  else if (els.groupBy.value === 'task') OPEN_GROUP_KEY = benchmark;
+  else OPEN_GROUP_KEY = '';
+  syncUrlState();
   render();
-  document.querySelector('.filter-dock').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelector('.filter-dock').scrollIntoView({ block: 'start' });
 }
 
 function uniqValuesSortedByCount(rows, key) {
@@ -270,8 +323,8 @@ function uniqValuesOrdered(rows, key, orderList) {
     if (v) seen.add(v);
   }
   return [...seen].sort((a, b) => {
-    const ai = orderIndex(orderList, a);
-    const bi = orderIndex(orderList, b);
+    const ai = CATALOG.orderIndex(orderList, a);
+    const bi = CATALOG.orderIndex(orderList, b);
     if (ai !== bi) return ai - bi;
     return a.localeCompare(b);
   });
@@ -300,28 +353,49 @@ function addOpt(select, value, label) {
 
 // ---------- Main render ------------------------------------------------
 
-function filterRows() {
-  const q = els.q.value.trim().toLowerCase();
-  const expF = els.expFilter.value;
-  const benchF = els.benchFilter.value;
-  const modelF = els.modelFilter.value;
-  const agentF = els.agentFilter.value;
+function stateFromControls() {
+  return {
+    benchmark: els.benchFilter.value,
+    model: els.modelFilter.value,
+    agent: els.agentFilter.value,
+    experiment: els.expFilter.value,
+    q: els.q.value.trim(),
+    group: els.groupBy.value,
+    sort: els.sort.value,
+    open: OPEN_GROUP_KEY,
+  };
+}
 
-  return DATA.runs.filter(r => {
-    if (expF && r.experiment !== expF) return false;
-    if (benchF && r.benchmark !== benchF) return false;
-    if (modelF && r.trained_model !== modelF) return false;
-    if (agentF && r.agent_model !== agentF) return false;
-    if (q) {
-      const hay = [r.run_id, r.experiment, r.benchmark, r.trained_model,
-                   r.seed, r.agent_model, prettyAgent(r.agent_model),
-                   prettyTrainedModel(r.trained_model), prettyBenchmark(r.benchmark),
-                   r.contamination, r.disallowed_model]
-                   .filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+function applyUrlState() {
+  const state = CATALOG.readState(window.location.search);
+  APPLYING_URL_STATE = true;
+  els.benchFilter.value = state.benchmark;
+  els.modelFilter.value = state.model;
+  els.agentFilter.value = state.agent;
+  els.expFilter.value = state.experiment;
+  els.q.value = state.q;
+  els.groupBy.value = state.group;
+  els.sort.value = state.sort;
+  OPEN_GROUP_KEY = state.open;
+  [els.benchFilter, els.modelFilter, els.agentFilter, els.expFilter, els.groupBy, els.sort]
+    .forEach(select => select.dispatchEvent(new Event('change', { bubbles: true })));
+  APPLYING_URL_STATE = false;
+}
+
+function syncUrlState() {
+  const next = CATALOG.writeState(new URL(window.location.href), stateFromControls());
+  history.replaceState(null, '', next);
+}
+
+function handleControlInput() {
+  if (APPLYING_URL_STATE) return;
+  OPEN_GROUP_KEY = '';
+  syncUrlState();
+  render();
+}
+
+function filterRows() {
+  return CATALOG.filterRuns(DATA.runs, stateFromControls());
 }
 
 function render() {
@@ -330,9 +404,10 @@ function render() {
   const filtered = rows.length;
   const anyFilter = els.q.value || els.expFilter.value || els.benchFilter.value
                     || els.modelFilter.value || els.agentFilter.value;
-  els.resultCount.textContent =
-    anyFilter ? `${filtered.toLocaleString()} of ${total.toLocaleString()} runs` :
-                `${total.toLocaleString()} runs`;
+  els.resultCount.textContent = anyFilter
+    ? `${filtered.toLocaleString()} of ${total.toLocaleString()} runs`
+    : '';
+  els.resultCount.classList.toggle('hidden', !anyFilter);
   els.resetFilters.classList.toggle('hidden', !anyFilter);
 
   if (rows.length === 0) {
@@ -342,7 +417,7 @@ function render() {
   }
   els.empty.classList.add('hidden');
 
-  rows.sort(sorter(els.sort.value));
+  rows.sort(CATALOG.sorter(els.sort.value));
 
   // Corpus-wide accuracy max so bars share a scale.
   const accMax = Math.max(0.01, ...DATA.runs.map(r => r.accuracy ?? 0));
@@ -350,77 +425,80 @@ function render() {
   const groupMode = els.groupBy.value;
   els.runs.innerHTML = '';
   if (groupMode === 'none') {
-    els.runs.appendChild(buildTable(rows, accMax));
+    els.runs.appendChild(buildPagedTable(rows, accMax, groupMode, ''));
     return;
   }
 
-  const groups = buildGroups(rows, groupMode);
+  const groups = CATALOG.buildGroups(rows, groupMode);
+  const requestedGroupExists = groups.some(group => group.key === OPEN_GROUP_KEY);
+  const effectiveOpenKey = requestedGroupExists
+    ? OPEN_GROUP_KEY
+    : (groups.length === 1 ? groups[0].key : '');
   for (const g of groups) {
-    const section = document.createElement('section');
-    section.className = 'exp-group';
-    section.appendChild(buildGroupHeader(g, groupMode));
-    section.appendChild(buildTable(g.rows, accMax));
-    els.runs.appendChild(section);
+    els.runs.appendChild(buildGroupDisclosure(g, groupMode, accMax, g.key === effectiveOpenKey));
   }
 }
 
 // ---------- Grouping ---------------------------------------------------
 
-function buildGroups(rows, mode) {
-  const map = new Map();
-  for (const r of rows) {
-    const key = groupKey(r, mode);
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(r);
-  }
-  // Sort groups. For task and task-model groupings, use the canonical
-  // BENCHMARK_ORDER + MODEL_ORDER so the first group is informative
-  // (hard, discriminating) rather than saturated (BFCL all-100%). For
-  // the "experiment" mode, fall back to best-accuracy desc since there's
-  // no canonical order over arbitrary experiment names.
-  return [...map.entries()]
-    .map(([key, list]) => {
-      let best = null;
-      for (const r of list) if (r.accuracy != null && (best == null || r.accuracy > best)) best = r.accuracy;
-      return { key, rows: list, best };
-    })
-    .sort((a, b) => groupSorter(mode, a, b));
-}
+function buildGroupDisclosure(group, mode, accMax, initiallyOpen) {
+  const details = document.createElement('details');
+  details.className = 'exp-group';
+  details.dataset.groupKey = group.key;
+  details.open = initiallyOpen;
+  details.appendChild(buildGroupHeader(group, mode));
 
-function groupSorter(mode, a, b) {
-  if (mode === 'task' || mode === 'task-model') {
-    const [aBench, aModel] = a.key.split('|');
-    const [bBench, bModel] = b.key.split('|');
-    const benchCmp = orderIndex(BENCHMARK_ORDER, aBench) - orderIndex(BENCHMARK_ORDER, bBench);
-    if (benchCmp !== 0) return benchCmp;
-    if (mode === 'task-model') {
-      const modelCmp = orderIndex(MODEL_ORDER, aModel) - orderIndex(MODEL_ORDER, bModel);
-      if (modelCmp !== 0) return modelCmp;
+  const body = document.createElement('div');
+  body.className = 'exp-group-body';
+  details.appendChild(body);
+  let materialized = false;
+  const materialize = () => {
+    if (materialized) return;
+    materialized = true;
+    body.appendChild(buildPagedTable(group.rows, accMax, mode, group.key));
+  };
+  if (initiallyOpen) materialize();
+
+  details.addEventListener('toggle', () => {
+    if (details.open) {
+      els.runs.querySelectorAll('.exp-group[open]').forEach(other => {
+        if (other !== details) other.open = false;
+      });
+      OPEN_GROUP_KEY = group.key;
+      materialize();
+    } else if (OPEN_GROUP_KEY === group.key) {
+      OPEN_GROUP_KEY = '';
     }
-    return a.key.localeCompare(b.key);
-  }
-  // 'experiment' or any other mode — best accuracy desc, then size, then alpha.
-  const ab = a.best ?? -1, bb = b.best ?? -1;
-  if (ab !== bb) return bb - ab;
-  if (a.rows.length !== b.rows.length) return b.rows.length - a.rows.length;
-  return a.key.localeCompare(b.key);
+    syncUrlState();
+  });
+  return details;
 }
 
-function groupKey(r, mode) {
-  switch (mode) {
-    case 'task-model':
-      return `${r.benchmark || '?'}|${r.trained_model || '?'}`;
-    case 'task':
-      return r.benchmark || '?';
-    case 'experiment':
-      return r.experiment || '?';
-    default:
-      return '';
-  }
+function buildPagedTable(rows, accMax, mode, groupKey) {
+  const wrap = document.createElement('div');
+  wrap.className = 'paged-table';
+  let visible = Math.min(TABLE_PAGE_SIZE, rows.length);
+
+  const renderPage = () => {
+    wrap.replaceChildren(buildTable(rows.slice(0, visible), accMax, mode, groupKey));
+    if (visible >= rows.length) return;
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'load-more-btn';
+    const remaining = rows.length - visible;
+    more.textContent = `Show ${Math.min(TABLE_PAGE_SIZE, remaining)} more`;
+    more.addEventListener('click', () => {
+      visible = Math.min(rows.length, visible + TABLE_PAGE_SIZE);
+      renderPage();
+    });
+    wrap.appendChild(more);
+  };
+  renderPage();
+  return wrap;
 }
 
 function buildGroupHeader(g, mode) {
-  const head = document.createElement('header');
+  const head = document.createElement('summary');
   head.className = 'exp-head';
 
   // Title: depends on mode.
@@ -439,31 +517,41 @@ function buildGroupHeader(g, mode) {
   // Headline stats: best accuracy + which agent, plus run count.
   let bestRun = null;
   const agents = new Set();
+  const models = new Set();
   for (const r of g.rows) {
     agents.add(r.agent_model);
+    if (r.trained_model) models.add(r.trained_model);
     if (r.accuracy != null && (!bestRun || r.accuracy > bestRun.accuracy)) bestRun = r;
   }
-  const parts = [`${g.rows.length} run${g.rows.length === 1 ? '' : 's'}`];
+  const parts = [];
+  if (mode === 'task') {
+    parts.push(`${models.size} model${models.size === 1 ? '' : 's'}`);
+  }
+  parts.push(`${g.rows.length} run${g.rows.length === 1 ? '' : 's'}`);
   if (bestRun) {
     const agent = bestRun.agent_model ? ` (${prettyAgentForRun(bestRun)})` : '';
     parts.push(`best ${(bestRun.accuracy * 100).toFixed(1)}%${agent}`);
   }
-  if (mode !== 'task-model' && agents.size > 1) {
+  if (mode === 'experiment' && agents.size > 1) {
     parts.push(`${agents.size} agents`);
   }
 
   head.innerHTML = `
     <div class="exp-head-title">${title}</div>
-    <div class="exp-head-meta">${escapeHtml(parts.join(' · '))}</div>`;
+    <div class="exp-head-meta">${escapeHtml(parts.join(' · '))}</div>
+    <span class="exp-head-caret" aria-hidden="true">›</span>`;
   return head;
 }
 
-function buildTable(rows, accMax) {
+function buildTable(rows, accMax, mode, groupKey) {
   const t = document.createElement('table');
   t.className = 'runtable';
+  const firstHeader = mode === 'task-model'
+    ? 'seed'
+    : mode === 'task' ? 'base model' : 'task';
   t.innerHTML = `
     <thead><tr>
-      <th class="col-task">task</th>
+      <th class="col-task">${firstHeader}</th>
       <th class="col-agent">agent</th>
       <th class="col-acc">accuracy</th>
       <th class="col-num">duration</th>
@@ -476,41 +564,73 @@ function buildTable(rows, accMax) {
   for (const r of rows) {
     const tr = document.createElement('tr');
     tr.tabIndex = 0;
-    tr.addEventListener('click', () => navigateRun(r.run_id));
+    const href = runHref(r.run_id, groupKey);
+    tr.addEventListener('click', event => {
+      if (event.target.closest('a, button')) return;
+      navigateRun(href);
+    });
     tr.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateRun(r.run_id); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateRun(href); }
     });
     tr.innerHTML = `
-      <td class="col-task">${taskCell(r)}</td>
+      <td class="col-task">${runIdentityCell(r, mode, href)}</td>
       <td class="col-agent">${agentCell(r)}</td>
       <td class="col-acc">${accCell(r, accMax)}</td>
       <td class="col-num">${durationCell(r)}</td>
-      <td class="col-num">${(r.num_turns != null && r.num_turns > 0) ? r.num_turns.toLocaleString() : '<span class="muted">—</span>'}</td>
+      <td class="col-num">${(r.num_turns != null && r.num_turns > 0) ? r.num_turns.toLocaleString() : '<span class="muted">-</span>'}</td>
       <td class="col-num">${fmtCost(r.total_cost_usd)}</td>
       <td class="col-verdict">${verdictDots(r)}</td>`;
     tbody.appendChild(tr);
   }
-  return t;
+  // Wrap in a horizontal scroller so the wide table scrolls within itself on
+  // narrow screens instead of stretching the whole page past the viewport.
+  const scroller = document.createElement('div');
+  scroller.className = 'runtable-scroll';
+  scroller.appendChild(t);
+  return scroller;
 }
 
-function navigateRun(id) {
-  window.location.href = `run.html?id=${encodeURIComponent(id)}`;
+function runHref(id, groupKey) {
+  const returnUrl = CATALOG.writeState(new URL(window.location.href), {
+    ...stateFromControls(),
+    open: groupKey || OPEN_GROUP_KEY,
+  });
+  returnUrl.hash = '';
+  const destination = new URL('run.html', window.location.href);
+  destination.searchParams.set('id', id);
+  destination.searchParams.set('return', `${returnUrl.pathname}${returnUrl.search}`);
+  return destination.href;
+}
+
+function navigateRun(href) {
+  window.location.href = href;
 }
 
 // ---------- Cell renderers --------------------------------------------
 
-function taskCell(r) {
+function runIdentityCell(r, mode, href) {
   const bench = prettyBenchmark(r.benchmark) || '?';
-  const model = prettyTrainedModel(r.trained_model) || '';
-  const seed = r.seed ? `<span class="seed-pill" title="seed">${escapeHtml(r.seed)}</span>` : '';
+  const model = prettyTrainedModel(r.trained_model) || '?';
+  const seedText = r.seed != null && r.seed !== '' ? String(r.seed) : '';
+  let primary = bench;
+  let secondary = model;
+  if (mode === 'task-model') {
+    primary = seedText ? `seed ${seedText}` : 'open run';
+    secondary = '';
+  } else if (mode === 'task') {
+    primary = model;
+    secondary = seedText ? `seed ${seedText}` : '';
+  } else if (seedText) {
+    secondary += ` · seed ${seedText}`;
+  }
   return `<div class="task-cell">
-    <div class="task-primary">${escapeHtml(bench)}</div>
-    <div class="task-secondary">${escapeHtml(model)} ${seed}</div>
+    <div class="task-primary"><a class="run-primary-link" href="${escapeHtml(href)}">${escapeHtml(primary)}</a></div>
+    ${secondary ? `<div class="task-secondary">${escapeHtml(secondary)}</div>` : ''}
   </div>`;
 }
 
 function agentCell(r) {
-  if (!r.agent_model) return '<span class="muted">—</span>';
+  if (!r.agent_model) return '<span class="muted">-</span>';
   const pretty = prettyAgentForRun(r);
   const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(pretty);
   const nameHtml = m
@@ -542,7 +662,7 @@ function prettyHarness(fmt) {
 // Accuracy missing → no metrics.json → in practice, the agent didn't
 // produce a `final_model/` so the eval harness never ran.
 const NO_EVAL_TITLE =
-  "Agent didn't produce a final_model — the evaluation harness never " +
+  "Agent didn't produce a final_model. The evaluation harness never " +
   "ran, so this run has no metrics.json.";
 
 function accCell(r, accMax) {
@@ -572,16 +692,16 @@ function durationCell(r) {
     if (m) return `${m}m`;
     return `${s}s`;
   }
-  return '<span class="muted">—</span>';
+  return '<span class="muted">-</span>';
 }
 
 const COST_MISSING_TITLE =
-  "Cost unknown — the trace doesn't include result events with token cost. " +
+  "Cost unknown. The trace doesn't include result events with token cost. " +
   "Common for runs killed early, older Claude Code containers, or Codex/opencode traces.";
 
 function fmtCost(c) {
   if (c == null || c === 0) {
-    return `<span class="muted cost-missing" data-tip="${COST_MISSING_TITLE}">—</span>`;
+    return `<span class="muted cost-missing" data-tip="${COST_MISSING_TITLE}">-</span>`;
   }
   return '$' + Number(c).toFixed(2);
 }
@@ -612,7 +732,7 @@ function verdictDots(r) {
   // Most rows are "clean" — render as a quiet glyph (no pill) so the
   // column scans for problems. Pending stays as a muted em-dash.
   if (cState === 'pending' || mState === 'pending') {
-    return `<span class="vbadge vbadge-pending" data-tip="${tip}" aria-label="judge pending">—</span>`;
+    return `<span class="vbadge vbadge-pending" data-tip="${tip}" aria-label="judge pending">-</span>`;
   }
   return `<span class="vbadge vbadge-ok" data-tip="${tip}" aria-label="judge clean">${CHECK_SVG}</span>`;
 }
@@ -621,19 +741,6 @@ function axisState(text, okPattern) {
   if (!text) return 'pending';
   if (okPattern.test(text)) return 'ok';
   return 'flag';
-}
-
-// ---------- Sorting ----------------------------------------------------
-
-function sorter(s) {
-  switch (s) {
-    case 'accuracy-desc': return (a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1);
-    case 'accuracy-asc':  return (a, b) => (a.accuracy ?? Infinity) - (b.accuracy ?? Infinity);
-    case 'cost-desc':     return (a, b) => (b.total_cost_usd ?? 0) - (a.total_cost_usd ?? 0);
-    case 'turns-desc':    return (a, b) => (b.num_turns ?? 0) - (a.num_turns ?? 0);
-    case 'duration-desc': return (a, b) => (b.duration_ms ?? 0) - (a.duration_ms ?? 0);
-    default: return (a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1);
-  }
 }
 
 // ---------- Pretty-name helpers (mirror run.js) ------------------------
@@ -715,6 +822,7 @@ function escapeHtml(s) {
 }
 
 function clearFilters() {
+  APPLYING_URL_STATE = true;
   els.q.value = '';
   els.expFilter.value = '';
   els.benchFilter.value = '';
@@ -722,14 +830,21 @@ function clearFilters() {
   els.agentFilter.value = '';
   [els.expFilter, els.benchFilter, els.modelFilter, els.agentFilter]
     .forEach(s => s.dispatchEvent(new Event('change', { bubbles: true })));
+  APPLYING_URL_STATE = false;
+  OPEN_GROUP_KEY = '';
+  syncUrlState();
   render();
 }
 
 [els.q, els.expFilter, els.benchFilter, els.modelFilter,
  els.agentFilter, els.groupBy, els.sort]
-  .forEach(el => el.addEventListener('input', render));
+  .forEach(el => el.addEventListener('input', handleControlInput));
 els.resetFilters.addEventListener('click', clearFilters);
 els.emptyReset.addEventListener('click', clearFilters);
+window.addEventListener('popstate', () => {
+  applyUrlState();
+  render();
+});
 
 // ---------- Custom dropdown (wraps each <select> in the filter dock) ---
 // The underlying <select> stays as the source of truth (so existing
@@ -757,7 +872,7 @@ function makeCustomSelect(selectEl) {
   const menu = document.createElement('ul');
   menu.className = 'cs-menu';
   menu.setAttribute('role', 'listbox');
-  menu.hidden = true;
+  menu.setAttribute('aria-hidden', 'true');
   wrap.appendChild(trigger);
   wrap.appendChild(menu);
 
@@ -783,25 +898,32 @@ function makeCustomSelect(selectEl) {
       menu.appendChild(li);
     }
   };
-  const open = () => {
+  const setInstant = instant => {
+    if (!instant) return;
+    wrap.classList.add('cs-no-motion');
+    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.remove('cs-no-motion')));
+  };
+  const open = ({ instant = false } = {}) => {
+    setInstant(instant);
     rebuildMenu();
-    menu.hidden = false;
     wrap.classList.add('cs-open');
     trigger.setAttribute('aria-expanded', 'true');
+    menu.setAttribute('aria-hidden', 'false');
     document.addEventListener('mousedown', onOutside);
     document.addEventListener('keydown', onKey);
   };
-  const close = () => {
-    menu.hidden = true;
+  const close = ({ instant = false } = {}) => {
+    setInstant(instant);
     wrap.classList.remove('cs-open');
     trigger.setAttribute('aria-expanded', 'false');
+    menu.setAttribute('aria-hidden', 'true');
     document.removeEventListener('mousedown', onOutside);
     document.removeEventListener('keydown', onKey);
     trigger.focus();
   };
   const onOutside = (e) => { if (!wrap.contains(e.target)) close(); };
   const onKey = (e) => {
-    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); close({ instant: true }); return; }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       const items = [...menu.querySelectorAll('.cs-option')];
@@ -817,19 +939,28 @@ function makeCustomSelect(selectEl) {
     if (e.key === 'Enter') {
       e.preventDefault();
       const focused = menu.querySelector('.cs-option.focused') || menu.querySelector('.cs-option.active');
-      if (focused) selectValue(focused.dataset.value);
+      if (focused) selectValue(focused.dataset.value, { instant: true });
     }
   };
-  const selectValue = (v) => {
-    if (selectEl.value === v) { close(); return; }
+  const selectValue = (v, { instant = false } = {}) => {
+    if (selectEl.value === v) { close({ instant }); return; }
     selectEl.value = v;
+    const selectedLabel = selectEl.selectedOptions[0]?.textContent || v || 'all';
+    trackGoatCounterEvent(
+      `trace-control/${encodeURIComponent(selectEl.id)}/${encodeURIComponent(v || 'all')}`,
+      `Trace control: ${selectEl.id} · ${selectedLabel}`
+    );
     selectEl.dispatchEvent(new Event('input', { bubbles: true }));
     selectEl.dispatchEvent(new Event('change', { bubbles: true }));
     syncTrigger();
-    close();
+    close({ instant });
   };
 
-  trigger.addEventListener('click', () => wrap.classList.contains('cs-open') ? close() : open());
+  trigger.addEventListener('click', event => {
+    const options = { instant: event.detail === 0 };
+    if (wrap.classList.contains('cs-open')) close(options);
+    else open(options);
+  });
   menu.addEventListener('click', e => {
     const li = e.target.closest('.cs-option');
     if (li) selectValue(li.dataset.value);
@@ -843,5 +974,11 @@ function makeCustomSelect(selectEl) {
 
 [els.benchFilter, els.modelFilter, els.agentFilter, els.expFilter,
  els.groupBy, els.sort].forEach(makeCustomSelect);
+
+els.q.addEventListener('change', () => {
+  if (els.q.value.trim()) {
+    trackGoatCounterEvent('trace-search-used', 'Trace search used');
+  }
+});
 
 load();

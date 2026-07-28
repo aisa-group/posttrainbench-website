@@ -22,16 +22,18 @@
     if (!text) return;
     const el = ensurePop();
     el.textContent = text;
-    el.classList.add('tt-show');
-    // Force a layout read so getBoundingClientRect returns the new size.
-    void el.offsetWidth;
     position(trigger);
+    // Positioning also sets the transform origin at the arrow before the
+    // entrance starts, so the tooltip feels attached to its trigger.
+    el.classList.add('tt-show');
   }
 
   function position(trigger) {
     if (!pop) return;
     const tRect = trigger.getBoundingClientRect();
-    const pRect = pop.getBoundingClientRect();
+    // Use layout dimensions rather than the transformed entrance box so
+    // placement matches the tooltip's final size.
+    const pRect = { width: pop.offsetWidth, height: pop.offsetHeight };
     const margin = 8;
 
     // Default: tooltip ABOVE the trigger (arrow points down).

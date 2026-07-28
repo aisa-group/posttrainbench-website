@@ -2,6 +2,7 @@
 
 const params = new URLSearchParams(window.location.search);
 const RUN_ID = params.get('id');
+const CATALOG = window.PTB_Catalog;
 // Base URL for the JSON data — local "./data/" by default, can be set to
 // an external host (HF Datasets, R2, S3) by overriding window.PTB_DATA_BASE
 // in config.js.
@@ -10,6 +11,10 @@ const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './
 const els = {
   topbarMeta: document.getElementById('topbar-meta'),
   tabNav: document.getElementById('tab-nav'),
+  backLink: document.getElementById('back-link'),
+  runNeighbors: document.getElementById('run-neighbors'),
+  prevRun: document.getElementById('prev-run'),
+  nextRun: document.getElementById('next-run'),
 
   // Left rail summary
   summaryTitle: document.getElementById('summary-title'),
@@ -21,6 +26,9 @@ const els = {
   scoreBig: document.getElementById('score-big'),
   scoreSub: document.getElementById('score-sub'),
   summaryStats: document.getElementById('summary-stats'),
+  summaryQuick: document.getElementById('summary-quick'),
+  summaryDetails: document.getElementById('summary-details'),
+  summaryDetailsToggle: document.getElementById('summary-details-toggle'),
   linkRaw: document.getElementById('link-raw'),
 
   summaryThemes: document.getElementById('summary-themes'),
@@ -33,6 +41,9 @@ const els = {
   judge: document.getElementById('judge'),
   wsTree: document.getElementById('ws-tree'),
   wsFile: document.getElementById('ws-file'),
+  wsFileContent: document.getElementById('ws-file-content'),
+  wsBack: document.getElementById('ws-back'),
+  workspaceLayout: document.getElementById('workspace-layout'),
 
   // Right rail
   metricGridRail: document.getElementById('metric-grid-rail'),
@@ -48,6 +59,8 @@ const els = {
   eventCount: document.getElementById('event-count'),
   expandOutputs: document.getElementById('expand-outputs'),
   jumpTurn: document.getElementById('jump-turn'),
+  traceViewFocus: document.getElementById('trace-view-focus'),
+  traceViewAll: document.getElementById('trace-view-all'),
 };
 
 let RECORD = null;
@@ -56,6 +69,15 @@ let WORKSPACE_LOADED = false;
 let RAIL_CHARTS = [];           // Chart instances pinned to the right rail
 let MODAL_CHARTS = [];          // Chart instances inside the show-all modal
 let TRACE_START_MS = null;      // first event ts in ms, for elapsed formatting
+let TRACE_VIEW = params.get('view') === 'all' ? 'all' : 'focus';
+const DATA_REQUEST_TIMEOUT_MS = 30000;
+const CHART_LOAD_TIMEOUT_MS = 8000;
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function trackGoatCounterEvent(path, title) {
+  if (typeof window.goatcounter?.count !== 'function') return;
+  window.goatcounter.count({ path, title, event: true });
+}
 
 async function load() {
   try {
@@ -63,28 +85,79 @@ async function load() {
       els.trace.innerHTML = '<p class="muted">No run id in URL. Go back to the index.</p>';
       return;
     }
-    const resp = await fetch(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.json`, { cache: 'no-store' });
-    if (!resp.ok) {
-      els.trace.innerHTML = `<p class="muted">Could not fetch run ${escapeHtml(RUN_ID)}.</p>`;
-      return;
+    RECORD = await fetchJsonWithTimeout(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.json`);
+    if (!RECORD || !RECORD.meta || !RECORD.summary || !RECORD.index_row || !Array.isArray(RECORD.events)) {
+      throw new Error('The trace data has an invalid format.');
     }
-    RECORD = await resp.json();
     computeTraceStart();
     renderTopbar();
     renderSummary();
+    setupRunContext();
     renderTrace();
     renderJudge();
-    whenChartReady(renderMiniCharts);
+    if ((RECORD.system_monitor || []).length) whenChartReady(renderMiniCharts);
+    else renderMiniCharts();
     renderMiniTokens();
     setupTabs();
     setupCopyId();
+    setupSummaryDetails();
     setupTraceControls();
     setupMetricsModal();
+  } catch (error) {
+    console.error(`Failed to load trace ${RUN_ID || '(missing id)'}:`, error);
+    showRunLoadError(error);
   } finally {
     // Always tear down the loading shield — even if rendering errored,
     // showing the partially-rendered page is better than a stuck overlay.
     hidePageLoading();
   }
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = DATA_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!resp.ok) {
+      const error = new Error(`HTTP ${resp.status}`);
+      error.status = resp.status;
+      throw error;
+    }
+    return await resp.json();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error(`Request timed out after ${timeoutMs}ms`);
+      timeoutError.code = 'ETIMEDOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function showRunLoadError(error) {
+  const message = error.status === 404
+    ? `Run ${RUN_ID} was not found.`
+    : error.code === 'ETIMEDOUT'
+      ? 'The trace request timed out.'
+      : 'Could not load this trace. Check your connection and try again.';
+
+  const box = document.createElement('div');
+  box.className = 'empty-state';
+  const text = document.createElement('p');
+  text.className = 'muted';
+  text.textContent = message;
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.className = 'btn btn-secondary';
+  retry.textContent = 'Retry';
+  retry.addEventListener('click', () => window.location.reload());
+  box.append(text, retry);
+  els.trace.replaceChildren(box);
 }
 
 function hidePageLoading() {
@@ -119,9 +192,22 @@ function computeTraceStart() {
   }
 }
 
-function whenChartReady(fn) {
-  if (typeof Chart !== 'undefined') { fn(); return; }
-  setTimeout(() => whenChartReady(fn), 80);
+function whenChartReady(fn, deadline = Date.now() + CHART_LOAD_TIMEOUT_MS) {
+  if (typeof Chart !== 'undefined') {
+    try {
+      fn();
+    } catch (error) {
+      console.error('Failed to render system metrics:', error);
+      setMetricsUnavailable('System metrics could not be rendered.');
+    }
+    return;
+  }
+  if (Date.now() >= deadline) {
+    console.error('Chart.js did not load before the metrics timeout.');
+    setMetricsUnavailable('System metrics are unavailable because the chart library did not load.');
+    return;
+  }
+  setTimeout(() => whenChartReady(fn, deadline), 80);
 }
 
 // ---------- Topbar / left-rail summary -----------------------------------
@@ -152,7 +238,7 @@ function renderSummary() {
   const scoreBarFill = document.getElementById('score-bar-fill');
   const scoreBar = document.getElementById('score-bar');
   const NO_EVAL_TITLE =
-    "Agent didn't produce a final_model — the evaluation harness never " +
+    "Agent didn't produce a final_model. The evaluation harness never " +
     "ran, so this run has no metrics.json.";
   if (ix.accuracy != null) {
     els.scoreBig.textContent = (ix.accuracy * 100).toFixed(1);
@@ -166,11 +252,13 @@ function renderSummary() {
     // Bar is sized to the absolute 0–100% scale; gives instant visual
     // anchor of where this score sits without external context.
     if (scoreBar) scoreBar.style.display = '';
-    if (scoreBarFill) scoreBarFill.style.width = Math.min(100, ix.accuracy * 100).toFixed(1) + '%';
+    if (scoreBarFill) {
+      scoreBarFill.style.setProperty('--score-scale', String(Math.min(1, Math.max(0, ix.accuracy))));
+    }
   } else {
     // No metrics.json — render an explicit "not evaluated" state instead
     // of a bare em-dash. Hide the bar (irrelevant), dim the big number.
-    els.scoreBig.textContent = '—';
+    els.scoreBig.textContent = '-';
     els.scoreBig.classList.add('score-big-empty');
     els.scoreSub.innerHTML =
       `<span class="no-eval-marker" data-tip="${escapeHtml(NO_EVAL_TITLE)}">not evaluated</span>`;
@@ -181,15 +269,17 @@ function renderSummary() {
   // intentional HTML for the cost-missing tooltip case). Keep the
   // template literal below from escaping so the cost tooltip survives.
   const COST_MISSING_TITLE =
-    "Cost unknown — the trace doesn't include result events with token " +
+    "Cost unknown. The trace doesn't include result events with token " +
     "cost. Common for runs killed early, older Claude Code containers, " +
     "or Codex/opencode traces.";
   const costHtml = (ix.total_cost_usd != null && ix.total_cost_usd > 0)
     ? '$' + Number(ix.total_cost_usd).toFixed(2)
-    : `<span class="cost-missing" data-tip="${escapeHtml(COST_MISSING_TITLE)}">—</span>`;
+    : `<span class="cost-missing" data-tip="${escapeHtml(COST_MISSING_TITLE)}">-</span>`;
 
-  const agentPretty = escapeHtml(prettyAgentFromMeta((s.agent_models || [])[0], m) || '—');
+  const agentPretty = escapeHtml(prettyAgentFromMeta((s.agent_models || [])[0], m) || '-');
+  const agentQuick = prettyAgentFromMeta((s.agent_models || [])[0], m) || '-';
   const harness = prettyHarness(m.trace_format);
+  els.summaryQuick.textContent = `${agentQuick} · ${humanDuration(ix.time_taken, ix.duration_ms)}`;
 
   const stats = [
     ['agent',       agentPretty],
@@ -199,10 +289,10 @@ function renderSummary() {
   // overflowed and wrapped, breaking alignment with the other stats.
   if (harness) stats.push(['harness', escapeHtml(harness)]);
   stats.push(
-    ['time budget', escapeHtml(ix.time_budget_h ? ix.time_budget_h + 'h' : '—')],
+    ['time budget', escapeHtml(ix.time_budget_h ? ix.time_budget_h + 'h' : '-')],
     ['duration',    escapeHtml(humanDuration(ix.time_taken, ix.duration_ms))],
-    ['turns',       escapeHtml((ix.num_turns != null && ix.num_turns > 0) ? String(ix.num_turns) : '—')],
-    ['sessions',    escapeHtml(String(ix.session_count ?? '—'))],
+    ['turns',       escapeHtml((ix.num_turns != null && ix.num_turns > 0) ? String(ix.num_turns) : '-')],
+    ['sessions',    escapeHtml(String(ix.session_count ?? '-'))],
     ['cost',        costHtml],
   );
   els.summaryStats.innerHTML = stats.map(([k, v]) =>
@@ -248,6 +338,58 @@ function renderSummary() {
     els.linkRaw.setAttribute('download', `${RUN_ID}.json`);
     els.linkRaw.innerHTML = `${downloadIcon}<span>Download trace</span>`;
   }
+}
+
+function safeReturnUrl() {
+  const value = params.get('return');
+  if (!value) return null;
+  try {
+    const url = new URL(value, window.location.href);
+    const landingPath = new URL('index.html', window.location.href).pathname;
+    return url.origin === window.location.origin && url.pathname === landingPath ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+async function setupRunContext() {
+  const returnUrl = safeReturnUrl();
+  if (!returnUrl) return;
+  els.backLink.href = returnUrl.href;
+  els.backLink.lastChild.textContent = ' Back to results';
+
+  try {
+    const catalogData = await fetchJsonWithTimeout(`${DATA_BASE}index.json`);
+    if (!catalogData || !Array.isArray(catalogData.runs)) return;
+    const state = CATALOG.readState(returnUrl.search);
+    const ordered = CATALOG.orderedRuns(catalogData.runs, state);
+    const current = ordered.findIndex(run => run.run_id === RUN_ID);
+    if (current < 0 || ordered.length < 2) return;
+
+    const neighborHref = run => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('id', run.run_id);
+      url.hash = '';
+      return url.href;
+    };
+    const previous = ordered[current - 1];
+    const next = ordered[current + 1];
+    els.prevRun.classList.toggle('hidden', !previous);
+    els.nextRun.classList.toggle('hidden', !next);
+    if (previous) els.prevRun.href = neighborHref(previous);
+    if (next) els.nextRun.href = neighborHref(next);
+    els.runNeighbors.classList.remove('hidden');
+  } catch (error) {
+    console.warn('Could not build adjacent-run navigation:', error);
+  }
+}
+
+function setupSummaryDetails() {
+  els.summaryDetailsToggle.addEventListener('click', () => {
+    const open = !els.summaryDetails.classList.contains('mobile-open');
+    els.summaryDetails.classList.toggle('mobile-open', open);
+    els.summaryDetailsToggle.setAttribute('aria-expanded', String(open));
+  });
 }
 
 // ---------- Pretty-name helpers ----------------------------------------
@@ -331,7 +473,31 @@ function prettyAgentFromMeta(name, meta) {
 // Re-render the trace when the expand-outputs toggle changes, and wire up
 // the jump-to-turn input + click-on-marker permalink behavior.
 function setupTraceControls() {
-  els.expandOutputs.addEventListener('change', renderTrace);
+  els.expandOutputs.addEventListener('change', () => renderTrace({ preservePosition: true }));
+
+  const setTraceView = view => {
+    if (TRACE_VIEW === view) return;
+    TRACE_VIEW = view;
+    const url = new URL(window.location.href);
+    if (view === 'all') url.searchParams.set('view', 'all');
+    else url.searchParams.delete('view');
+    history.replaceState(null, '', url);
+    renderTrace({ preservePosition: true });
+  };
+  els.traceViewFocus.addEventListener('click', () => setTraceView('focus'));
+  els.traceViewAll.addEventListener('click', () => setTraceView('all'));
+
+  // Per-block output expand: clicking a badged Output header toggles just
+  // that card between the height-capped view and full height. Only cards
+  // whose output actually overflows the cap get the badge + click handling
+  // (see markClippedOutputs), so short outputs never present a dead toggle.
+  // The global "expand outputs" checkbox re-renders and supersedes these.
+  els.trace.addEventListener('click', e => {
+    const head = e.target.closest('.tool-result-head');
+    if (!head || !head.querySelector('.clip-more')) return;
+    const card = head.closest('.tool-call');
+    if (card) card.classList.toggle('expanded');
+  });
 
   // Jump to turn N: Enter or input commit scrolls to that turn anchor.
   const jump = () => {
@@ -343,7 +509,7 @@ function setupTraceControls() {
       setTimeout(() => els.jumpTurn.classList.remove('jump-miss'), 600);
       return;
     }
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.scrollIntoView({ block: 'center' });
     flashEvent(target);
   };
   els.jumpTurn.addEventListener('change', jump);
@@ -358,6 +524,9 @@ function setupTraceControls() {
     const anchor = marker.dataset.anchor;
     if (!anchor) return;
     const url = new URL(window.location.href);
+    // Event anchors belong to the trace tab. Keep tab state in the query
+    // string so it can never overwrite the #turn-… / #ev-… fragment.
+    url.searchParams.delete('tab');
     url.hash = anchor;
     history.replaceState(null, '', url.toString());
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url.toString()).catch(() => {});
@@ -367,30 +536,54 @@ function setupTraceControls() {
 
   // If the URL already has a #turn-N or #ev-… hash on load, scroll to it.
   // (Wait a tick so the trace has rendered.)
-  if (window.location.hash) {
+  const initialAnchor = eventAnchorFromHash();
+  if (initialAnchor) {
     setTimeout(() => {
-      const target = document.querySelector(window.location.hash);
+      const target = document.getElementById(initialAnchor);
       if (target) { target.scrollIntoView({ block: 'center' }); flashEvent(target); }
     }, 50);
   }
 }
 
+// The URL fragment is reserved for event permalinks. Validate it before
+// touching the DOM: tab state used to produce #tab=trace, which both
+// clobbered event links and became an invalid querySelector expression.
+function eventAnchorFromHash(hash = window.location.hash) {
+  if (!hash || hash === '#') return null;
+  let id;
+  try {
+    id = decodeURIComponent(hash.slice(1));
+  } catch {
+    return null;
+  }
+  return /^(?:turn-\d+|ev-[A-Za-z0-9_-]+)$/.test(id) ? id : null;
+}
+
+const eventFlashTimers = new WeakMap();
 function flashEvent(el) {
+  const currentTimer = eventFlashTimers.get(el);
+  if (currentTimer) clearTimeout(currentTimer);
   el.classList.add('event-flash');
-  setTimeout(() => el.classList.remove('event-flash'), 1500);
+  const timer = setTimeout(() => {
+    el.classList.remove('event-flash');
+    eventFlashTimers.delete(el);
+  }, 1200);
+  eventFlashTimers.set(el, timer);
 }
 
 function setupCopyId() {
+  let resetTimer = null;
   const copy = () => {
     const text = RECORD.meta.run_id;
     const finish = () => {
-      // Triggers the CSS animation: border flash, icon swap (copy→check),
-      // and the "copied" pill fading up. Remove the class after the
-      // animation has run so a second click can re-trigger it.
-      els.runIdBox.classList.remove('copied');
-      void els.runIdBox.offsetWidth;     // force reflow so class re-add restarts
+      // A repeated click simply extends the readable state. Transitions retarget
+      // naturally, so no keyframe restart or forced layout is necessary.
+      if (resetTimer !== null) clearTimeout(resetTimer);
       els.runIdBox.classList.add('copied');
-      setTimeout(() => els.runIdBox.classList.remove('copied'), 1300);
+      resetTimer = setTimeout(() => {
+        els.runIdBox.classList.remove('copied');
+        resetTimer = null;
+      }, 1100);
     };
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text).then(finish).catch(finish);
@@ -409,15 +602,13 @@ function setupCopyId() {
 
 // ---------- Trace --------------------------------------------------------
 
-// Thinking and system events are always shown (no toggles for them);
-// tool outputs are collapsed by default and reveal on the "expand outputs" toggle.
-const SHOW_THINKING = true;
-const SHOW_SYSTEM = true;
-
-function renderTrace() {
+// Focus keeps the narrative readable: initialization stays visible, noisy
+// system records are omitted, and thoughts start closed. All restores the
+// forensic stream. Output height remains an independent choice.
+function renderTrace({ preservePosition = false } = {}) {
+  const anchor = preservePosition ? captureTraceAnchor() : null;
   const events = RECORD.events;
-  els.eventCount.textContent = `${events.length} events · ${RECORD.summary.session_count || 1} session(s)`;
-  const wantSys = SHOW_SYSTEM;
+  const wantSys = TRACE_VIEW === 'all';
   const expandResults = els.expandOutputs.checked;
 
   // Pair tool_use → tool_result so they render together.
@@ -453,9 +644,19 @@ function renderTrace() {
     }
   }
 
+  const sessionCount = RECORD.summary.session_count || 1;
+  const displayTurns = RECORD.index_row.num_turns ?? turnCounter;
+  els.eventCount.innerHTML = `<span>${Number(displayTurns).toLocaleString()} turn${Number(displayTurns) === 1 ? '' : 's'} · ${sessionCount} session${sessionCount === 1 ? '' : 's'}</span><span class="trace-raw-count">${events.length.toLocaleString()} source events</span>`;
+  els.eventCount.title = `${events.length.toLocaleString()} source events`;
+  els.traceViewFocus.classList.toggle('active', TRACE_VIEW === 'focus');
+  els.traceViewAll.classList.toggle('active', TRACE_VIEW === 'all');
+  els.traceViewFocus.setAttribute('aria-pressed', String(TRACE_VIEW === 'focus'));
+  els.traceViewAll.setAttribute('aria-pressed', String(TRACE_VIEW === 'all'));
+
   const out = [];
   let lastSession = -1;
-  for (const ev of events) {
+  for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
+    const ev = events[eventIndex];
     if (ev.type === 'system' && !wantSys && ev.subtype !== 'init') continue;
     if (skipUserEv.has(ev)) continue;
 
@@ -464,9 +665,59 @@ function renderTrace() {
     }
     lastSession = ev.session_idx;
 
-    out.push(renderEvent(ev, resultByUseId, expandResults, turnNumByUuid.get(ev)));
+    out.push(renderEvent(ev, resultByUseId, expandResults, turnNumByUuid.get(ev), eventIndex));
   }
   els.trace.innerHTML = out.join('');
+  if (anchor) restoreTraceAnchor(anchor);
+  markClippedOutputs();
+}
+
+function captureTraceAnchor() {
+  const stickyBottom = Math.max(0, els.tabNav.getBoundingClientRect().bottom) + 8;
+  const visible = [...els.trace.querySelectorAll('.event')]
+    .find(event => event.getBoundingClientRect().bottom > stickyBottom);
+  if (!visible) return null;
+  return { id: visible.id, offset: visible.getBoundingClientRect().top - stickyBottom };
+}
+
+function restoreTraceAnchor(anchor) {
+  requestAnimationFrame(() => {
+    const target = document.getElementById(anchor.id);
+    if (!target) return;
+    const stickyBottom = Math.max(0, els.tabNav.getBoundingClientRect().bottom) + 8;
+    const delta = target.getBoundingClientRect().top - stickyBottom - anchor.offset;
+    if (Math.abs(delta) > 0.5) window.scrollBy({ top: delta, behavior: 'instant' });
+  });
+}
+
+// Badge the tool cards whose output actually overflows the 280px height cap
+// with a "show all" affordance in the Output header — short outputs get no
+// badge and no toggle, so the affordance is never a dead control. Runs a
+// frame after render so heights are measurable; a single read-only layout
+// pass is cheap even on 2k-event traces. When the global "expand outputs"
+// checkbox is on, nothing overflows and no badges appear — correct, since
+// everything is already full height.
+function markClippedOutputs() {
+  requestAnimationFrame(() => {
+    document.querySelectorAll('#trace .tool-call').forEach(card => {
+      const body = card.querySelector('.tool-result-body');
+      const head = card.querySelector('.tool-result-head');
+      if (!body || !head) return;
+      const clipped = body.scrollHeight > body.clientHeight + 4;
+      const badge = head.querySelector('.clip-more');
+      if (clipped && !badge) {
+        card.classList.add('clipped');
+        const b = document.createElement('span');
+        b.className = 'clip-more';
+        head.appendChild(b);
+        head.setAttribute('data-tip', 'Toggle full output');
+      } else if (!clipped && badge && !card.classList.contains('expanded')) {
+        card.classList.remove('clipped');
+        badge.remove();
+        head.removeAttribute('data-tip');
+      }
+    });
+  });
 }
 
 function renderSessionBanner(ev) {
@@ -489,7 +740,7 @@ function renderSessionBanner(ev) {
   </div>`;
 }
 
-function renderEvent(ev, resultByUseId, expandResults, turnNum) {
+function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
   let roleClass = '';
   let markerLabel = '';
   let markerNum = '';
@@ -521,7 +772,7 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum) {
   // Agent turns use #turn-N; other events use a stable role-based ID.
   const anchorId = turnNum != null
     ? `turn-${turnNum}`
-    : `ev-${ev.session_idx ?? 0}-${ev.type}-${(ev.uuid || ev.ts || '').replace(/[^A-Za-z0-9_-]/g, '').slice(-8) || Math.random().toString(36).slice(2, 8)}`;
+    : `ev-${ev.session_idx ?? 0}-${ev.type}-${(ev.uuid || ev.ts || eventIndex).toString().replace(/[^A-Za-z0-9_-]/g, '').slice(-8) || eventIndex}`;
   // Marker: turn # (or role label) → relative time. The displayed time is
   // already trace-relative (first event = 00:00:00) so the redundant
   // "+elapsed" badge is gone. Wall-clock + date move to the hover tooltip.
@@ -531,7 +782,7 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum) {
     : '';
   const marker = `<aside class="event-marker" data-anchor="${anchorId}" title="Copy link to this event">
     ${markerNum}${markerLabel}
-    ${tsParts ? `<div class="ev-time" title="${escapeHtml(tsTitle)}">${escapeHtml(tsParts.time || '')}</div>` : ''}
+    ${tsParts ? `<div class="ev-time" title="${escapeHtml(tsTitle)}"><span class="ev-time-full">${escapeHtml(tsParts.time || '')}</span><span class="ev-time-short">${escapeHtml((tsParts.time || '').slice(0, 5))}</span></div>` : ''}
     ${ev.parent_tool_use_id ? `<div class="ev-sub-tag">sub-agent</div>` : ''}
   </aside>`;
 
@@ -586,6 +837,11 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum) {
     body = ev.blocks.map(b => renderBlock(b, resultByUseId, expandResults)).join('');
   }
 
+  if (!body.trim()) {
+    if (TRACE_VIEW === 'focus') return '';
+    body = `<details><summary class="muted" style="cursor:pointer;font-size:0.72rem">Raw ${escapeHtml(ev.type || 'event')}</summary><pre class="muted" style="font-size:0.72rem;margin-top:4px">${escapeHtml(JSON.stringify(ev.raw ?? ev, null, 2))}</pre></details>`;
+  }
+
   return `<article id="${anchorId}" class="${cls}">${marker}<div class="event-body">${body}</div></article>`;
 }
 
@@ -601,9 +857,9 @@ function renderBlock(block, resultByUseId, expandResults) {
   switch (block.type) {
     case 'text':
       // Agent message — bordered card, same shape as other blocks.
-      return `<div class="block-card agent-text">${escapeHtml(block.text || '')}</div>`;
+      return `<div class="block-card agent-text">${mdLite(block.text || '')}</div>`;
     case 'thinking':
-      return `<details class="block-card agent-thinking" ${SHOW_THINKING ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${escapeHtml(block.thinking || '')}</div></details>`;
+      return `<details class="block-card agent-thinking" ${TRACE_VIEW === 'all' ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(block.thinking || '')}</div></details>`;
     case 'tool_use': {
       const pair = resultByUseId.get(block.id);
       return renderToolCall(block, pair, expandResults);
@@ -680,10 +936,10 @@ function renderCodexItem(item, expandResults) {
   switch (item.type) {
     case 'reasoning':
     case 'agent_reasoning':
-      return `<details class="block-card agent-thinking" ${SHOW_THINKING ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${escapeHtml(item.text || '')}</div></details>`;
+      return `<details class="block-card agent-thinking" ${TRACE_VIEW === 'all' ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(item.text || '')}</div></details>`;
     case 'agent_message':
     case 'assistant_message':
-      return `<div class="block-card agent-text">${escapeHtml(item.text || '')}</div>`;
+      return `<div class="block-card agent-text">${mdLite(item.text || '')}</div>`;
     case 'todo_list':
       return `<div class="standalone-output"><div class="block-label">Todo list</div>${renderTodos(item.items || [])}</div>`;
     case 'command_execution': {
@@ -781,11 +1037,10 @@ function getMetricDefs() {
 function renderMiniCharts() {
   const snaps = RECORD.system_monitor || [];
   if (!snaps.length) {
-    els.railEmpty.classList.remove('hidden');
-    els.metricGridRail.classList.add('hidden');
-    els.showAllBtn.classList.add('hidden');
+    setMetricsUnavailable('No system monitor log for this run.');
     return;
   }
+  setMetricsAvailable();
   setChartDefaults();
   const defs = getMetricDefs();
 
@@ -797,6 +1052,30 @@ function renderMiniCharts() {
   // resize because the rail max-height tracks the viewport.
   requestAnimationFrame(updateShowAllVisibility);
   window.addEventListener('resize', updateShowAllVisibility, { passive: true });
+}
+
+function setMetricsAvailable() {
+  els.railEmpty.classList.add('hidden');
+  els.metricGridRail.classList.remove('hidden');
+  const toolbarBtn = document.getElementById('open-metrics-btn');
+  [els.showAllBtn, toolbarBtn].filter(Boolean).forEach(btn => {
+    btn.disabled = false;
+    btn.removeAttribute('aria-disabled');
+    btn.removeAttribute('title');
+  });
+}
+
+function setMetricsUnavailable(message) {
+  els.railEmpty.textContent = message;
+  els.railEmpty.classList.remove('hidden');
+  els.metricGridRail.classList.add('hidden');
+  els.showAllBtn.classList.add('hidden');
+  const toolbarBtn = document.getElementById('open-metrics-btn');
+  [els.showAllBtn, toolbarBtn].filter(Boolean).forEach(btn => {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.title = message;
+  });
 }
 
 function updateShowAllVisibility() {
@@ -839,7 +1118,7 @@ function metricCardHtml(def, where) {
   </div>`;
 }
 
-function buildChart(canvasId, def) {
+function buildChart(canvasId, def, { motion = 'initial' } = {}) {
   const ctx = document.getElementById(canvasId);
   if (!ctx) return null;
   const css = getComputedStyle(document.documentElement);
@@ -868,6 +1147,9 @@ function buildChart(canvasId, def) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: REDUCED_MOTION.matches || motion === 'none'
+        ? false
+        : { duration: motion === 'initial' ? 450 : 190, easing: 'easeOutCubic' },
       elements: { point: { radius: 0 }, line: { borderWidth: 1.4, tension: 0.25 } },
       layout: { padding: { top: 8, right: 10, bottom: 4, left: 4 } },
       scales: {
@@ -948,7 +1230,8 @@ function destroyCharts(arr) {
   arr.length = 0;
 }
 
-function openMetricsModal() {
+function openMetricsModal(event) {
+  if (typeof Chart === 'undefined' || !(RECORD.system_monitor || []).length) return;
   const defs = getMetricDefs();
   els.metricGridModal.innerHTML = defs.map(d => metricCardHtml(d, 'modal')).join('');
   els.metricsModal.classList.remove('hidden');
@@ -956,7 +1239,8 @@ function openMetricsModal() {
   // Chart.js needs the canvases to have layout dimensions before construction.
   // The modal is now visible, so we can build them.
   destroyCharts(MODAL_CHARTS);
-  MODAL_CHARTS = defs.map(d => buildChart(`metric-modal-${d.key}`, d));
+  const motion = event?.detail === 0 ? 'none' : 'interaction';
+  MODAL_CHARTS = defs.map(d => buildChart(`metric-modal-${d.key}`, d, { motion }));
 }
 
 function closeMetricsModal() {
@@ -972,6 +1256,13 @@ function setupMetricsModal() {
   // right rail is hidden on narrower viewports.
   const toolbarBtn = document.getElementById('open-metrics-btn');
   if (toolbarBtn) toolbarBtn.addEventListener('click', openMetricsModal);
+  if ((RECORD.system_monitor || []).length && typeof Chart === 'undefined') {
+    [els.showAllBtn, toolbarBtn].filter(Boolean).forEach(btn => {
+      btn.disabled = true;
+      btn.setAttribute('aria-disabled', 'true');
+      btn.title = 'Loading chart library…';
+    });
+  }
   els.metricsModal.querySelectorAll('[data-modal-close]').forEach(el =>
     el.addEventListener('click', closeMetricsModal));
   document.addEventListener('keydown', e => {
@@ -1001,7 +1292,7 @@ function renderMiniTokens() {
 function renderJudge() {
   renderJudgeVerdicts();
   if (!RECORD.judge || !RECORD.judge.events || !RECORD.judge.events.length) {
-    els.judge.innerHTML = '<p class="muted">No judge_output.json for this run.</p>';
+    els.judge.innerHTML = '<p class="muted">No detailed judge report is available for this run.</p>';
     return;
   }
   // Re-use the trace renderer's codex-item path so the judge gets exactly
@@ -1013,7 +1304,14 @@ function renderJudge() {
     const html = renderCodexItem(e.item || {}, /*expandResults*/ false);
     if (html) items.push(`<div class="judge-item">${html}</div>`);
   }
-  els.judge.innerHTML = `<div class="judge-stream">${items.join('') || '<p class="muted">(no renderable judge items)</p>'}</div>`;
+  if (!items.length) {
+    els.judge.innerHTML = '<p class="muted">No renderable judge trace items.</p>';
+    return;
+  }
+  els.judge.innerHTML = `<details class="judge-details">
+    <summary>View judge trace <span>· ${items.length.toLocaleString()} item${items.length === 1 ? '' : 's'}</span></summary>
+    <div class="judge-stream">${items.join('')}</div>
+  </details>`;
 }
 
 function renderJudgeVerdicts() {
@@ -1052,13 +1350,30 @@ function renderJudgeVerdicts() {
 async function loadWorkspace() {
   if (WORKSPACE_LOADED) return;
   WORKSPACE_LOADED = true;
-  const resp = await fetch(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.workspace.json`, { cache: 'no-store' });
-  if (!resp.ok) {
-    els.wsTree.innerHTML = '<p class="muted">No workspace data.</p>';
-    return;
+  els.wsTree.innerHTML = '<p class="muted">Loading workspace…</p>';
+  try {
+    WORKSPACE = await fetchJsonWithTimeout(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.workspace.json`);
+    if (!WORKSPACE || !Array.isArray(WORKSPACE.files)) {
+      throw new Error('The workspace data has an invalid format.');
+    }
+    renderWorkspace();
+  } catch (error) {
+    console.error(`Failed to load workspace for ${RUN_ID}:`, error);
+    WORKSPACE = null;
+    if (error.status === 404) {
+      els.wsTree.innerHTML = '<p class="muted">No workspace data.</p>';
+      return;
+    }
+
+    // Network, timeout, server, and JSON failures can be transient. Reset the
+    // guard and offer an in-place retry instead of permanently wedging the tab.
+    WORKSPACE_LOADED = false;
+    const message = error.code === 'ETIMEDOUT'
+      ? 'The workspace request timed out.'
+      : 'Could not load the workspace.';
+    els.wsTree.innerHTML = `<p class="muted">${message}</p><button type="button" class="btn btn-secondary btn-small">Retry</button>`;
+    els.wsTree.querySelector('button')?.addEventListener('click', loadWorkspace, { once: true });
   }
-  WORKSPACE = await resp.json();
-  renderWorkspace();
 }
 
 function renderWorkspace() {
@@ -1090,28 +1405,50 @@ function renderWorkspace() {
       showWorkspaceFile(f);
     });
   });
+
+  els.wsBack.onclick = () => {
+    els.workspaceLayout.classList.remove('workspace-file-open');
+    els.wsTree.querySelectorAll('.ws-file.active').forEach(x => x.classList.remove('active'));
+    scrollSectionBelowTabs(document.getElementById('section-workspace'));
+  };
+
+  if (!window.matchMedia('(max-width: 900px)').matches && files.length) {
+    const preferredNames = ['metrics_final.json', 'metrics.json', 'README.md'];
+    const preferred = preferredNames
+      .map(name => files.find(file => file.inlined && file.path.split('/').pop() === name))
+      .find(Boolean);
+    const initial = preferred || files.find(file => file.inlined) || files[0];
+    const row = [...els.wsTree.querySelectorAll('.ws-file')]
+      .find(item => item.dataset.path === initial.path);
+    row?.classList.add('active');
+    showWorkspaceFile(initial, { scroll: false });
+  }
 }
 
-function showWorkspaceFile(f) {
+function showWorkspaceFile(f, { scroll = true } = {}) {
   const header = `<h4>${escapeHtml(f.path)} <span class="muted" style="font-weight:400">(${fmtBytes(f.size)})</span></h4>`;
   if (!f.inlined) {
-    els.wsFile.innerHTML = `${header}<p class="muted">Not inlined: ${escapeHtml(f.skipped_reason || '?')}</p>`;
-    return;
-  }
-  const lang = guessLang(f.path);
-  // Render with highlight.js if it's loaded and we recognize the language.
-  let code;
-  if (lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang)) {
-    try {
-      const res = hljs.highlight(f.text, { language: lang, ignoreIllegals: true });
-      code = `<pre class="hljs language-${lang}"><code>${res.value}</code></pre>`;
-    } catch {
+    els.wsFileContent.innerHTML = `${header}<p class="muted">Not inlined: ${escapeHtml(f.skipped_reason || 'file is too large to preview')}</p>`;
+  } else {
+    const lang = guessLang(f.path);
+    // Render with highlight.js if it's loaded and we recognize the language.
+    let code;
+    if (lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang)) {
+      try {
+        const res = hljs.highlight(f.text, { language: lang, ignoreIllegals: true });
+        code = `<pre class="hljs language-${lang}"><code>${res.value}</code></pre>`;
+      } catch {
+        code = `<pre><code>${escapeHtml(f.text)}</code></pre>`;
+      }
+    } else {
       code = `<pre><code>${escapeHtml(f.text)}</code></pre>`;
     }
-  } else {
-    code = `<pre><code>${escapeHtml(f.text)}</code></pre>`;
+    els.wsFileContent.innerHTML = header + code;
   }
-  els.wsFile.innerHTML = header + code;
+  if (window.matchMedia('(max-width: 900px)').matches) {
+    els.workspaceLayout.classList.add('workspace-file-open');
+    if (scroll) scrollSectionBelowTabs(els.wsFile);
+  }
 }
 
 function guessLang(path) {
@@ -1138,10 +1475,12 @@ function setupTabs() {
   const sections = new Map();
   for (const b of btns) sections.set(b.dataset.tab, document.getElementById('section-' + b.dataset.tab));
 
-  // Initial state from hash (?tab=judge or #tab=judge), else first tab.
-  const hashTab = new URLSearchParams(location.hash.slice(1)).get('tab') || params.get('tab');
+  // Query params own tab state; accept the old #tab=judge form once and
+  // migrate it so fragments remain available for trace event permalinks.
+  const legacyHashTab = new URLSearchParams(location.hash.slice(1)).get('tab');
+  const hashTab = params.get('tab') || legacyHashTab;
   let active = (hashTab && sections.has(hashTab)) ? hashTab : btns[0].dataset.tab;
-  selectTab(active);
+  selectTab(active, { initial: true });
 
   els.tabNav.addEventListener('click', e => {
     const btn = e.target.closest('.tab-btn');
@@ -1149,14 +1488,64 @@ function setupTabs() {
     selectTab(btn.dataset.tab);
   });
 
-  function selectTab(name) {
+  function selectTab(name, { initial = false } = {}) {
     btns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     for (const [k, sec] of sections) sec?.classList.toggle('active', k === name);
-    history.replaceState(null, '', '#tab=' + encodeURIComponent(name));
-    window.scrollTo({ top: 0, behavior: 'instant' });
+
+    const url = new URL(window.location.href);
+    if (name === 'trace') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', name);
+
+    // Remove a legacy tab fragment. Event fragments are meaningful only on
+    // the trace tab, so clear one when navigating to another section.
+    const currentHashHasLegacyTab = new URLSearchParams(url.hash.slice(1)).has('tab');
+    if (currentHashHasLegacyTab || (name !== 'trace' && eventAnchorFromHash(url.hash))) {
+      url.hash = '';
+    }
+    history.replaceState(null, '', url.toString());
+    if (!initial) {
+      trackGoatCounterEvent(`trace-tab/${name}`, `Trace tab: ${name}`);
+    }
+    if (!initial) {
+      if (window.matchMedia('(max-width: 900px)').matches) {
+        requestAnimationFrame(() => scrollSectionBelowTabs(sections.get(name)));
+      } else {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
     if (name === 'workspace') loadWorkspace();
+    // If the trace rendered while its section was hidden (page opened on
+    // ?tab=judge), every output measured 0×0 and got no "show all" badge —
+    // re-measure now that it's visible.
+    if (name === 'trace') markClippedOutputs();
   }
 }
+
+function scrollSectionBelowTabs(element) {
+  if (!element) return;
+  const topbarHeight = document.querySelector('.topbar')?.offsetHeight || 48;
+  const tabHeight = els.tabNav.offsetHeight || 44;
+  const top = element.getBoundingClientRect().top + window.scrollY - topbarHeight - tabHeight - 8;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+}
+
+// Canvas colors are captured when each chart is constructed. Rebuild in place
+// during the root theme snapshot, without replaying entrance motion.
+window.addEventListener('ptb:themechange', () => {
+  if (!RECORD || typeof Chart === 'undefined' || !(RECORD.system_monitor || []).length) return;
+  setChartDefaults();
+  const defs = getMetricDefs();
+
+  if (els.metricGridRail.querySelector('canvas')) {
+    destroyCharts(RAIL_CHARTS);
+    RAIL_CHARTS = defs.map(d => buildChart(`metric-rail-${d.key}`, d, { motion: 'none' }));
+  }
+
+  if (!els.metricsModal.classList.contains('hidden')) {
+    destroyCharts(MODAL_CHARTS);
+    MODAL_CHARTS = defs.map(d => buildChart(`metric-modal-${d.key}`, d, { motion: 'none' }));
+  }
+});
 
 // ---------- Trace control listeners ------------------------------------
 
@@ -1168,6 +1557,18 @@ function escapeHtml(s) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
+
+// Minimal markdown for agent prose (thought + message cards). Agents emit
+// **bold** and `code` constantly; showing the raw asterisks/backticks reads
+// as a rendering bug, but a full markdown parser is overkill (and risky on
+// untrusted trace text). Escape first, then upgrade just those two forms.
+// Code spans are converted before bold so `**args` inside backticks stays
+// literal.
+function mdLite(s) {
+  return escapeHtml(s)
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+}
 function fmtNum(v) {
   if (typeof v !== 'number') return escapeHtml(String(v));
   if (Math.abs(v) >= 1000) return v.toLocaleString();
@@ -1176,7 +1577,7 @@ function fmtNum(v) {
   return v.toFixed(4);
 }
 function fmt(v, decimals = 0) {
-  if (v == null) return '—';
+  if (v == null) return '-';
   if (typeof v !== 'number') return String(v);
   return v.toFixed(decimals);
 }
@@ -1187,7 +1588,7 @@ function fmtBytes(n) {
   return `${(n / 1024 / 1024).toFixed(2)} MB`;
 }
 function msToHms(ms) {
-  if (ms == null) return '—';
+  if (ms == null) return '-';
   const s = Math.floor(ms / 1000);
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   if (h) return `${h}h ${m}m ${sec}s`;
@@ -1206,7 +1607,7 @@ function humanDuration(timeTakenStr, durationMs) {
     return parts.join(' ');
   }
   if (durationMs) return msToHms(durationMs);
-  return '—';
+  return '-';
 }
 
 // Convert ISO timestamp like "2026-04-30T23:24:24Z" into a compact split:

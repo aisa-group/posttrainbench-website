@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
   <title>PostTrainBench · traces</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -45,7 +45,9 @@
       <h1>Agent traces</h1>
       <div class="hero-body">
         <div id="matrix-wrap" class="matrix-wrap" aria-label="Runs by task and base model">
-          <div id="matrix" class="matrix"></div>
+          <div class="matrix-scroll-frame">
+            <div id="matrix" class="matrix"></div>
+          </div>
           <div class="matrix-legend" id="matrix-legend" aria-hidden="true"></div>
         </div>
         <aside class="hero-stats" id="hero-stats" aria-label="Corpus stats"></aside>
@@ -53,7 +55,7 @@
     </div>
   </section>
 
-  <main class="container">
+  <main class="container traces-browser">
     <!-- Filter dock — chip-style filters lead; search is the secondary
          affordance pinned to the right. -->
     <section class="filter-dock" role="search">
@@ -85,8 +87,8 @@
     <div class="view-controls">
       <div class="view-controls-left">
         <select id="group-by" aria-label="Group runs">
-          <option value="task-model">group by task × model</option>
           <option value="task">group by task</option>
+          <option value="task-model">group by task × model</option>
           <option value="experiment">group by experiment</option>
           <option value="none">no grouping</option>
         </select>
@@ -99,7 +101,7 @@
         </select>
       </div>
       <div class="view-controls-right">
-        <span id="result-count" class="results-count muted"></span>
+        <span id="result-count" class="results-count muted hidden"></span>
         <button id="reset-filters" class="link-btn hidden" type="button">clear filters</button>
       </div>
     </div>
@@ -117,6 +119,14 @@
   <script src="config.js"></script>
   <script src="assets/theme.js"></script>
   <script src="assets/tooltip.js"></script>
+  <script src="assets/catalog.js"></script>
   <script src="assets/index.js"></script>
+  <script>
+    window.goatcounter = {
+      path: function () { return window.location.pathname; },
+    };
+  </script>
+  <script data-goatcounter="https://hrdkbhatnagar.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
