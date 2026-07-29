@@ -880,6 +880,11 @@ section {
     line-height: 1.4;
 }
 
+html[data-results-version="v1.1"] .main-chart-key,
+html[data-results-version="v1.1"] .reprompted-chart-key {
+    display: none;
+}
+
 .main-chart-key-swatch {
     width: 1.4rem;
     height: 0.55rem;
