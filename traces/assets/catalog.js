@@ -116,6 +116,13 @@
       `GPT ${version}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
     value = value.replace(/^gemini-([\d.]+)(?:-(.+))?$/i, (_, version, tail) =>
       `Gemini ${version}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
+    // Non-family model IDs whose raw form isn't friendly on the page.
+    // Keep this list conservative — only aliases that ship in the corpus.
+    value = value.replace(/^kismet-\d+$/i,                     'Kimi K3');
+    value = value.replace(/^glm-5\.2(?:-preview)?$/i,          'GLM 5.2');
+    // Match both kebab (from experiment names) and "Cursor Grok 4.5 High"
+    // (spaced title-case, what Cursor CLI itself reports).
+    value = value.replace(/^(?:cursor[\s-])?grok[\s-]4\.5(?:[\s-]high)?$/i, 'Grok 4.5');
     return value + annotation;
   }
 
@@ -140,7 +147,11 @@
         run.run_id, run.experiment, run.benchmark, run.trained_model,
         run.seed, run.agent_model, prettyAgent(run.agent_model),
         prettyAgentForRun(run), prettyTrainedModel(run.trained_model),
-        prettyBenchmark(run.benchmark), run.contamination, run.disallowed_model,
+        prettyBenchmark(run.benchmark),
+        // index_row now carries only {flagged} — justification is on the per-run
+        // page. Expose the flag state as text so "flagged" / "clean" still match.
+        run.contamination && (run.contamination.flagged ? 'contamination flagged' : 'contamination clean'),
+        run.disallowed_model && (run.disallowed_model.flagged ? 'disallowed model flagged' : 'disallowed model clean'),
       ].filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(query);
     });

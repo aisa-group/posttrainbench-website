@@ -711,19 +711,21 @@ const CHECK_SVG = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" s
 
 // Verdict — single combined badge collapsing both judge axes
 // (contamination, disallowed-model use) into one read. PASS = clean,
-// FAIL = flagged with which axis tripped, otherwise pending.
+// FAIL = flagged with which axis tripped, otherwise pending. Each axis is
+// null when the judge didn't run, else {flagged: bool, justification: str}.
 function verdictDots(r) {
-  const cState = axisState(r.contamination, /no contamination/i);
-  const mState = axisState(r.disallowed_model, /only allowed/i);
+  const cState = axisState(r.contamination);
+  const mState = axisState(r.disallowed_model);
 
   const flags = [];
   if (cState === 'flag') flags.push('contam');
   if (mState === 'flag') flags.push('model');
 
   const tipParts = [
-    `contamination: ${r.contamination || 'no judgement'}`,
-    `disallowed model: ${r.disallowed_model || 'no judgement'}`,
+    `contamination: ${axisTip(r.contamination)}`,
+    `disallowed model: ${axisTip(r.disallowed_model)}`,
   ];
+  if (r.judge_version) tipParts.push(`judged: ${r.judge_version}`);
   const tip = escapeHtml(tipParts.join(' · '));
 
   if (flags.length) {
@@ -737,10 +739,17 @@ function verdictDots(r) {
   return `<span class="vbadge vbadge-ok" data-tip="${tip}" aria-label="judge clean">${CHECK_SVG}</span>`;
 }
 
-function axisState(text, okPattern) {
-  if (!text) return 'pending';
-  if (okPattern.test(text)) return 'ok';
-  return 'flag';
+function axisState(v) {
+  if (v == null) return 'pending';
+  return v.flagged ? 'flag' : 'ok';
+}
+
+function axisTip(v) {
+  // The listing tooltip only shows the flag — the full justification is
+  // stripped from index.json (that stripped ~2 MB / ~60% off the payload).
+  // Users see the reasoning by opening the run page.
+  if (v == null) return 'no judgement';
+  return v.flagged ? 'true' : 'false';
 }
 
 // ---------- Pretty-name helpers (mirror run.js) ------------------------
@@ -783,6 +792,14 @@ function prettyAgent(name) {
     `GPT ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
   s = s.replace(/^gemini-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
     `Gemini ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
+  // Non-family model IDs whose raw form isn't friendly on the page.
+  // Keep this list conservative — only aliases that ship in the corpus.
+  s = s.replace(/^kismet-\d+$/i,                     'Kimi K3');
+  s = s.replace(/^glm-5\.2(?:-preview)?$/i,          'GLM 5.2');
+  // Match cursor-grok-4.5-high (kebab, from experiment names) AND
+  // "Cursor Grok 4.5 High" (spaced title-case, what Cursor CLI itself
+  // reports in its init event's model field).
+  s = s.replace(/^(?:cursor[\s-])?grok[\s-]4\.5(?:[\s-]high)?$/i, 'Grok 4.5');
   return s + annotation;
 }
 function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }

@@ -439,6 +439,14 @@ function prettyAgent(name) {
   // gemini-2.5-pro → Gemini 2.5 Pro
   s = s.replace(/^gemini-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
     `Gemini ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
+  // Non-family model IDs whose raw form isn't friendly on the page.
+  // Keep this list conservative — only aliases that ship in the corpus.
+  s = s.replace(/^kismet-\d+$/i,                     'Kimi K3');
+  s = s.replace(/^glm-5\.2(?:-preview)?$/i,          'GLM 5.2');
+  // Match cursor-grok-4.5-high (kebab, from experiment names) AND
+  // "Cursor Grok 4.5 High" (spaced title-case, what Cursor CLI itself
+  // reports in its init event's model field).
+  s = s.replace(/^(?:cursor[\s-])?grok[\s-]4\.5(?:[\s-]high)?$/i, 'Grok 4.5');
   return s + annotation;
 }
 function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
@@ -1314,35 +1322,73 @@ function renderJudge() {
   </details>`;
 }
 
+// Minimal markdown renderer for judge verdicts. The judge frequently
+// wraps identifiers in `backticks`, occasionally emphasises with *foo* /
+// **foo**, and uses newlines between paragraphs. Escapes HTML FIRST so
+// the input can never inject markup, then applies the four transforms
+// on the already-escaped text.
+function renderJudgeMarkdown(text) {
+  if (!text) return '';
+  let html = escapeHtml(String(text));
+  // Inline code: `foo` — do this before bold/italic since a lot of
+  // judge code snippets contain * that would otherwise be misparsed.
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  // Bold: **text** (non-greedy, no nesting).
+  html = html.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+  // Italic: *text* — require the preceding char to not be a * so we
+  // don't chew into an adjacent bold run.
+  html = html.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+  // Preserve line breaks so multi-paragraph justifications stay legible.
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
 function renderJudgeVerdicts() {
-  const ix = RECORD.index_row;
-  const cards = [];
-  const verdicts = [
-    {
-      label: 'Data contamination',
-      text: ix.contamination || '(no judgement)',
-      good: ix.contamination && /no contamination/i.test(ix.contamination),
-      bad:  ix.contamination && !/no contamination/i.test(ix.contamination),
-    },
-    {
-      label: 'Disallowed model use',
-      text: ix.disallowed_model || '(no judgement)',
-      good: ix.disallowed_model && /only allowed/i.test(ix.disallowed_model),
-      bad:  ix.disallowed_model && !/only allowed/i.test(ix.disallowed_model),
-    },
+  // The per-run RECORD.judgements holds the full {flagged, justification}
+  // per axis; index_row only carries the flag bool (justifications were
+  // stripped from index.json to keep the initial payload small — see build.py).
+  const jud = RECORD.judgements || {};
+  const axes = [
+    { label: 'Data contamination',   v: jud.contamination },
+    { label: 'Disallowed model use', v: jud.disallowed_model },
   ];
-  for (const v of verdicts) {
-    const cls = v.good ? 'good' : (v.bad ? 'bad' : '');
-    const icon = v.good ? '✓' : (v.bad ? '!' : '?');
+  const cards = [];
+  for (const {label, v} of axes) {
+    const pending = v == null;
+    const flagged = !pending && !!v.flagged;
+    const cls  = pending ? '' : (flagged ? 'bad' : 'good');
+    const icon = pending ? '?' : (flagged ? '!' : '✓');
+    // The justification is the whole point of the new schema — surface it,
+    // and only fall back to a generic phrase when the judge shipped an empty
+    // string (or, for pending, when it never ran). Markdown-render the
+    // real judge text; the placeholder strings pass through untouched.
+    let text;
+    if (pending) text = '(no judgement)';
+    else if (v.justification) text = v.justification;
+    else text = flagged ? 'flagged (no justification given)' : 'clean';
     cards.push(`<div class="verdict-card ${cls}">
       <span class="verdict-icon">${icon}</span>
       <div class="verdict-body">
-        <span class="verdict-label">${escapeHtml(v.label)}</span>
-        <span class="verdict-text">${escapeHtml(v.text)}</span>
+        <span class="verdict-label">${escapeHtml(label)}</span>
+        <span class="verdict-text">${renderJudgeMarkdown(text)}</span>
       </div>
     </div>`);
   }
-  els.judgeVerdicts.innerHTML = `<div class="verdict-row">${cards.join('')}</div>`;
+  // Cell-level judge_version — same for both axes, since they come from the
+  // same verdict file. v1.1 is the new post-2026-07 setting (rule-4,
+  // failure-mode language); v1.0 is the pre-revamp free-text verdict.
+  // Pill links to the home page since that's where the v1.1 release
+  // blogpost lives.
+  const ver = jud.version || RECORD.index_row?.judge_version;
+  let head = '';
+  if (ver) {
+    const verCls = ver === 'v1.0' ? 'verdict-ver-legacy' : 'verdict-ver-current';
+    const tip = ver === 'v1.0'
+      ? 'Judged under the v1.0 setting (pre-revamp). Check the home page for details on the new v1.1.'
+      : 'Judged under the new v1.1 setting. Check the home page for details.';
+    head = `<a class="verdict-version ${verCls}" href="../" data-tip="${escapeHtml(tip)}">judged: ${ver}</a>`;
+  }
+  els.judgeVerdicts.innerHTML = `${head}<div class="verdict-row">${cards.join('')}</div>`;
 }
 
 // ---------- Workspace (lazy on tab activation) -------------------------
