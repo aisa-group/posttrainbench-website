@@ -786,16 +786,26 @@ function prettyAgent(name) {
   let s = String(name);
   let annotation = '';
   s = s.replace(/\[([^\]]+)\]\s*$/, (_, a) => { annotation = ' (' + a.toUpperCase() + ')'; return ''; });
-  s = s.replace(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)$/i,
-    (_, fam, maj, min) => `Claude ${cap(fam)} ${maj}.${min}`);
+  // Strip an OpenCode-style provider prefix (`opencode/...`, `zai/...`) —
+  // the model portion below carries the identity; experiment name already
+  // encodes provider.
+  s = s.replace(/^(?:opencode|zai)\//i, '');
+  // Claude family — opus/sonnet/haiku/fable; minor version optional
+  // (Opus 5 / Fable 5 ship as major-only).
+  s = s.replace(/^claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d+))?$/i,
+    (_, fam, maj, min) => `Claude ${cap(fam)} ${maj}${min ? '.' + min : ''}`);
   s = s.replace(/^gpt-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
     `GPT ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
   s = s.replace(/^gemini-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
     `Gemini ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
   // Non-family model IDs whose raw form isn't friendly on the page.
   // Keep this list conservative — only aliases that ship in the corpus.
-  s = s.replace(/^kismet-\d+$/i,                     'Kimi K3');
-  s = s.replace(/^glm-5\.2(?:-preview)?$/i,          'GLM 5.2');
+  s = s.replace(/^kismet-\d+$/i,                             'Kimi K3');
+  s = s.replace(/^kimi-k([\d.]+)(-thinking)?$/i,
+                (_, ver, th) => `Kimi K${ver}${th ? ' Thinking' : ''}`);
+  s = s.replace(/^glm-([\d.]+)(?:-free|-preview)?$/i,        (_, ver) => `GLM ${ver}`);
+  s = s.replace(/^minimax-m([\d.]+)(?:-free)?$/i,            (_, ver) => `MiniMax M${ver}`);
+  s = s.replace(/^qwen3-max(?:-\d{4}-\d{2}-\d{2})?$/i,       'Qwen3 Max');
   // Match cursor-grok-4.5-high (kebab, from experiment names) AND
   // "Cursor Grok 4.5 High" (spaced title-case, what Cursor CLI itself
   // reports in its init event's model field).

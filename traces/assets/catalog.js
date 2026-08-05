@@ -110,16 +110,26 @@
       annotation = ` (${item.toUpperCase()})`;
       return '';
     });
-    value = value.replace(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)$/i,
-      (_, family, major, minor) => `Claude ${cap(family)} ${major}.${minor}`);
+    // Strip an OpenCode-style provider prefix (`opencode/...`, `zai/...`) —
+    // the model portion below carries the identity; experiment name already
+    // encodes provider.
+    value = value.replace(/^(?:opencode|zai)\//i, '');
+    // Claude family — opus/sonnet/haiku/fable; minor version optional
+    // (Opus 5 / Fable 5 ship as major-only).
+    value = value.replace(/^claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d+))?$/i,
+      (_, family, major, minor) => `Claude ${cap(family)} ${major}${minor ? '.' + minor : ''}`);
     value = value.replace(/^gpt-([\d.]+)(?:-(.+))?$/i, (_, version, tail) =>
       `GPT ${version}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
     value = value.replace(/^gemini-([\d.]+)(?:-(.+))?$/i, (_, version, tail) =>
       `Gemini ${version}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
     // Non-family model IDs whose raw form isn't friendly on the page.
     // Keep this list conservative — only aliases that ship in the corpus.
-    value = value.replace(/^kismet-\d+$/i,                     'Kimi K3');
-    value = value.replace(/^glm-5\.2(?:-preview)?$/i,          'GLM 5.2');
+    value = value.replace(/^kismet-\d+$/i,                             'Kimi K3');
+    value = value.replace(/^kimi-k([\d.]+)(-thinking)?$/i,
+                          (_, ver, th) => `Kimi K${ver}${th ? ' Thinking' : ''}`);
+    value = value.replace(/^glm-([\d.]+)(?:-free|-preview)?$/i,        (_, ver) => `GLM ${ver}`);
+    value = value.replace(/^minimax-m([\d.]+)(?:-free)?$/i,            (_, ver) => `MiniMax M${ver}`);
+    value = value.replace(/^qwen3-max(?:-\d{4}-\d{2}-\d{2})?$/i,       'Qwen3 Max');
     // Match both kebab (from experiment names) and "Cursor Grok 4.5 High"
     // (spaced title-case, what Cursor CLI itself reports).
     value = value.replace(/^(?:cursor[\s-])?grok[\s-]4\.5(?:[\s-]high)?$/i, 'Grok 4.5');

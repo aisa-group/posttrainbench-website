@@ -431,9 +431,14 @@ function prettyAgent(name) {
   // Pull off bracketed annotations like "[1m]" → " (1M)".
   let annotation = '';
   s = s.replace(/\[([^\]]+)\]\s*$/, (_, a) => { annotation = ' (' + a.toUpperCase() + ')'; return ''; });
-  // claude-opus-4-6 → Claude Opus 4.6
-  s = s.replace(/^claude-(opus|sonnet|haiku)-(\d+)-(\d+)$/i,
-    (_, fam, maj, min) => `Claude ${cap(fam)} ${maj}.${min}`);
+  // Strip an OpenCode-style provider prefix (`opencode/...`, `zai/...`) —
+  // the model portion below carries the identity; experiment name already
+  // encodes provider.
+  s = s.replace(/^(?:opencode|zai)\//i, '');
+  // claude-opus-4-6 → Claude Opus 4.6; claude-opus-5 → Claude Opus 5;
+  // claude-fable-5 → Claude Fable 5 (minor version optional).
+  s = s.replace(/^claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d+))?$/i,
+    (_, fam, maj, min) => `Claude ${cap(fam)} ${maj}${min ? '.' + min : ''}`);
   // gpt-5.3-codex → GPT 5.3 Codex; gpt-5.4 → GPT 5.4
   s = s.replace(/^gpt-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
     `GPT ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
@@ -442,8 +447,12 @@ function prettyAgent(name) {
     `Gemini ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
   // Non-family model IDs whose raw form isn't friendly on the page.
   // Keep this list conservative — only aliases that ship in the corpus.
-  s = s.replace(/^kismet-\d+$/i,                     'Kimi K3');
-  s = s.replace(/^glm-5\.2(?:-preview)?$/i,          'GLM 5.2');
+  s = s.replace(/^kismet-\d+$/i,                             'Kimi K3');
+  s = s.replace(/^kimi-k([\d.]+)(-thinking)?$/i,
+                (_, ver, th) => `Kimi K${ver}${th ? ' Thinking' : ''}`);
+  s = s.replace(/^glm-([\d.]+)(?:-free|-preview)?$/i,        (_, ver) => `GLM ${ver}`);
+  s = s.replace(/^minimax-m([\d.]+)(?:-free)?$/i,            (_, ver) => `MiniMax M${ver}`);
+  s = s.replace(/^qwen3-max(?:-\d{4}-\d{2}-\d{2})?$/i,       'Qwen3 Max');
   // Match cursor-grok-4.5-high (kebab, from experiment names) AND
   // "Cursor Grok 4.5 High" (spaced title-case, what Cursor CLI itself
   // reports in its init event's model field).
