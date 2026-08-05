@@ -4,6 +4,10 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
+  --font-mono: 'JetBrains Mono', 'SF Mono', Monaco, Inconsolata, 'Fira Mono',
+               'Source Code Pro', monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
   /* Dark theme — warm sepia */
   --bg-primary:   #1a1612;
   --bg-secondary: #252119;
@@ -63,8 +67,7 @@
 }
 
 html, body {
-  font-family: 'JetBrains Mono', 'SF Mono', Monaco, Inconsolata, 'Fira Mono',
-               'Source Code Pro', monospace;
+  font-family: var(--font-mono);
   font-size: 14.5px;
   line-height: 1.6;
   background-color: var(--bg-primary);
@@ -2535,13 +2538,29 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 
 /* ---------- Show-all metrics modal --------------------------------- */
-.modal { position: fixed; inset: 0; z-index: 1000; }
-.modal.hidden { display: none; }
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 160ms var(--ease-out), visibility 0s linear 0s;
+}
+.modal.modal-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 120ms ease-in, visibility 0s linear 120ms;
+}
 .modal-backdrop {
   position: absolute; inset: 0;
   background: rgba(20, 16, 11, 0.55);
   backdrop-filter: blur(2px);
+  opacity: 1;
+  transition: opacity 160ms var(--ease-out);
 }
+.modal.modal-hidden .modal-backdrop { opacity: 0; }
 .modal-panel {
   position: absolute;
   top: 50%; left: 50%;
@@ -2555,6 +2574,12 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   border-radius: 0.5rem;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  opacity: 1;
+  transition: transform 180ms var(--ease-out), opacity 140ms var(--ease-out);
+}
+.modal.modal-hidden .modal-panel {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.98);
 }
 .modal-head {
   display: flex;
@@ -2748,7 +2773,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 0.75rem;
-  margin-bottom: 1.2rem;
+  margin-bottom: 0.75rem;
 }
 .verdict-card {
   background-color: var(--bg-secondary);
@@ -2774,7 +2799,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 .verdict-card.good .verdict-icon { background: rgba(111, 125, 69, 0.18); color: var(--session-2); }
 .verdict-card.bad  .verdict-icon { background: rgba(151, 85, 58, 0.18);  color: var(--session-4); }
-.verdict-body { display: flex; flex-direction: column; gap: 0.15rem; }
+.verdict-body { display: flex; flex-direction: column; gap: 0.08rem; }
 .verdict-label {
   font-size: 0.62rem;
   font-weight: 700;
@@ -2782,7 +2807,76 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-.verdict-text { font-size: 0.85rem; color: var(--text-primary); font-weight: 500; }
+.verdict-state {
+  font-size: 0.86rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.verdict-card.good .verdict-state { color: var(--session-2); }
+.verdict-card.bad .verdict-state { color: var(--session-4); }
+
+.verdict-rationales {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+.verdict-rationale {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  overflow: clip;
+}
+.verdict-rationale > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-primary);
+}
+.verdict-rationale > summary::-webkit-details-marker { display: none; }
+.verdict-rationale > summary::before {
+  content: '›';
+  flex: none;
+  color: var(--accent-primary);
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 180ms var(--ease-out);
+}
+.verdict-rationale[open] > summary::before { transform: rotate(90deg); }
+.verdict-rationale-axis {
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+.verdict-rationale-status {
+  margin-left: auto;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.verdict-rationale.good .verdict-rationale-status { color: var(--session-2); }
+.verdict-rationale.bad .verdict-rationale-status { color: var(--session-4); }
+.verdict-rationale-body {
+  border-top: 1px solid var(--border-color);
+  padding: 0.8rem 0.9rem 0.9rem;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 400;
+  line-height: 1.65;
+}
+.verdict-rationale-body code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+}
+
+.section-desc {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+}
 
 /* Version badge sits above the two verdict cards. v1.0 is the pre-2026-07
    free-text judge; v1.1 is the current (rule-4 + failure-mode-language)
@@ -3084,6 +3178,9 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   .tt-pop,
   .cs-menu,
   .score-bar-fill,
+  .modal,
+  .modal-backdrop,
+  .modal-panel,
   .copy-btn .icon-copy,
   .copy-btn .icon-check,
   .copy-feedback,

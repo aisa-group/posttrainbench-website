@@ -68,6 +68,7 @@ let WORKSPACE = null;
 let WORKSPACE_LOADED = false;
 let RAIL_CHARTS = [];           // Chart instances pinned to the right rail
 let MODAL_CHARTS = [];          // Chart instances inside the show-all modal
+let MODAL_CLOSE_TIMER = null;
 let TRACE_START_MS = null;      // first event ts in ms, for elapsed formatting
 let TRACE_VIEW = params.get('view') === 'all' ? 'all' : 'focus';
 const DATA_REQUEST_TIMEOUT_MS = 30000;
@@ -1240,9 +1241,13 @@ function destroyCharts(arr) {
 
 function openMetricsModal(event) {
   if (typeof Chart === 'undefined' || !(RECORD.system_monitor || []).length) return;
+  if (MODAL_CLOSE_TIMER) {
+    clearTimeout(MODAL_CLOSE_TIMER);
+    MODAL_CLOSE_TIMER = null;
+  }
   const defs = getMetricDefs();
   els.metricGridModal.innerHTML = defs.map(d => metricCardHtml(d, 'modal')).join('');
-  els.metricsModal.classList.remove('hidden');
+  els.metricsModal.classList.remove('modal-hidden');
   document.body.style.overflow = 'hidden';
   // Chart.js needs the canvases to have layout dimensions before construction.
   // The modal is now visible, so we can build them.
@@ -1252,9 +1257,17 @@ function openMetricsModal(event) {
 }
 
 function closeMetricsModal() {
-  els.metricsModal.classList.add('hidden');
+  els.metricsModal.classList.add('modal-hidden');
   document.body.style.overflow = '';
-  destroyCharts(MODAL_CHARTS);
+  if (MODAL_CLOSE_TIMER) clearTimeout(MODAL_CLOSE_TIMER);
+  const finish = () => {
+    MODAL_CLOSE_TIMER = null;
+    if (!els.metricsModal.classList.contains('modal-hidden')) return;
+    destroyCharts(MODAL_CHARTS);
+    els.metricGridModal.innerHTML = '';
+  };
+  if (REDUCED_MOTION.matches) finish();
+  else MODAL_CLOSE_TIMER = setTimeout(finish, 190);
 }
 
 function setupMetricsModal() {
@@ -1274,7 +1287,7 @@ function setupMetricsModal() {
   els.metricsModal.querySelectorAll('[data-modal-close]').forEach(el =>
     el.addEventListener('click', closeMetricsModal));
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !els.metricsModal.classList.contains('hidden')) closeMetricsModal();
+    if (e.key === 'Escape' && !els.metricsModal.classList.contains('modal-hidden')) closeMetricsModal();
   });
 }
 
@@ -1353,6 +1366,7 @@ function renderJudgeVerdicts() {
     { label: 'Disallowed model use', v: jud.disallowed_model },
   ];
   const cards = [];
+  const rationales = [];
   for (const {label, v} of axes) {
     const pending = v == null;
     const flagged = !pending && !!v.flagged;
@@ -1366,13 +1380,21 @@ function renderJudgeVerdicts() {
     if (pending) text = '(no judgement)';
     else if (v.justification) text = v.justification;
     else text = flagged ? 'flagged (no justification given)' : 'clean';
+    const state = pending ? 'Pending' : (flagged ? 'Flagged' : 'Clean');
     cards.push(`<div class="verdict-card ${cls}">
       <span class="verdict-icon">${icon}</span>
       <div class="verdict-body">
         <span class="verdict-label">${escapeHtml(label)}</span>
-        <span class="verdict-text">${renderJudgeMarkdown(text)}</span>
+        <span class="verdict-state">${state}</span>
       </div>
     </div>`);
+    rationales.push(`<details class="verdict-rationale ${cls}"${flagged ? ' open' : ''}>
+      <summary>
+        <span class="verdict-rationale-axis">${escapeHtml(label)}</span>
+        <span class="verdict-rationale-status">${state}</span>
+      </summary>
+      <div class="verdict-rationale-body">${renderJudgeMarkdown(text)}</div>
+    </details>`);
   }
   // Cell-level judge_version — same for both axes, since they come from the
   // same verdict file. v1.1 is the new post-2026-07 setting (rule-4,
@@ -1388,7 +1410,7 @@ function renderJudgeVerdicts() {
       : 'Judged under the new v1.1 setting. Check the home page for details.';
     head = `<a class="verdict-version ${verCls}" href="../" data-tip="${escapeHtml(tip)}">judged: ${ver}</a>`;
   }
-  els.judgeVerdicts.innerHTML = `${head}<div class="verdict-row">${cards.join('')}</div>`;
+  els.judgeVerdicts.innerHTML = `${head}<div class="verdict-row">${cards.join('')}</div><div class="verdict-rationales">${rationales.join('')}</div>`;
 }
 
 // ---------- Workspace (lazy on tab activation) -------------------------
@@ -1587,7 +1609,7 @@ window.addEventListener('ptb:themechange', () => {
     RAIL_CHARTS = defs.map(d => buildChart(`metric-rail-${d.key}`, d, { motion: 'none' }));
   }
 
-  if (!els.metricsModal.classList.contains('hidden')) {
+  if (!els.metricsModal.classList.contains('modal-hidden')) {
     destroyCharts(MODAL_CHARTS);
     MODAL_CHARTS = defs.map(d => buildChart(`metric-modal-${d.key}`, d, { motion: 'none' }));
   }
