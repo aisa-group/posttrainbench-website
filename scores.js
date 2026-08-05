@@ -1607,7 +1607,7 @@ window.SCORES_DATA = {
           "fallbackType": false
         },
         "arenahardwriting": {
-          "value": 26.57,
+          "value": 27.41,
           "fallbackType": false
         },
         "bfcl": {
@@ -1615,29 +1615,29 @@ window.SCORES_DATA = {
           "fallbackType": false
         },
         "gpqamain": {
-          "value": 29.24,
+          "value": 30.47,
           "fallbackType": false
         },
         "gsm8k": {
-          "value": 84.46,
+          "value": 83.43,
           "fallbackType": false
         },
         "healthbench": {
-          "value": 38.1,
+          "value": 29.03,
           "fallbackType": false
         },
         "humaneval": {
-          "value": 70.73,
+          "value": 69.51,
           "fallbackType": false
         }
       },
       "Qwen3-4B-Base": {
         "aime2025": {
-          "value": 16.67,
+          "value": 20.0,
           "fallbackType": false
         },
         "arenahardwriting": {
-          "value": 26.47,
+          "value": 42.48,
           "fallbackType": false
         },
         "bfcl": {
@@ -1645,19 +1645,19 @@ window.SCORES_DATA = {
           "fallbackType": false
         },
         "gpqamain": {
-          "value": 39.73,
+          "value": 37.39,
           "fallbackType": false
         },
         "gsm8k": {
-          "value": 91.21,
+          "value": 90.79,
           "fallbackType": false
         },
         "healthbench": {
-          "value": 32.5,
+          "value": 40.95,
           "fallbackType": false
         },
         "humaneval": {
-          "value": 81.71,
+          "value": 82.62,
           "fallbackType": false
         }
       },
@@ -1667,7 +1667,7 @@ window.SCORES_DATA = {
           "fallbackType": false
         },
         "arenahardwriting": {
-          "value": 66.46,
+          "value": 69.72,
           "fallbackType": false
         },
         "bfcl": {
@@ -1675,19 +1675,19 @@ window.SCORES_DATA = {
           "fallbackType": false
         },
         "gpqamain": {
-          "value": 25.67,
+          "value": 28.57,
           "fallbackType": false
         },
         "gsm8k": {
-          "value": 86.05,
+          "value": 83.13,
           "fallbackType": false
         },
         "healthbench": {
-          "value": 45.77,
+          "value": 39.3,
           "fallbackType": false
         },
         "humaneval": {
-          "value": 6.1,
+          "value": 33.84,
           "fallbackType": false
         }
       },
@@ -1697,7 +1697,7 @@ window.SCORES_DATA = {
           "fallbackType": false
         },
         "arenahardwriting": {
-          "value": 78.83,
+          "value": 74.11,
           "fallbackType": false
         },
         "bfcl": {
@@ -1705,19 +1705,19 @@ window.SCORES_DATA = {
           "fallbackType": false
         },
         "gpqamain": {
-          "value": 25.89,
+          "value": 29.02,
           "fallbackType": false
         },
         "gsm8k": {
-          "value": 70.13,
+          "value": 63.99,
           "fallbackType": false
         },
         "healthbench": {
-          "value": 43.37,
+          "value": 45.33,
           "fallbackType": false
         },
         "humaneval": {
-          "value": 56.1,
+          "value": 53.05,
           "fallbackType": false
         }
       }
@@ -1777,6 +1777,11 @@ window.SCORES_DATA = {
     "opus-4.8-max": {
       "avg": 32.9,
       "std": 5.75,
+      "n": 2
+    },
+    "opus-5": {
+      "avg": 35.04,
+      "std": 1.38,
       "n": 2
     }
   },
@@ -2198,6 +2203,44 @@ window.SCORES_DATA = {
         "healthbench": 0.0,
         "humaneval": 16.38
       }
+    },
+    "opus-5": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 0.0,
+        "arenahardwriting": 1.19,
+        "bfcl": 0.0,
+        "gpqamain": 1.74,
+        "gsm8k": 1.45,
+        "healthbench": 12.84,
+        "humaneval": 1.72
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 4.71,
+        "arenahardwriting": 22.64,
+        "bfcl": 0.0,
+        "gpqamain": 3.31,
+        "gsm8k": 0.59,
+        "healthbench": 11.96,
+        "humaneval": 1.29
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 0.0,
+        "arenahardwriting": 4.6,
+        "bfcl": 0.0,
+        "gpqamain": 4.1,
+        "gsm8k": 4.13,
+        "healthbench": 9.15,
+        "humaneval": 39.24
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 0.0,
+        "arenahardwriting": 6.67,
+        "bfcl": 0.0,
+        "gpqamain": 4.42,
+        "gsm8k": 8.68,
+        "healthbench": 2.78,
+        "humaneval": 4.31
+      }
     }
   },
   "timeData": {
@@ -2279,11 +2322,11 @@ window.SCORES_DATA = {
       "n": 2
     },
     "opus-5": {
-      "hours": 8.484,
-      "time": "8:29",
-      "stdHours": null,
-      "stdTime": null,
-      "n": 1
+      "hours": 8.479,
+      "time": "8:28",
+      "stdHours": 0.007,
+      "stdTime": "0:00",
+      "n": 2
     }
   }
 };
