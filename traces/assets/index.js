@@ -4,10 +4,15 @@
 
 const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './data/';
 const CATALOG = window.PTB_Catalog;
+const {
+  prettyAgent,
+  prettyAgentForRun,
+  prettyBenchmark,
+  prettyTrainedModel,
+} = CATALOG;
 
 const els = {
   q: document.getElementById('q'),
-  expFilter: document.getElementById('experiment-filter'),
   benchFilter: document.getElementById('benchmark-filter'),
   modelFilter: document.getElementById('trained-model-filter'),
   agentFilter: document.getElementById('agent-filter'),
@@ -333,14 +338,24 @@ function uniqValuesOrdered(rows, key, orderList) {
 // ---------- Filter dropdowns -------------------------------------------
 
 function populateFilters() {
-  for (const exp of (DATA.experiments || [])) {
-    addOpt(els.expFilter, exp, exp);
-  }
   for (const b of (DATA.benchmarks || [])) {
     addOpt(els.benchFilter, b, prettyBenchmark(b));
   }
-  const agents = [...new Set(DATA.runs.map(r => r.agent_model).filter(Boolean))].sort();
-  for (const a of agents) addOpt(els.agentFilter, a, prettyAgent(a));
+  const agents = [...new Set(DATA.runs.map(r => r.agent_model).filter(Boolean))]
+    .sort((a, b) => prettyAgent(a).localeCompare(prettyAgent(b), undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    }));
+  const agentLabelCounts = new Map();
+  for (const agent of agents) {
+    const label = prettyAgent(agent);
+    agentLabelCounts.set(label, (agentLabelCounts.get(label) || 0) + 1);
+  }
+  for (const agent of agents) {
+    const label = prettyAgent(agent);
+    const display = agentLabelCounts.get(label) > 1 ? `${label} · ${agent}` : label;
+    addOpt(els.agentFilter, agent, display);
+  }
   const models = [...new Set(DATA.runs.map(r => r.trained_model).filter(Boolean))].sort();
   for (const m of models) addOpt(els.modelFilter, m, prettyTrainedModel(m));
 }
@@ -358,7 +373,7 @@ function stateFromControls() {
     benchmark: els.benchFilter.value,
     model: els.modelFilter.value,
     agent: els.agentFilter.value,
-    experiment: els.expFilter.value,
+    experiment: '',
     q: els.q.value.trim(),
     group: els.groupBy.value,
     sort: els.sort.value,
@@ -372,12 +387,11 @@ function applyUrlState() {
   els.benchFilter.value = state.benchmark;
   els.modelFilter.value = state.model;
   els.agentFilter.value = state.agent;
-  els.expFilter.value = state.experiment;
   els.q.value = state.q;
   els.groupBy.value = state.group;
   els.sort.value = state.sort;
   OPEN_GROUP_KEY = state.open;
-  [els.benchFilter, els.modelFilter, els.agentFilter, els.expFilter, els.groupBy, els.sort]
+  [els.benchFilter, els.modelFilter, els.agentFilter, els.groupBy, els.sort]
     .forEach(select => select.dispatchEvent(new Event('change', { bubbles: true })));
   APPLYING_URL_STATE = false;
 }
@@ -402,7 +416,7 @@ function render() {
   let rows = filterRows();
   const total = DATA.runs.length;
   const filtered = rows.length;
-  const anyFilter = els.q.value || els.expFilter.value || els.benchFilter.value
+  const anyFilter = els.q.value || els.benchFilter.value
                     || els.modelFilter.value || els.agentFilter.value;
   els.resultCount.textContent = anyFilter
     ? `${filtered.toLocaleString()} of ${total.toLocaleString()} runs`
@@ -752,94 +766,6 @@ function axisTip(v) {
   return v.flagged ? 'true' : 'false';
 }
 
-// ---------- Pretty-name helpers (mirror run.js) ------------------------
-
-function prettyBenchmark(b) {
-  if (!b) return '';
-  const map = {
-    healthbench: 'HealthBench', humaneval: 'HumanEval',
-    aime2025: 'AIME 2025', aime2024: 'AIME 2024',
-    gsm8k: 'GSM8K', bfcl: 'BFCL',
-    math500: 'MATH-500', mmlu: 'MMLU', mbpp: 'MBPP',
-    swebench: 'SWE-bench', arena_hard: 'Arena Hard', arenahard: 'Arena Hard',
-    arenahardwriting: 'Arena Hard (writing)',
-    ifeval: 'IFEval', gpqa: 'GPQA', gpqamain: 'GPQA', gpqa_main: 'GPQA',
-    livecodebench: 'LiveCodeBench',
-    minervamath: 'Minerva Math',
-  };
-  return map[b.toLowerCase()] || b;
-}
-
-function prettyTrainedModel(name) {
-  if (!name) return '';
-  let s = name.replace(/^[^_]+_/, '');
-  s = s.replace(/-(Base|pt|PT|base)$/, '');
-  s = s.replace(/^Qwen3-(\d+(?:\.\d+)?B)$/i, (_, sz) => `Qwen 3 ${sz}`);
-  s = s.replace(/^Qwen3-(\d+(?:\.\d+)?B)/i, (_, sz) => `Qwen 3 ${sz}`);
-  s = s.replace(/^SmolLM3-(\d+(?:\.\d+)?B)/i, (_, sz) => `SmolLM3 ${sz}`);
-  s = s.replace(/^gemma-(\d+)-(\d+(?:\.\d+)?)b/i, (_, gen, sz) => `Gemma ${gen} ${sz}B`);
-  return s;
-}
-
-function prettyAgent(name) {
-  if (!name) return '';
-  let s = String(name);
-  let annotation = '';
-  s = s.replace(/\[([^\]]+)\]\s*$/, (_, a) => { annotation = ' (' + a.toUpperCase() + ')'; return ''; });
-  // Strip an OpenCode-style provider prefix (`opencode/...`, `zai/...`) —
-  // the model portion below carries the identity; experiment name already
-  // encodes provider.
-  s = s.replace(/^(?:opencode|zai)\//i, '');
-  // Claude family — opus/sonnet/haiku/fable; minor version optional
-  // (Opus 5 / Fable 5 ship as major-only).
-  s = s.replace(/^claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d+))?$/i,
-    (_, fam, maj, min) => `Claude ${cap(fam)} ${maj}${min ? '.' + min : ''}`);
-  s = s.replace(/^gpt-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
-    `GPT ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
-  s = s.replace(/^gemini-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
-    `Gemini ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
-  // Non-family model IDs whose raw form isn't friendly on the page.
-  // Keep this list conservative — only aliases that ship in the corpus.
-  s = s.replace(/^kismet-\d+$/i,                             'Kimi K3');
-  s = s.replace(/^kimi-k([\d.]+)(-thinking)?$/i,
-                (_, ver, th) => `Kimi K${ver}${th ? ' Thinking' : ''}`);
-  s = s.replace(/^glm-([\d.]+)(?:-free|-preview)?$/i,        (_, ver) => `GLM ${ver}`);
-  s = s.replace(/^minimax-m([\d.]+)(?:-free)?$/i,            (_, ver) => `MiniMax M${ver}`);
-  s = s.replace(/^qwen3-max(?:-\d{4}-\d{2}-\d{2})?$/i,       'Qwen3 Max');
-  // Match cursor-grok-4.5-high (kebab, from experiment names) AND
-  // "Cursor Grok 4.5 High" (spaced title-case, what Cursor CLI itself
-  // reports in its init event's model field).
-  s = s.replace(/^(?:cursor[\s-])?grok[\s-]4\.5(?:[\s-]high)?$/i, 'Grok 4.5');
-  return s + annotation;
-}
-function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
-
-// Variant annotations derived from the run's experiment string. The
-// agent_model alone doesn't tell you whether a run was reprompted (i.e.
-// sessions continued after the agent gave up) — that signal lives in
-// the experiment name. We surface it alongside the existing "(1M)"-style
-// annotation so the cell tells the full story.
-function agentVariantsFromRun(r) {
-  const out = [];
-  const exp = (r && r.experiment || '').toLowerCase();
-  if (/(?:^|[_/-])reprompt(?:ed)?(?:[_/-]|$)/.test(exp)) out.push('reprompted');
-  return out;
-}
-
-// Pretty agent name including run-derived variant annotations.
-// Falls back to prettyAgent when no run context is available.
-function prettyAgentForRun(r) {
-  if (!r) return '';
-  const base = prettyAgent(r.agent_model);
-  const extras = agentVariantsFromRun(r);
-  if (!extras.length) return base;
-  // If prettyAgent already attached a "(X)" annotation (e.g. "(1M)"),
-  // merge the extras into the same parens so we don't render double parens.
-  const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(base);
-  if (m) return `${m[1]} (${m[2]}, ${extras.join(', ')})`;
-  return `${base} (${extras.join(', ')})`;
-}
-
 // ---------- Misc -------------------------------------------------------
 
 function escapeHtml(s) {
@@ -851,11 +777,10 @@ function escapeHtml(s) {
 function clearFilters() {
   APPLYING_URL_STATE = true;
   els.q.value = '';
-  els.expFilter.value = '';
   els.benchFilter.value = '';
   els.modelFilter.value = '';
   els.agentFilter.value = '';
-  [els.expFilter, els.benchFilter, els.modelFilter, els.agentFilter]
+  [els.benchFilter, els.modelFilter, els.agentFilter]
     .forEach(s => s.dispatchEvent(new Event('change', { bubbles: true })));
   APPLYING_URL_STATE = false;
   OPEN_GROUP_KEY = '';
@@ -863,7 +788,7 @@ function clearFilters() {
   render();
 }
 
-[els.q, els.expFilter, els.benchFilter, els.modelFilter,
+[els.q, els.benchFilter, els.modelFilter,
  els.agentFilter, els.groupBy, els.sort]
   .forEach(el => el.addEventListener('input', handleControlInput));
 els.resetFilters.addEventListener('click', clearFilters);
@@ -999,7 +924,7 @@ function makeCustomSelect(selectEl) {
   syncTrigger();
 }
 
-[els.benchFilter, els.modelFilter, els.agentFilter, els.expFilter,
+[els.benchFilter, els.modelFilter, els.agentFilter,
  els.groupBy, els.sort].forEach(makeCustomSelect);
 
 els.q.addEventListener('change', () => {

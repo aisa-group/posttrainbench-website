@@ -49,18 +49,13 @@
     </div>
   </header>
 
-  <div class="layout">
+  <div class="layout" id="run-layout" data-active-tab="trace">
     <!-- LEFT RAIL -------------------------------------------------------- -->
     <aside class="rail rail-left">
       <a href="index.html" class="back-link" id="back-link">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back to all runs
       </a>
-      <nav class="run-neighbors hidden" id="run-neighbors" aria-label="Adjacent runs">
-        <a id="prev-run" class="run-neighbor" href="#">← Previous</a>
-        <a id="next-run" class="run-neighbor" href="#">Next →</a>
-      </nav>
-
       <div class="card summary-card">
         <!-- Context: what this run is. -->
         <div class="summary-meta">
@@ -177,7 +172,7 @@
           <div class="trace-toolbar-controls">
             <div class="trace-view-toggle" role="group" aria-label="Trace detail">
               <button type="button" id="trace-view-focus" class="trace-view-btn">Focus</button>
-              <button type="button" id="trace-view-all" class="trace-view-btn">All</button>
+              <button type="button" id="trace-view-all" class="trace-view-btn">Full</button>
             </div>
             <label class="trace-jump" title="Jump to a turn number (1-based)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -222,7 +217,12 @@
     <aside class="rail rail-right">
       <header class="rail-header">
         <h3>System metrics</h3>
-        <button id="show-all-metrics" class="btn btn-secondary btn-small">Show all</button>
+        <button id="show-all-metrics" class="btn btn-secondary btn-small" aria-label="Expand system metrics">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M21 16v5h-5"></path>
+          </svg>
+          <span>Expand</span>
+        </button>
       </header>
       <div id="metric-grid-rail" class="metric-card-grid"></div>
       <p id="rail-empty" class="muted hidden">No system monitor log for this run.</p>

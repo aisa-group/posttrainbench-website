@@ -1,6 +1,6 @@
-// Shared catalog state + ordering for the traces landing and run pages.
-// Keeping this logic in one place ensures Previous/Next follows the exact
-// filtered order the visitor saw before opening a run.
+// Shared catalog state, labels, filtering, and ordering for the traces pages.
+// Keeping this logic in one place prevents model aliases from drifting between
+// the landing table, filters, and individual run summaries.
 (function () {
   const DEFAULT_STATE = Object.freeze({
     benchmark: '',

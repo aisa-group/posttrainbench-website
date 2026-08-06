@@ -3,6 +3,11 @@
 const params = new URLSearchParams(window.location.search);
 const RUN_ID = params.get('id');
 const CATALOG = window.PTB_Catalog;
+const {
+  prettyAgentForRun,
+  prettyBenchmark,
+  prettyTrainedModel,
+} = CATALOG;
 // Base URL for the JSON data — local "./data/" by default, can be set to
 // an external host (HF Datasets, R2, S3) by overriding window.PTB_DATA_BASE
 // in config.js.
@@ -11,10 +16,8 @@ const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './
 const els = {
   topbarMeta: document.getElementById('topbar-meta'),
   tabNav: document.getElementById('tab-nav'),
+  layout: document.getElementById('run-layout'),
   backLink: document.getElementById('back-link'),
-  runNeighbors: document.getElementById('run-neighbors'),
-  prevRun: document.getElementById('prev-run'),
-  nextRun: document.getElementById('next-run'),
 
   // Left rail summary
   summaryTitle: document.getElementById('summary-title'),
@@ -93,7 +96,7 @@ async function load() {
     computeTraceStart();
     renderTopbar();
     renderSummary();
-    setupRunContext();
+    setupReturnContext();
     renderTrace();
     renderJudge();
     if ((RECORD.system_monitor || []).length) whenChartReady(renderMiniCharts);
@@ -195,12 +198,21 @@ function computeTraceStart() {
 
 function whenChartReady(fn, deadline = Date.now() + CHART_LOAD_TIMEOUT_MS) {
   if (typeof Chart !== 'undefined') {
-    try {
-      fn();
-    } catch (error) {
-      console.error('Failed to render system metrics:', error);
-      setMetricsUnavailable('System metrics could not be rendered.');
-    }
+    // Canvas text is rasterized at draw time and will not repaint itself
+    // when a webfont arrives later. Wait for the chart's actual typeface so
+    // its labels match the rest of the viewer instead of keeping a wider
+    // fallback-monospace rendering.
+    const fontReady = document.fonts?.load
+      ? document.fonts.load('11px "JetBrains Mono"')
+      : Promise.resolve();
+    fontReady.catch(() => []).then(() => {
+      try {
+        fn();
+      } catch (error) {
+        console.error('Failed to render system metrics:', error);
+        setMetricsUnavailable('System metrics could not be rendered.');
+      }
+    });
     return;
   }
   if (Date.now() >= deadline) {
@@ -226,9 +238,15 @@ function renderSummary() {
   const s = RECORD.summary;
   const ix = RECORD.index_row;
 
-  // Title: friendly benchmark name. Sub: trained model + agent + time budget.
-  els.summaryTitle.textContent = prettyBenchmark(m.benchmark) || m.run_name;
+  // Lead with the actor. The benchmark and assigned base model are context,
+  // not the identity of the run.
+  const agentName = prettyAgentForRun({
+    agent_model: (s.agent_models || [])[0],
+    experiment: m.experiment,
+  }) || '-';
+  els.summaryTitle.textContent = agentName;
   const subBits = [];
+  if (m.benchmark) subBits.push(prettyBenchmark(m.benchmark));
   if (m.trained_model) subBits.push(prettyTrainedModel(m.trained_model));
   if (m.seed) subBits.push('seed ' + m.seed);
   els.summarySub.textContent = subBits.join(' · ');
@@ -277,14 +295,12 @@ function renderSummary() {
     ? '$' + Number(ix.total_cost_usd).toFixed(2)
     : `<span class="cost-missing" data-tip="${escapeHtml(COST_MISSING_TITLE)}">-</span>`;
 
-  const agentPretty = escapeHtml(prettyAgentFromMeta((s.agent_models || [])[0], m) || '-');
-  const agentQuick = prettyAgentFromMeta((s.agent_models || [])[0], m) || '-';
   const harness = prettyHarness(m.trace_format);
-  els.summaryQuick.textContent = `${agentQuick} · ${humanDuration(ix.time_taken, ix.duration_ms)}`;
+  const quickBits = [humanDuration(ix.time_taken, ix.duration_ms)];
+  if (ix.num_turns != null && ix.num_turns > 0) quickBits.push(`${ix.num_turns} turns`);
+  els.summaryQuick.textContent = quickBits.join(' · ');
 
-  const stats = [
-    ['agent',       agentPretty],
-  ];
+  const stats = [];
   // Harness on its own row so the agent value stays single-line and the
   // dl rhythm is consistent — previously "Claude Opus 4.7 Claude Code"
   // overflowed and wrapped, breaking alignment with the other stats.
@@ -353,36 +369,11 @@ function safeReturnUrl() {
   }
 }
 
-async function setupRunContext() {
+function setupReturnContext() {
   const returnUrl = safeReturnUrl();
   if (!returnUrl) return;
   els.backLink.href = returnUrl.href;
   els.backLink.lastChild.textContent = ' Back to results';
-
-  try {
-    const catalogData = await fetchJsonWithTimeout(`${DATA_BASE}index.json`);
-    if (!catalogData || !Array.isArray(catalogData.runs)) return;
-    const state = CATALOG.readState(returnUrl.search);
-    const ordered = CATALOG.orderedRuns(catalogData.runs, state);
-    const current = ordered.findIndex(run => run.run_id === RUN_ID);
-    if (current < 0 || ordered.length < 2) return;
-
-    const neighborHref = run => {
-      const url = new URL(window.location.href);
-      url.searchParams.set('id', run.run_id);
-      url.hash = '';
-      return url.href;
-    };
-    const previous = ordered[current - 1];
-    const next = ordered[current + 1];
-    els.prevRun.classList.toggle('hidden', !previous);
-    els.nextRun.classList.toggle('hidden', !next);
-    if (previous) els.prevRun.href = neighborHref(previous);
-    if (next) els.nextRun.href = neighborHref(next);
-    els.runNeighbors.classList.remove('hidden');
-  } catch (error) {
-    console.warn('Could not build adjacent-run navigation:', error);
-  }
 }
 
 function setupSummaryDetails() {
@@ -393,74 +384,6 @@ function setupSummaryDetails() {
   });
 }
 
-// ---------- Pretty-name helpers ----------------------------------------
-
-function prettyBenchmark(b) {
-  if (!b) return '';
-  const map = {
-    healthbench: 'HealthBench', humaneval: 'HumanEval',
-    aime2025: 'AIME 2025', aime2024: 'AIME 2024',
-    gsm8k: 'GSM8K', bfcl: 'BFCL',
-    math500: 'MATH-500', mmlu: 'MMLU', mbpp: 'MBPP',
-    swebench: 'SWE-bench', arena_hard: 'Arena Hard', arenahard: 'Arena Hard',
-    ifeval: 'IFEval', gpqa: 'GPQA', livecodebench: 'LiveCodeBench',
-    minervamath: 'Minerva Math',
-  };
-  return map[b.toLowerCase()] || b;
-}
-
-function prettyTrainedModel(name) {
-  if (!name) return '';
-  // Org_Slug → Slug (we ship the org prefix; for display, drop it).
-  // Then strip "-Base" / "-pt" suffixes and normalize separators.
-  let s = name.replace(/^[^_]+_/, '');                 // drop org prefix
-  s = s.replace(/-(Base|pt|PT|base)$/, '');
-  // Qwen3-4B / Qwen3-1.7B / Qwen3-4B-Instruct ... → Qwen 3 4B
-  s = s.replace(/^Qwen3-(\d+(?:\.\d+)?B)$/i, (_, sz) => `Qwen 3 ${sz}`);
-  s = s.replace(/^Qwen3-(\d+(?:\.\d+)?B)/i, (_, sz) => `Qwen 3 ${sz}`);
-  // SmolLM3-3B → SmolLM3 3B
-  s = s.replace(/^SmolLM3-(\d+(?:\.\d+)?B)/i, (_, sz) => `SmolLM3 ${sz}`);
-  // gemma-3-4b → Gemma 3 4B
-  s = s.replace(/^gemma-(\d+)-(\d+(?:\.\d+)?)b/i, (_, gen, sz) => `Gemma ${gen} ${sz}B`);
-  return s;
-}
-
-function prettyAgent(name) {
-  if (!name) return '';
-  let s = String(name);
-  // Pull off bracketed annotations like "[1m]" → " (1M)".
-  let annotation = '';
-  s = s.replace(/\[([^\]]+)\]\s*$/, (_, a) => { annotation = ' (' + a.toUpperCase() + ')'; return ''; });
-  // Strip an OpenCode-style provider prefix (`opencode/...`, `zai/...`) —
-  // the model portion below carries the identity; experiment name already
-  // encodes provider.
-  s = s.replace(/^(?:opencode|zai)\//i, '');
-  // claude-opus-4-6 → Claude Opus 4.6; claude-opus-5 → Claude Opus 5;
-  // claude-fable-5 → Claude Fable 5 (minor version optional).
-  s = s.replace(/^claude-(opus|sonnet|haiku|fable)-(\d+)(?:-(\d+))?$/i,
-    (_, fam, maj, min) => `Claude ${cap(fam)} ${maj}${min ? '.' + min : ''}`);
-  // gpt-5.3-codex → GPT 5.3 Codex; gpt-5.4 → GPT 5.4
-  s = s.replace(/^gpt-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
-    `GPT ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
-  // gemini-2.5-pro → Gemini 2.5 Pro
-  s = s.replace(/^gemini-([\d.]+)(?:-(.+))?$/i, (_, ver, tail) =>
-    `Gemini ${ver}${tail ? ' ' + tail.split('-').map(cap).join(' ') : ''}`);
-  // Non-family model IDs whose raw form isn't friendly on the page.
-  // Keep this list conservative — only aliases that ship in the corpus.
-  s = s.replace(/^kismet-\d+$/i,                             'Kimi K3');
-  s = s.replace(/^kimi-k([\d.]+)(-thinking)?$/i,
-                (_, ver, th) => `Kimi K${ver}${th ? ' Thinking' : ''}`);
-  s = s.replace(/^glm-([\d.]+)(?:-free|-preview)?$/i,        (_, ver) => `GLM ${ver}`);
-  s = s.replace(/^minimax-m([\d.]+)(?:-free)?$/i,            (_, ver) => `MiniMax M${ver}`);
-  s = s.replace(/^qwen3-max(?:-\d{4}-\d{2}-\d{2})?$/i,       'Qwen3 Max');
-  // Match cursor-grok-4.5-high (kebab, from experiment names) AND
-  // "Cursor Grok 4.5 High" (spaced title-case, what Cursor CLI itself
-  // reports in its init event's model field).
-  s = s.replace(/^(?:cursor[\s-])?grok[\s-]4\.5(?:[\s-]high)?$/i, 'Grok 4.5');
-  return s + annotation;
-}
-function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
-
 // Map trace_format to the autonomous-agent harness that produced it.
 function prettyHarness(fmt) {
   if (!fmt) return '';
@@ -470,22 +393,11 @@ function prettyHarness(fmt) {
     claude: 'Claude Code',
     codex: 'Codex CLI',
     opencode: 'OpenCode',
+    cursor: 'Cursor',
+    cursor_cli: 'Cursor',
+    'cursor-cli': 'Cursor',
   };
   return map[String(fmt).toLowerCase()] || fmt;
-}
-
-// Variant annotations derived from the experiment name. "reprompted" =
-// sessions were continued after the agent gave up. Surfaced alongside
-// the [1m]-style annotation so the agent label tells the full story.
-function prettyAgentFromMeta(name, meta) {
-  const base = prettyAgent(name);
-  const extras = [];
-  const exp = ((meta && meta.experiment) || '').toLowerCase();
-  if (/(?:^|[_/-])reprompt(?:ed)?(?:[_/-]|$)/.test(exp)) extras.push('reprompted');
-  if (!extras.length) return base;
-  const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(base);
-  if (m) return `${m[1]} (${m[2]}, ${extras.join(', ')})`;
-  return `${base} (${extras.join(', ')})`;
 }
 
 // Re-render the trace when the expand-outputs toggle changes, and wire up
@@ -621,7 +533,7 @@ function setupCopyId() {
 // ---------- Trace --------------------------------------------------------
 
 // Focus keeps the narrative readable: initialization stays visible, noisy
-// system records are omitted, and thoughts start closed. All restores the
+// system records are omitted, and thoughts start closed. Full restores the
 // forensic stream. Output height remains an independent choice.
 function renderTrace({ preservePosition = false } = {}) {
   const anchor = preservePosition ? captureTraceAnchor() : null;
@@ -1064,17 +976,19 @@ function renderMiniCharts() {
 
   els.metricGridRail.innerHTML = defs.map(d => metricCardHtml(d, 'rail')).join('');
   destroyCharts(RAIL_CHARTS);
-  RAIL_CHARTS = defs.map(d => buildChart(`metric-rail-${d.key}`, d));
-
-  // Reveal "Show all" only when the rail actually clips charts. Re-check on
-  // resize because the rail max-height tracks the viewport.
-  requestAnimationFrame(updateShowAllVisibility);
-  window.addEventListener('resize', updateShowAllVisibility, { passive: true });
+  // The rail is one vertically aligned instrument. Repeating the same time
+  // labels on every chart adds noise, so only the final chart carries the
+  // shared horizontal axis. The modal keeps an axis on every chart because
+  // its cards may flow into multiple columns.
+  RAIL_CHARTS = defs.map((d, index) => buildChart(`metric-rail-${d.key}`, d, {
+    showXAxis: index === defs.length - 1,
+  }));
 }
 
 function setMetricsAvailable() {
   els.railEmpty.classList.add('hidden');
   els.metricGridRail.classList.remove('hidden');
+  els.showAllBtn.classList.remove('hidden');
   const toolbarBtn = document.getElementById('open-metrics-btn');
   [els.showAllBtn, toolbarBtn].filter(Boolean).forEach(btn => {
     btn.disabled = false;
@@ -1096,19 +1010,10 @@ function setMetricsUnavailable(message) {
   });
 }
 
-function updateShowAllVisibility() {
-  const rail = els.metricGridRail.closest('.rail-right');
-  if (!rail) return;
-  // The rail is the scroll container (overflow-y: auto on .rail). It clips
-  // when its content height exceeds its own client height by more than a
-  // pixel — accept a tiny tolerance for sub-pixel rounding.
-  const clipped = rail.scrollHeight > rail.clientHeight + 2;
-  els.showAllBtn.classList.toggle('hidden', !clipped);
-}
-
 function setChartDefaults() {
   const css = getComputedStyle(document.documentElement);
-  Chart.defaults.font.family = "'JetBrains Mono', 'SF Mono', monospace";
+  Chart.defaults.font.family = css.getPropertyValue('--font-mono').trim()
+    || "'JetBrains Mono', 'SF Mono', monospace";
   Chart.defaults.font.size = 11;
   Chart.defaults.color = css.getPropertyValue('--text-secondary').trim() || '#6b655a';
   Chart.defaults.borderColor = css.getPropertyValue('--border-color').trim() || '#d9d4c8';
@@ -1127,22 +1032,23 @@ function paletteColor(palette) {
 }
 
 function metricCardHtml(def, where) {
-  // Matches the screenshot: title centered at the top of the card, plot
-  // below with its own muted y-tick labels and HH:MM x-axis. No extra
-  // current-value / unit-title chrome — the axis ticks do the talking.
+  // Compact title + plot. The rail presents these as one continuous stack;
+  // the modal restores individual card surfaces through CSS.
   return `<div class="metric-card-mini">
     <div class="metric-card-title">${escapeHtml(def.title)}</div>
-    <canvas id="metric-${where}-${def.key}"></canvas>
+    <div class="metric-chart-frame"><canvas id="metric-${where}-${def.key}"></canvas></div>
   </div>`;
 }
 
-function buildChart(canvasId, def, { motion = 'initial' } = {}) {
+function buildChart(canvasId, def, { motion = 'initial', showXAxis = true } = {}) {
   const ctx = document.getElementById(canvasId);
   if (!ctx) return null;
   const css = getComputedStyle(document.documentElement);
   const color = paletteColor(def.palette);
   const muted = css.getPropertyValue('--text-secondary').trim() || '#6b655a';
+  const text = css.getPropertyValue('--text-primary').trim() || '#2d2a23';
   const border = css.getPropertyValue('--border-color').trim() || '#d9d4c8';
+  const surface = css.getPropertyValue('--bg-tertiary').trim() || '#e8e4d9';
   // Labels are already HH:MM:SS strings (relative to trace start) —
   // strip the trailing :SS so the axis ticks show HH:MM.
   const tickTime = (_v, i) => {
@@ -1168,11 +1074,20 @@ function buildChart(canvasId, def, { motion = 'initial' } = {}) {
       animation: REDUCED_MOTION.matches || motion === 'none'
         ? false
         : { duration: motion === 'initial' ? 450 : 190, easing: 'easeOutCubic' },
-      elements: { point: { radius: 0 }, line: { borderWidth: 1.4, tension: 0.25 } },
-      layout: { padding: { top: 8, right: 10, bottom: 4, left: 4 } },
+      interaction: { mode: 'index', axis: 'x', intersect: true },
+      elements: {
+        point: {
+          radius: 0,
+          hitRadius: 9,
+          hoverRadius: 3,
+          hoverBorderWidth: 1.5,
+        },
+        line: { borderWidth: 1.4, tension: 0.25 },
+      },
+      layout: { padding: { top: 8, right: 10, bottom: showXAxis ? 4 : 0, left: 4 } },
       scales: {
         x: {
-          display: true,
+          display: showXAxis,
           grid: { display: false },
           border: { color: border },
           ticks: {
@@ -1181,7 +1096,8 @@ function buildChart(canvasId, def, { motion = 'initial' } = {}) {
             maxRotation: 0,
             callback: tickTime,
             padding: 6,
-            font: { size: 10.5 },
+            color: muted,
+            font: { family: "'JetBrains Mono', monospace", size: 10.5 },
           },
         },
         y: {
@@ -1195,7 +1111,7 @@ function buildChart(canvasId, def, { motion = 'initial' } = {}) {
             color: muted,
             maxTicksLimit: 4,
             padding: 6,
-            font: { size: 10.5 },
+            font: { family: "'JetBrains Mono', monospace", size: 10.5 },
             // Unit is suffixed onto the value itself (e.g. "20G", "40°C") so
             // we don't need a separate axis title — matches the screenshot.
             callback: (v) => unitTick(v, def.unit),
@@ -1205,12 +1121,21 @@ function buildChart(canvasId, def, { motion = 'initial' } = {}) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          intersect: false,
+          backgroundColor: surface,
+          titleColor: text,
+          bodyColor: text,
+          borderColor: border,
+          borderWidth: 1,
+          cornerRadius: 6,
+          displayColors: false,
+          caretPadding: 10,
+          caretSize: 6,
+          intersect: true,
           mode: 'index',
-          titleFont: { size: 12 },
-          bodyFont: { size: 12 },
+          titleFont: { family: "'JetBrains Mono', monospace", size: 12, weight: 700 },
+          bodyFont: { family: "'JetBrains Mono', monospace", size: 12 },
           padding: 10,
-          boxPadding: 4,
+          animation: { duration: 150, easing: 'easeOutQuart' },
           callbacks: {
             title: (items) => {
               const ts = def.labels[items[0]?.dataIndex];
@@ -1281,9 +1206,8 @@ function closeMetricsModal() {
 
 function setupMetricsModal() {
   els.showAllBtn.addEventListener('click', openMetricsModal);
-  // Primary entry point from the trace toolbar — visible at every width
-  // so the metrics are always one click away, including when the
-  // right rail is hidden on narrower viewports.
+  // The rail header owns the desktop affordance. This toolbar entry point is
+  // revealed only when responsive CSS hides the rail.
   const toolbarBtn = document.getElementById('open-metrics-btn');
   if (toolbarBtn) toolbarBtn.addEventListener('click', openMetricsModal);
   if ((RECORD.system_monitor || []).length && typeof Chart === 'undefined') {
@@ -1374,8 +1298,7 @@ function renderJudgeVerdicts() {
     { label: 'Data contamination',   v: jud.contamination },
     { label: 'Disallowed model use', v: jud.disallowed_model },
   ];
-  const cards = [];
-  const rationales = [];
+  const verdicts = [];
   for (const {label, v} of axes) {
     const pending = v == null;
     const flagged = !pending && !!v.flagged;
@@ -1390,19 +1313,14 @@ function renderJudgeVerdicts() {
     else if (v.justification) text = v.justification;
     else text = flagged ? 'flagged (no justification given)' : 'clean';
     const state = pending ? 'Pending' : (flagged ? 'Flagged' : 'Clean');
-    cards.push(`<div class="verdict-card ${cls}">
-      <span class="verdict-icon">${icon}</span>
-      <div class="verdict-body">
+    verdicts.push(`<details class="verdict-item ${cls}"${flagged ? ' open' : ''}>
+      <summary>
+        <span class="verdict-icon" aria-hidden="true">${icon}</span>
         <span class="verdict-label">${escapeHtml(label)}</span>
         <span class="verdict-state">${state}</span>
-      </div>
-    </div>`);
-    rationales.push(`<details class="verdict-rationale ${cls}"${flagged ? ' open' : ''}>
-      <summary>
-        <span class="verdict-rationale-axis">${escapeHtml(label)}</span>
-        <span class="verdict-rationale-status">${state}</span>
+        <span class="verdict-caret" aria-hidden="true">›</span>
       </summary>
-      <div class="verdict-rationale-body">${renderJudgeMarkdown(text)}</div>
+      <div class="verdict-item-body"><div class="verdict-item-copy">${renderJudgeMarkdown(text)}</div></div>
     </details>`);
   }
   // Cell-level judge_version — same for both axes, since they come from the
@@ -1419,7 +1337,7 @@ function renderJudgeVerdicts() {
       : 'Judged under the new v1.1 setting. Check the home page for details.';
     head = `<a class="verdict-version ${verCls}" href="../" data-tip="${escapeHtml(tip)}">judged: ${ver}</a>`;
   }
-  els.judgeVerdicts.innerHTML = `${head}<div class="verdict-row">${cards.join('')}</div><div class="verdict-rationales">${rationales.join('')}</div>`;
+  els.judgeVerdicts.innerHTML = `${head}<div class="verdict-list">${verdicts.join('')}</div>`;
 }
 
 // ---------- Workspace (lazy on tab activation) -------------------------
@@ -1455,27 +1373,19 @@ async function loadWorkspace() {
 
 function renderWorkspace() {
   const files = WORKSPACE.files || [];
-  const byDir = new Map();
-  for (const f of files) {
-    const dir = f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : '.';
-    if (!byDir.has(dir)) byDir.set(dir, []);
-    byDir.get(dir).push(f);
-  }
-  const dirs = [...byDir.keys()].sort();
-  const lines = [];
-  for (const d of dirs) {
-    lines.push(`<div class="ws-dir">${escapeHtml(d)}/</div>`);
-    for (const f of byDir.get(d)) {
-      const name = f.path.split('/').pop();
-      const skipped = !f.inlined;
-      lines.push(`<div class="ws-file ${skipped ? 'skipped' : ''}" data-path="${escapeHtml(f.path)}" title="${escapeHtml(f.skipped_reason || 'inlined')}">${escapeHtml(name)} <span class="size">${fmtBytes(f.size)}</span></div>`);
-    }
-  }
-  els.wsTree.innerHTML = lines.join('');
+  const tree = buildWorkspaceTree(files);
+  els.wsTree.innerHTML = `<div class="ws-root-label">
+    <span class="ws-folder-mark" aria-hidden="true"></span>
+    <span>task</span>
+    <span class="ws-entry-count">${files.length.toLocaleString()}</span>
+  </div>
+  <div class="ws-branch ws-root-branch">${renderWorkspaceBranch(tree)}</div>`;
+
+  const filesByPath = new Map(files.map(file => [file.path, file]));
   els.wsTree.querySelectorAll('.ws-file').forEach(el => {
     el.addEventListener('click', () => {
       const path = el.dataset.path;
-      const f = files.find(x => x.path === path);
+      const f = filesByPath.get(path);
       if (!f) return;
       els.wsTree.querySelectorAll('.ws-file.active').forEach(x => x.classList.remove('active'));
       el.classList.add('active');
@@ -1502,8 +1412,77 @@ function renderWorkspace() {
   }
 }
 
+function buildWorkspaceTree(files) {
+  const root = { dirs: new Map(), files: [] };
+  for (const file of files) {
+    const parts = String(file.path || '').split('/').filter(part => part && part !== '.');
+    if (parts[0]?.toLowerCase() === 'task') parts.shift();
+    const name = parts.pop() || file.path || 'unnamed';
+    let node = root;
+    for (const part of parts) {
+      if (!node.dirs.has(part)) {
+        node.dirs.set(part, { name: part, dirs: new Map(), files: [] });
+      }
+      node = node.dirs.get(part);
+    }
+    node.files.push({ file, name });
+  }
+  return root;
+}
+
+function renderWorkspaceBranch(node, depth = 0) {
+  const directories = [...node.dirs.values()]
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+  const files = node.files
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+  const directoryHtml = directories.map(directory => {
+    const count = countWorkspaceEntries(directory);
+    const open = depth < 1 ? ' open' : '';
+    return `<details class="ws-folder"${open}>
+      <summary>
+        <span class="ws-folder-caret" aria-hidden="true">›</span>
+        <span class="ws-folder-mark" aria-hidden="true"></span>
+        <span class="ws-folder-name">${escapeHtml(directory.name)}</span>
+        <span class="ws-entry-count">${count.toLocaleString()}</span>
+      </summary>
+      <div class="ws-branch">${renderWorkspaceBranch(directory, depth + 1)}</div>
+    </details>`;
+  }).join('');
+
+  const fileHtml = files.map(({ file, name }) => {
+    const skipped = !file.inlined;
+    const reason = file.skipped_reason || (skipped ? 'Not available for preview' : 'Open file');
+    return `<button type="button" class="ws-file ${skipped ? 'skipped' : ''}"
+      data-path="${escapeHtml(file.path)}" title="${escapeHtml(reason)}">
+      <span class="ws-file-main">
+        <span class="ws-file-mark" aria-hidden="true"></span>
+        <span class="ws-file-name">${escapeHtml(name)}</span>
+      </span>
+      <span class="size">${fmtBytes(file.size)}</span>
+    </button>`;
+  }).join('');
+
+  return directoryHtml + fileHtml;
+}
+
+function countWorkspaceEntries(node) {
+  let count = node.files.length;
+  for (const directory of node.dirs.values()) count += countWorkspaceEntries(directory);
+  return count;
+}
+
 function showWorkspaceFile(f, { scroll = true } = {}) {
-  const header = `<h4>${escapeHtml(f.path)} <span class="muted" style="font-weight:400">(${fmtBytes(f.size)})</span></h4>`;
+  const pathParts = String(f.path || '').split('/').filter(Boolean);
+  if (pathParts[0]?.toLowerCase() !== 'task') pathParts.unshift('task');
+  const pathHtml = pathParts.map((part, index) =>
+    `<span class="ws-path-part ${index === pathParts.length - 1 ? 'current' : ''}">${escapeHtml(part)}</span>`
+  ).join('<span class="ws-path-separator" aria-hidden="true">/</span>');
+  const header = `<div class="ws-file-head">
+    <div class="ws-breadcrumb">${pathHtml}</div>
+    <span class="ws-file-meta">${fmtBytes(f.size)}</span>
+  </div>`;
   if (!f.inlined) {
     els.wsFileContent.innerHTML = `${header}<p class="muted">Not inlined: ${escapeHtml(f.skipped_reason || 'file is too large to preview')}</p>`;
   } else {
@@ -1568,6 +1547,7 @@ function setupTabs() {
   function selectTab(name, { initial = false } = {}) {
     btns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     for (const [k, sec] of sections) sec?.classList.toggle('active', k === name);
+    if (els.layout) els.layout.dataset.activeTab = name;
 
     const url = new URL(window.location.href);
     if (name === 'trace') url.searchParams.delete('tab');
@@ -1615,7 +1595,10 @@ window.addEventListener('ptb:themechange', () => {
 
   if (els.metricGridRail.querySelector('canvas')) {
     destroyCharts(RAIL_CHARTS);
-    RAIL_CHARTS = defs.map(d => buildChart(`metric-rail-${d.key}`, d, { motion: 'none' }));
+    RAIL_CHARTS = defs.map((d, index) => buildChart(`metric-rail-${d.key}`, d, {
+      motion: 'none',
+      showXAxis: index === defs.length - 1,
+    }));
   }
 
   if (!els.metricsModal.classList.contains('modal-hidden')) {
