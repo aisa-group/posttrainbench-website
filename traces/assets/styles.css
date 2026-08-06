@@ -1143,7 +1143,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 
 /* ---------- Matrix --------------------------------------------------- */
 /* Compact grid: 1 label column on the left + N base-model columns.
-   Each cell shows run count + best accuracy. Shade is normalized
+   Each cell shows the best run accuracy. Shade is normalized
    per-row so cells in the same row can be compared (different benchmarks
    have different accuracy ranges). Cells are buttons; clicking sets
    the (benchmark, base-model) filter pair. */
@@ -1259,7 +1259,6 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   align-self: flex-end;
 }
 .legend-label { white-space: nowrap; }
-.legend-label-right { letter-spacing: 0.02em; }
 .legend-scale {
   display: inline-flex;
   gap: 2px;
@@ -1498,6 +1497,14 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   transform-origin: top right;
   transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out), visibility 0s linear 120ms;
 }
+@media (min-width: 761px) {
+  .filter-group .cs-menu,
+  .view-controls-left .cs-menu {
+    left: 0;
+    right: auto;
+    transform-origin: top left;
+  }
+}
 .cs-open .cs-menu {
   visibility: visible;
   opacity: 1;
@@ -1664,9 +1671,9 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 .runtable th {
   font-weight: 600;
   color: var(--text-secondary);
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.06em;
   white-space: nowrap;
   text-align: left;
   padding: 0.5rem 0.85rem;
@@ -1769,37 +1776,42 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 
 /* ---------- Agent cell ----------------------------------------------- */
+.agent-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  line-height: 1.2;
+  min-width: 0;
+}
 .agent-name {
   color: var(--text-primary);
   font-weight: 500;
 }
+.agent-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+  white-space: nowrap;
+}
+.agent-meta-separator {
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  opacity: 0.55;
+}
 .agent-harness {
-  display: inline-block;
-  margin-left: 0.5rem;
   font-size: 0.68rem;
   color: var(--text-secondary);
   letter-spacing: 0.01em;
   opacity: 0.7;
   white-space: nowrap;
 }
-.agent-harness::before {
-  content: '·';
-  margin-right: 0.4rem;
-  opacity: 0.7;
-}
 .agent-tag {
-  display: inline-block;
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--accent-primary);
-  background: var(--tag-bg);
-  border: 1px solid var(--tag-border);
-  padding: 0 0.35rem;
-  border-radius: 3px;
-  margin-left: 0.2rem;
-  vertical-align: 1px;
+  letter-spacing: 0.015em;
+  color: var(--accent-text);
   white-space: nowrap;
 }
 
@@ -1841,12 +1853,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 
 @media (max-width: 480px) {
-  .agent-harness {
-    display: block;
-    margin-left: 0;
-    white-space: normal;
-  }
-  .agent-harness::before { display: none; }
+  .agent-meta { white-space: normal; }
   .acc-cell { display: block; }
   .acc-bar { display: none; }
   .acc-err { display: none; }

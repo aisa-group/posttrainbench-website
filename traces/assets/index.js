@@ -276,15 +276,14 @@ function renderMatrix() {
 
   // Legend.
   els.matrixLegend.innerHTML = `
-    <span class="legend-label">Darker = higher within task</span>
+    <span class="legend-label">Best run accuracy · darker = higher within task</span>
     <span class="legend-scale" aria-hidden="true">
       <span class="legend-step" style="--cell-intensity:0.15"></span>
       <span class="legend-step" style="--cell-intensity:0.40"></span>
       <span class="legend-step" style="--cell-intensity:0.65"></span>
       <span class="legend-step" style="--cell-intensity:0.90"></span>
       <span class="legend-step" style="--cell-intensity:1"></span>
-    </span>
-    <span class="legend-label legend-label-right">low → high</span>`;
+    </span>`;
 }
 
 function filterToCell(benchmark, model) {
@@ -647,19 +646,25 @@ function agentCell(r) {
   if (!r.agent_model) return '<span class="muted">-</span>';
   const pretty = prettyAgentForRun(r);
   const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(pretty);
-  const nameHtml = m
-    ? `<span class="agent-name">${escapeHtml(m[1])}</span> <span class="agent-tag">${escapeHtml(m[2])}</span>`
-    : `<span class="agent-name">${escapeHtml(pretty)}</span>`;
+  const name = m ? m[1] : pretty;
+  const configHtml = m
+    ? `<span class="agent-tag">${escapeHtml(m[2])}</span>`
+    : '';
   const harness = prettyHarness(r.trace_format);
   const harnessHtml = harness
     ? `<span class="agent-harness">${escapeHtml(harness)}</span>`
     : '';
-  return `${nameHtml}${harnessHtml}`;
+  const metadata = [configHtml, harnessHtml].filter(Boolean)
+    .join('<span class="agent-meta-separator">·</span>');
+  return `<span class="agent-cell">
+    <span class="agent-name">${escapeHtml(name)}</span>
+    ${metadata ? `<span class="agent-meta">${metadata}</span>` : ''}
+  </span>`;
 }
 
 // Map a run's trace_format to the harness that produced it. The harness
-// is the autonomous-agent shell that the LLM ran inside (claude-code CLI,
-// codex CLI, opencode CLI). It's secondary to the model identity but
+// is the autonomous-agent shell that the LLM ran inside (Claude Code,
+// Codex CLI, OpenCode, Cursor CLI). It's secondary to the model identity but
 // useful when comparing strategies across runs.
 function prettyHarness(fmt) {
   if (!fmt) return '';
@@ -669,6 +674,9 @@ function prettyHarness(fmt) {
     claude: 'Claude Code',
     codex: 'Codex CLI',
     opencode: 'OpenCode',
+    cursor: 'Cursor CLI',
+    cursor_cli: 'Cursor CLI',
+    'cursor-cli': 'Cursor CLI',
   };
   return map[String(fmt).toLowerCase()] || fmt;
 }

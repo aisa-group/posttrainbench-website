@@ -393,9 +393,9 @@ function prettyHarness(fmt) {
     claude: 'Claude Code',
     codex: 'Codex CLI',
     opencode: 'OpenCode',
-    cursor: 'Cursor',
-    cursor_cli: 'Cursor',
-    'cursor-cli': 'Cursor',
+    cursor: 'Cursor CLI',
+    cursor_cli: 'Cursor CLI',
+    'cursor-cli': 'Cursor CLI',
   };
   return map[String(fmt).toLowerCase()] || fmt;
 }
