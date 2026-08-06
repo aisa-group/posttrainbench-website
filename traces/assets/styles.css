@@ -37,7 +37,7 @@
   --thinking-bg: rgba(179, 154, 106, 0.10);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --catalog-max-width: 1240px;
-  --topbar-height: 48px;
+  --topbar-height: 52px;
   --trace-tabs-height: 43px;
 }
 
@@ -203,7 +203,9 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 
 /* ---------- Navbar -------------------------------------------------- */
 .topbar {
-  background-color: var(--bg-primary);
+  /* Match the main site's warm navigation material while keeping the
+     trace viewer's compact workbench shell. */
+  background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   padding: 0;
   position: sticky;
@@ -221,7 +223,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 .topbar .logo {
   display: flex;
   align-items: center;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -347,8 +349,8 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   /* The topbar uses align-items: stretch so children fill its height. The
      theme toggle should hug its icon instead — anchor it to its own height. */
   align-self: center;
-  height: 28px;
-  width: 28px;
+  height: 32px;
+  width: 32px;
   /* Pin the toggle to the right of the navbar regardless of what's
      between it and the logo. On the run page .topbar-meta already has
      margin-left: auto and consumes the slack first; this line is a no-op
@@ -356,7 +358,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   margin-left: auto;
 }
 .theme-toggle:hover { background-color: var(--bg-tertiary); }
-.theme-icon { width: 16px; height: 16px; display: none; }
+.theme-icon { width: 18px; height: 18px; display: none; }
 .theme-icon-sun { display: block; }
 [data-theme="light"] .theme-icon-sun { display: none; }
 [data-theme="light"] .theme-icon-moon { display: block; }
@@ -1217,10 +1219,31 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   position: relative;
 }
+.matrix-cell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: transparent;
+  pointer-events: none;
+  transition: background-color 120ms var(--ease-out);
+}
+.matrix-cell.is-selected {
+  border-color: var(--accent-primary);
+  box-shadow: inset 0 0 0 1px var(--accent-primary);
+}
+.matrix-cell.is-selected::after {
+  background: color-mix(in srgb, var(--accent-primary) 9%, transparent);
+}
 .matrix-cell:hover:not(:disabled) {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 1px var(--accent-primary), 0 6px 16px rgba(20, 16, 11, 0.12);
   z-index: 1;
+}
+.matrix-cell.is-selected:hover:not(:disabled) {
+  box-shadow:
+    inset 0 0 0 1px var(--accent-primary),
+    0 6px 16px rgba(20, 16, 11, 0.12);
 }
 .matrix-cell:focus-visible {
   outline: none;
@@ -1235,6 +1258,8 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   letter-spacing: -0.005em;
   line-height: 1;
   color: var(--text-primary);
+  position: relative;
+  z-index: 1;
 }
 .matrix-cell-empty {
   cursor: default;

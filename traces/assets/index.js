@@ -251,6 +251,9 @@ function renderMatrix() {
         cellEl.disabled = true;
         cellEl.setAttribute('aria-label', `${prettyBenchmark(b)} · ${prettyTrainedModel(tm)}: no runs`);
       } else {
+        cellEl.dataset.benchmark = b;
+        cellEl.dataset.model = tm;
+        cellEl.setAttribute('aria-pressed', 'false');
         const intensity = max > 0 && c.bestAcc != null ? c.bestAcc / max : 0;
         cellEl.style.setProperty('--cell-intensity', intensity.toFixed(3));
         const accLabel = c.bestAcc != null
@@ -273,6 +276,7 @@ function renderMatrix() {
 
   els.matrix.innerHTML = '';
   els.matrix.appendChild(grid);
+  syncMatrixSelection();
 
   // Legend.
   els.matrixLegend.innerHTML = `
@@ -284,6 +288,20 @@ function renderMatrix() {
       <span class="legend-step" style="--cell-intensity:0.90"></span>
       <span class="legend-step" style="--cell-intensity:1"></span>
     </span>`;
+}
+
+function syncMatrixSelection() {
+  const selectedBenchmark = els.benchFilter.value;
+  const selectedModel = els.modelFilter.value;
+  const hasCellSelection = Boolean(selectedBenchmark && selectedModel);
+
+  els.matrix.querySelectorAll('.matrix-cell:not(:disabled)').forEach(cellEl => {
+    const selected = hasCellSelection
+      && cellEl.dataset.benchmark === selectedBenchmark
+      && cellEl.dataset.model === selectedModel;
+    cellEl.classList.toggle('is-selected', selected);
+    cellEl.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
 }
 
 function filterToCell(benchmark, model) {
@@ -412,6 +430,7 @@ function filterRows() {
 }
 
 function render() {
+  syncMatrixSelection();
   let rows = filterRows();
   const total = DATA.runs.length;
   const filtered = rows.length;
