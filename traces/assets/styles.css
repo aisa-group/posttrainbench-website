@@ -167,12 +167,10 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 /* Anything carrying data-tip stays hoverable; the cursor change is
    element-specific (cost-missing / no-eval-marker etc. set their own). */
 
-/* Missing-cost em-dash. Dotted underline + help cursor tell the reader
-   it's worth hovering; the data-tip attribute supplies the message. */
+/* Missing-cost placeholder. The help cursor preserves the explanation
+   without adding a decoration that reads as a stray second line. */
 .cost-missing {
   cursor: help;
-  text-decoration: underline dotted color-mix(in srgb, var(--text-secondary) 60%, transparent);
-  text-underline-offset: 3px;
 }
 
 /* "not evaluated" marker — agent didn't produce a final_model so the
@@ -1075,11 +1073,12 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   gap: 1.1rem;
 }
 .page-head h1 {
+  width: min(100%, 900px);
   font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.15;
-  margin: 0;
+  margin: 0 auto;
   color: var(--text-primary);
 }
 .hero-body {
@@ -1087,7 +1086,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   grid-template-columns: minmax(0, 720px) auto;
   gap: 2.5rem;
   align-items: start;
-  justify-content: start;
+  justify-content: center;
   min-width: 0;
 }
 
@@ -1332,11 +1331,19 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   min-width: 0;
   width: 100%;
 }
+.filter-search .filter-icon { color: var(--text-secondary); flex: none; opacity: 0.85; }
+.filter-search:has(input:not(:placeholder-shown)) {
+  border-color: color-mix(in srgb, var(--accent-primary) 55%, var(--border-color));
+  background-color: color-mix(in srgb, var(--accent-primary) 5%, var(--bg-primary));
+}
+.filter-search:has(input:not(:placeholder-shown)) .filter-icon {
+  color: var(--accent-text);
+  opacity: 1;
+}
 .filter-search:focus-within {
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
-.filter-search .filter-icon { color: var(--text-secondary); flex: none; opacity: 0.85; }
 .filter-search input[type="search"] {
   flex: 1;
   background: transparent;
