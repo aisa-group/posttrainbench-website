@@ -1,3 +1,4 @@
 claude.md
 .DS_Store
+__pycache__/
 ptb-traces-pipeline/

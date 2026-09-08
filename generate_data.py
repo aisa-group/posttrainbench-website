@@ -16,6 +16,7 @@ HUMAN_MODELS = ["Qwen3-1.7B", "Qwen3-4B", "SmolLM3-3B", "gemma-3-4b-it"]
 V11_AGENT_KEYS = {
     "human",
     "base-model",
+    "locus",
     "fable-5",
     "gpt-5.6-sol",
     "grok-4.5-high",
@@ -31,6 +32,7 @@ V11_AGENT_KEYS = {
 }
 
 AGGREGATED_NAME_TO_KEY = {
+    "Locus": "locus",
     "GPT-5.2": "gpt-5.2",
     "GPT-5.1-Codex-Max": "gpt-5.1-codex-max",
     "GPT-5.2-Codex": "gpt-5.2-codex",
@@ -55,6 +57,7 @@ AGGREGATED_NAME_TO_KEY = {
 }
 
 CSV_TO_AGENT = {
+    "external/intology-locus/aggregated_avg_locus.csv": "locus",
     "aggregated_avg_GPT-5.2.csv": "gpt-5.2",
     "aggregated_avg_GPT-5.1-Codex-Max.csv": "gpt-5.1-codex-max",
     "aggregated_avg_GPT-5.2-Codex.csv": "gpt-5.2-codex",
@@ -79,6 +82,7 @@ CSV_TO_AGENT = {
 }
 
 STD_CSV_TO_AGENT = {
+    "external/intology-locus/aggregated_std_locus.csv": "locus",
     "aggregated_std_GPT-5.2.csv": "gpt-5.2",
     "aggregated_std_GPT-5.1-Codex-Max.csv": "gpt-5.1-codex-max",
     "aggregated_std_GPT-5.2-Codex.csv": "gpt-5.2-codex",
@@ -123,6 +127,16 @@ CELL_PROVENANCE = [
     },
 ]
 
+AGGREGATED_METRICS_FILES = [
+    DATA_DIR / "single_metrics_aggregated.csv",
+    DATA_DIR / "external/intology-locus/single_metrics_aggregated.csv",
+]
+
+TIME_AGGREGATED_FILES = [
+    DATA_DIR / "time_aggregated.csv",
+    DATA_DIR / "external/intology-locus/time_aggregated.csv",
+]
+
 OPENCODE_CSV_TO_AGENT = {
     "opencode_glm-4.7-free_10h": "glm-4.7",
     "opencode_minimax-m2.1-free_10h": "minimax-m2.1",
@@ -160,6 +174,7 @@ TIME_OVERVIEW_TO_KEY = {
 }
 
 TIME_AGGREGATED_TO_KEY = {
+    "Locus": "locus",
     "Opus-4.5": "opus-4.5",
     "GPT-5.1-Codex-Max": "gpt-5.1-codex-max",
     "GPT-5.2-Codex": "gpt-5.2-codex",
@@ -225,21 +240,21 @@ def format_time_display(time_str):
 def load_time_data():
     time_data = {}
 
-    time_agg_file = DATA_DIR / "time_aggregated.csv"
-    if time_agg_file.exists():
-        with open(time_agg_file, 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                agent_name = row['agent']
-                if agent_name in TIME_AGGREGATED_TO_KEY:
-                    agent_key = TIME_AGGREGATED_TO_KEY[agent_name]
-                    time_data[agent_key] = {
-                        "hours": parse_time_to_hours(row['avg_time']),
-                        "time": format_time_display(row['avg_time']),
-                        "stdHours": parse_time_to_hours(row['std_time']),
-                        "stdTime": format_time_display(row['std_time']),
-                        "n": int(row['n'])
-                    }
+    for time_agg_file in TIME_AGGREGATED_FILES:
+        if time_agg_file.exists():
+            with open(time_agg_file, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    agent_name = row['agent']
+                    if agent_name in TIME_AGGREGATED_TO_KEY:
+                        agent_key = TIME_AGGREGATED_TO_KEY[agent_name]
+                        time_data[agent_key] = {
+                            "hours": parse_time_to_hours(row['avg_time']),
+                            "time": format_time_display(row['avg_time']),
+                            "stdHours": parse_time_to_hours(row['std_time']),
+                            "stdTime": format_time_display(row['std_time']),
+                            "n": int(row['n'])
+                        }
 
     time_overview_file = DATA_DIR / "aggregated_time_overview.csv"
     if time_overview_file.exists():
@@ -407,19 +422,19 @@ def generate_scores_json():
                 model_benchmark_data[agent_key][model][bm]["sourceLabel"] = annotation["sourceLabel"]
 
     aggregated_scores = {}
-    aggregated_file = DATA_DIR / "single_metrics_aggregated.csv"
-    if aggregated_file.exists():
-        with open(aggregated_file, 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                agent_name = row['agent']
-                if agent_name in AGGREGATED_NAME_TO_KEY:
-                    agent_key = AGGREGATED_NAME_TO_KEY[agent_name]
-                    aggregated_scores[agent_key] = {
-                        "avg": round(float(row['avg']) * 100, 2),
-                        "std": round(float(row['std']) * 100, 2),
-                        "n": int(row['n'])
-                    }
+    for aggregated_file in AGGREGATED_METRICS_FILES:
+        if aggregated_file.exists():
+            with open(aggregated_file, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    agent_name = row['agent']
+                    if agent_name in AGGREGATED_NAME_TO_KEY:
+                        agent_key = AGGREGATED_NAME_TO_KEY[agent_name]
+                        aggregated_scores[agent_key] = {
+                            "avg": round(float(row['avg']) * 100, 2),
+                            "std": round(float(row['std']) * 100, 2),
+                            "n": int(row['n'])
+                        }
 
     std_data = {}
     for csv_file, agent_key in STD_CSV_TO_AGENT.items():

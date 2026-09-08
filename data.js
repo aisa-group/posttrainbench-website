@@ -142,6 +142,9 @@ function buildLeaderboardData() {
             description: agentInfo[key].description,
             isBaseline: agentInfo[key].isBaseline || false,
             isOpenCode: agentInfo[key].isOpenCode || false,
+            isExternal: agentInfo[key].isExternal || false,
+            verificationNote: agentInfo[key].verificationNote || null,
+            chartSourceLabel: agentInfo[key].chartSourceLabel || null,
             scaffold: agentInfo[key].scaffold || null,
             reasoningEffort: agentInfo[key].reasoningEffort || null,
             showInChart: chartAgentKeys.includes(key)
@@ -184,6 +187,8 @@ function buildTimeSpentData() {
             stdTime: data.stdTime,
             n: data.n,
             isBaseline: agentInfo[key].isBaseline || false,
+            isExternal: agentInfo[key].isExternal || false,
+            verificationNote: agentInfo[key].verificationNote || null,
             reasoningEffort: agentInfo[key].reasoningEffort || null
         }));
 }

@@ -253,6 +253,128 @@
         }
       }
     },
+    "locus": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 4.44,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 58.57,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 93.33,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 33.63,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 81.69,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 43.49,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 70.6,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 20.74,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 86.78,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 95.67,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 37.4,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 90.23,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 45.3,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 82.52,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 12.59,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 48.04,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 94.78,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 28.64,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 82.73,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 39.53,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 60.57,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 71.91,
+          "fallbackType": false
+        },
+        "bfcl": {
+          "value": 93.22,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 32.54,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 76.94,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 48.93,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 52.85,
+          "fallbackType": false
+        }
+      }
+    },
     "gemini-3.1-pro": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
@@ -1782,9 +1904,52 @@
       "avg": 35.04,
       "std": 1.38,
       "n": 2
+    },
+    "locus": {
+      "avg": 45.58,
+      "std": 0.75,
+      "n": 3
     }
   },
   "stdData": {
+    "locus": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 0.0,
+        "arenahardwriting": 17.02,
+        "bfcl": 0.67,
+        "gpqamain": 1.04,
+        "gsm8k": 4.68,
+        "healthbench": 3.66,
+        "humaneval": 2.08
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 2.79,
+        "arenahardwriting": 4.95,
+        "bfcl": 1.53,
+        "gpqamain": 1.41,
+        "gsm8k": 2.61,
+        "healthbench": 10.8,
+        "humaneval": 3.36
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 2.31,
+        "arenahardwriting": 19.44,
+        "bfcl": 1.57,
+        "gpqamain": 2.01,
+        "gsm8k": 2.83,
+        "healthbench": 4.73,
+        "humaneval": 3.57
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 0.0,
+        "arenahardwriting": 27.9,
+        "bfcl": 1.68,
+        "gpqamain": 3.59,
+        "gsm8k": 3.27,
+        "healthbench": 3.74,
+        "humaneval": 9.14
+      }
+    },
     "gemini-3.1-pro": {
       "Qwen3-1.7B-Base": {
         "aime2025": 0.0,
@@ -2326,6 +2491,13 @@
       "stdHours": 0.007,
       "stdTime": "0:00",
       "n": 2
+    },
+    "locus": {
+      "hours": 9.637,
+      "time": "9:38",
+      "stdHours": 0,
+      "stdTime": "",
+      "n": 84
     }
   }
 }

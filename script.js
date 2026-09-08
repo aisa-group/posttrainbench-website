@@ -484,7 +484,7 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
 
     visibleData.forEach(entry => {
         const row = document.createElement('tr');
-        row.className = `leaderboard-entry-row${entry.isBaseline ? ' reference-row' : ''}`;
+        row.className = `leaderboard-entry-row${entry.isBaseline ? ' reference-row' : ''}${entry.isExternal ? ' external-result-row' : ''}`;
 
         // Handle null ranks for baselines
         const rankDisplay = entry.rank !== null ? entry.rank : '-';
@@ -524,9 +524,12 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
         const footnoteMarker = agentInfo[entry.agentKey]?.footnoteMarker || '';
         const markerHtml = footnoteMarker ? `<sup>${footnoteMarker}</sup>` : '';
         const statusNote = getAgentStatusNote(entry.agentKey);
-        const displayAgentHtml = statusNote
+        const displayAgentNameHtml = statusNote
             ? `<span class="agent-name-status" data-tip="${statusNote}">${displayAgent}<span class="agent-status-dot" aria-hidden="true"></span></span>${markerHtml}`
             : `${displayAgent}${markerHtml}`;
+        const displayAgentHtml = entry.isExternal
+            ? `<span class="agent-title-line">${displayAgentNameHtml}<span class="external-result-badge" data-tip="${entry.verificationNote}">External</span></span>`
+            : displayAgentNameHtml;
         let agentNameHtml = displayAgentHtml;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
@@ -706,6 +709,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     const effortColor = /^#[0-9a-f]{6}$/i.test(textSecondary)
         ? `${textSecondary}a3`
         : textSecondary;
+    const externalLabelColor = style.getPropertyValue('--external-result-text').trim() || textSecondary;
 
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
@@ -744,6 +748,11 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         : [...data].reverse();
 
     const effortLabels = plottedData.map(d => getChartAgentMeta(d).effort);
+    const sourceLabels = plottedData.map(d => d.chartSourceLabel || '');
+    const secondaryLabels = plottedData.map((_, index) => sourceLabels[index] || effortLabels[index]);
+    const secondaryLabelColors = plottedData.map((_, index) => (
+        sourceLabels[index] ? externalLabelColor : effortColor
+    ));
     const mobileModelLabels = plottedData.map(d => {
         if (d.agent === 'Official Instruct Models') return 'Official Instruct²';
         if (d.agent === 'Base Models') return 'Base Models';
@@ -755,7 +764,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     // redrawn as compact per-model stacks for the same hierarchy.
     const chartLabels = plottedData.map((d, index) => {
         if (isMobile) {
-            return [mobileModelLabels[index], effortLabels[index]].filter(Boolean).join(' ');
+            return [mobileModelLabels[index], secondaryLabels[index]].filter(Boolean).join(' ');
         }
         // Desktop: split long names into two lines
         if (d.agent === 'Base Models') {
@@ -807,10 +816,12 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
     const chartBarBaseline1 = style.getPropertyValue('--chart-bar-baseline-1').trim() || '#9a9590';
     const chartBarBaseline2 = style.getPropertyValue('--chart-bar-baseline-2').trim() || '#6b655a';
+    const chartBarExternal = style.getPropertyValue('--chart-bar-external').trim() || '#846f6b';
 
     const chartColors = plottedData.map(d => {
         if (d.agent === 'Base Models') return chartBarBaseline1;
         if (d.agent === 'Official Instruct Models') return chartBarBaseline2;
+        if (d.isExternal) return chartBarExternal;
         if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createStripePattern(chartBar);
         return chartBar;
     });
@@ -908,18 +919,18 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
 
             plottedData.forEach((_, index) => {
                 const modelLabel = mobileModelLabels[index];
-                const effort = effortLabels[index];
+                const secondaryLabel = secondaryLabels[index];
                 const yPos = y.getPixelForTick(index);
 
-                if (effort) {
+                if (secondaryLabel) {
                     chartContext.font = `500 ${effortFontSize}px 'JetBrains Mono', monospace`;
-                    const effortWidth = chartContext.measureText(effort).width;
-                    chartContext.fillStyle = effortColor;
-                    chartContext.fillText(effort, rightEdge, yPos + 0.5);
+                    const secondaryWidth = chartContext.measureText(secondaryLabel).width;
+                    chartContext.fillStyle = secondaryLabelColors[index];
+                    chartContext.fillText(secondaryLabel, rightEdge, yPos + 0.5);
 
                     chartContext.font = `500 ${nameFontSize}px 'JetBrains Mono', monospace`;
                     chartContext.fillStyle = textSecondary;
-                    chartContext.fillText(modelLabel, rightEdge - effortWidth - 5, yPos);
+                    chartContext.fillText(modelLabel, rightEdge - secondaryWidth - 5, yPos);
                 } else {
                     chartContext.font = `500 ${nameFontSize}px 'JetBrains Mono', monospace`;
                     chartContext.fillStyle = textSecondary;
@@ -956,11 +967,11 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                     chartContext.fillText(line, xPos, labelTop + lineIndex * lineHeight);
                 });
 
-                if (effortLabels[index]) {
-                    chartContext.fillStyle = effortColor;
+                if (secondaryLabels[index]) {
+                    chartContext.fillStyle = secondaryLabelColors[index];
                     chartContext.font = `500 ${effortFontSize}px 'JetBrains Mono', monospace`;
                     chartContext.fillText(
-                        effortLabels[index],
+                        secondaryLabels[index],
                         xPos,
                         labelTop + lines.length * lineHeight + 1
                     );
@@ -1098,7 +1109,8 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                             return lines;
                         },
                         afterLabel: function(context) {
-                            return getAgentStatusNote(plottedData[context.dataIndex].agentKey) || null;
+                            const entry = plottedData[context.dataIndex];
+                            return getAgentStatusNote(entry.agentKey) || entry.verificationNote || null;
                         }
                     }
                 }),
@@ -1161,6 +1173,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
     const borderColor = style.getPropertyValue('--border-color').trim();
     const bgPrimary = style.getPropertyValue('--bg-primary').trim();
     const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
+    const chartBarExternal = style.getPropertyValue('--chart-bar-external').trim() || '#846f6b';
     const familyColors = getChartFamilyColors(style);
 
     const isMobile = window.innerWidth <= 768;
@@ -1195,8 +1208,12 @@ function createParetoChart({ motion = 'initial' } = {}) {
                 stdTime: t.stdHours ? t.stdTime : null,
                 stdDev: d.stdDev ? parseFloat(d.stdDev) : null,
                 statusNote: getAgentStatusNote(d.agentKey),
+                verificationNote: d.verificationNote,
+                isExternal: d.isExternal,
                 modelFamily,
-                familyColor: familyColors[modelFamily] || chartBar
+                familyColor: d.isExternal
+                    ? chartBarExternal
+                    : familyColors[modelFamily] || chartBar
             };
         })
         .sort((a, b) => a.x - b.x);
@@ -1414,6 +1431,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
                             ];
                             if (p.reasoningEffort) lines.push(`Effort: ${p.reasoningEffort}`);
                             if (p.scaffold) lines.push(`Scaffold: ${p.scaffold}`);
+                            if (p.verificationNote) lines.push(p.verificationNote);
                             if (p.statusNote) lines.push(p.statusNote);
                             return lines;
                         }
@@ -1745,8 +1763,10 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
     };
 
     const chartBar = style.getPropertyValue('--chart-bar').trim() || accentPrimary;
+    const chartBarExternal = style.getPropertyValue('--chart-bar-external').trim() || '#846f6b';
 
     const timeBarColors = sortedData.map(d => {
+        if (d.isExternal) return chartBarExternal;
         if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createTimeStripePattern(chartBar);
         return chartBar;
     });
@@ -1865,6 +1885,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                             return [
                                 labelMeta.effort ? `Effort: ${labelMeta.effort}` : null,
                                 scaffold ? `Scaffold: ${scaffold}` : null,
+                                dataItem.verificationNote || null,
                                 getAgentStatusNote(dataItem.agentKey) || null
                             ].filter(Boolean);
                         }

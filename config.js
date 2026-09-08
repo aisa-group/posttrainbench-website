@@ -15,6 +15,7 @@ const modelDisplayNames = {
 // Agents to show in main chart (others appear in table only)
 const chartAgentKeys = [
     "human",
+    "locus",
     "fable-5",
     "gpt-5.6-sol",
     "opus-5",
@@ -38,6 +39,7 @@ const chartAgentKeys = [
 
 // Agents to show in time spent chart
 const timeChartAgentKeys = [
+    "locus",
     "fable-5",
     "gpt-5.6-sol",
     "opus-5",
@@ -75,6 +77,7 @@ const timeChartAgentKeys = [
 // All agents (for table) - order determines display order before sorting by score
 const allAgentKeys = [
     "human",
+    "locus",
     "fable-5",
     "gpt-5.6-sol",
     "opus-5",
@@ -119,6 +122,14 @@ const agentInfo = {
     "human": { name: "Official Instruct Models", description: "Reference implementation", isBaseline: true },
     "base-model": { name: "Base Models", description: "No post-training, zero-shot (baseline)", isBaseline: true, scaffold: "Zero Shot" },
     "base-model-fewshot": { name: "Base Models", description: "No post-training, few-shot (baseline)", isBaseline: true, scaffold: "Few Shot" },
+    "locus": {
+        name: "Locus",
+        description: "External result from Intology's Locus system, powered by Opus 5",
+        scaffold: "Intology · Opus 5",
+        chartSourceLabel: "Intology",
+        isExternal: true,
+        verificationNote: "Run by Intology and reviewed for v1.1 compliance by PostTrainBench."
+    },
     "gpt-5.2": { name: "GPT-5.2", description: "GPT-5.2 agent", scaffold: "Codex CLI" },
     "gpt-5.1-codex-max": { name: "GPT 5.1 Codex Max", description: "GPT 5.1 Codex Max agent", scaffold: "Codex CLI" },
     "gpt-5.2-codex": { name: "GPT 5.2 Codex", description: "GPT 5.2 Codex agent", scaffold: "Codex CLI" },

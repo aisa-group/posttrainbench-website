@@ -147,8 +147,14 @@
                     <canvas id="performanceChart"></canvas>
                 </div>
                 <div class="main-chart-key" aria-label="Chart key">
-                    <span class="main-chart-key-swatch" aria-hidden="true"></span>
-                    <span>Reprompted</span>
+                    <span class="main-chart-key-item main-chart-key-external">
+                        <span class="main-chart-key-swatch main-chart-key-swatch-external" aria-hidden="true"></span>
+                        <span>External submission</span>
+                    </span>
+                    <span class="main-chart-key-item main-chart-key-reprompted">
+                        <span class="main-chart-key-swatch" aria-hidden="true"></span>
+                        <span>Reprompted</span>
+                    </span>
                 </div>
                 <p class="mobile-chart-scope">
                     <span class="mobile-chart-scope-main">Top ten agents + two baselines</span>
@@ -164,12 +170,19 @@
                         <p><sup>2</sup> “Official Instruct Models” are the official post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank" rel="noopener noreferrer">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank" rel="noopener noreferrer">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank" rel="noopener noreferrer">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank" rel="noopener noreferrer">Gemma-3-4B-IT</a>. Their training usually exceeds the ten-hour, one-GPU constraint, so they are not directly comparable.</p>
                         <p><strong>Reprompted</strong> means the agent was manually asked to continue whenever it stopped before the time budget expired.</p>
                         <p><strong>Contamination boundary.</strong> Agents may match a benchmark's general style, format, domain, or difficulty, but may not derive training data from specific test items, even without verbatim overlap. Agents receive the same n-gram decontamination tool used during review. Affected runs require a compliant rerun; unavailable legacy results are omitted.</p>
+                        <p><strong>External result.</strong> Locus was run by <a href="https://www.intology.ai/" target="_blank" rel="noopener noreferrer">Intology</a> and reviewed for v1.1 compliance by the PostTrainBench team. The submission includes three score seeds and a mean runtime of 9h 38m 12s across 84 runs.</p>
                         <p id="fable-methodology-note"><sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.</p>
                     </div>
                 </details>
                 <details class="changelog compact-disclosure">
-                <summary>Changelog <span class="disclosure-meta">Updated Aug 5</span></summary>
+                <summary>Changelog <span class="disclosure-meta">Updated Sep 3</span></summary>
                 <div class="changelog-content">
+                    <div class="changelog-entry">
+                        <div class="changelog-date">Sep 3, 2026</div>
+                        <ul class="changelog-list">
+                            <li>Added three-seed <strong>Locus</strong> results run by Intology and reviewed for v1.1 compliance by PostTrainBench, including its 9h 38m mean runtime across 84 runs.</li>
+                        </ul>
+                    </div>
                     <div class="changelog-entry">
                         <div class="changelog-date">Aug 5, 2026</div>
                         <ul class="changelog-list">
@@ -329,11 +342,12 @@
         <div class="container">
             <h2 class="section-title">Efficiency</h2>
             <div class="efficiency-key">
-                <div class="efficiency-key-group" aria-label="Performance plot model families">
+                <div class="efficiency-key-group" aria-label="Performance plot categories">
                     <span><i class="key-dot key-anthropic"></i>Anthropic</span>
                     <span><i class="key-dot key-openai"></i>OpenAI</span>
                     <span><i class="key-dot key-gemini"></i>Gemini</span>
                     <span><i class="key-dot key-other"></i>Other</span>
+                    <span><i class="key-dot key-external"></i>External submission</span>
                 </div>
                 <div class="efficiency-key-group" aria-label="Chart notation">
                     <span><i class="key-line key-frontier"></i>Pareto frontier</span>
