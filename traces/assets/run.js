@@ -740,12 +740,12 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
       const desc = ev.raw?.description || '(no description)';
       const ttype = ev.raw?.task_type ? ` <span class="muted">(${escapeHtml(ev.raw.task_type)})</span>` : '';
       body = `<div class="block-label">${ICON.tool} Sub-agent started${ttype}</div>
-              <div class="block-card agent-text">${escapeHtml(desc)}</div>`;
+              <div class="block-card agent-text markdown-body">${renderMarkdown(desc)}</div>`;
     } else if (ev.subtype === 'task_notification') {
       const status = ev.raw?.status ? `<span class="chip ${ev.raw.status === 'completed' ? 'good' : 'accent'}">${escapeHtml(ev.raw.status)}</span>` : '';
       const summary = ev.raw?.summary || '(no summary)';
       body = `<div class="block-label">${ICON.output} Sub-agent update ${status}</div>
-              <div class="block-card agent-text">${escapeHtml(summary)}</div>`;
+              <div class="block-card agent-text markdown-body">${renderMarkdown(summary)}</div>`;
     } else {
       body = `<details><summary class="muted" style="cursor:pointer;font-size:0.72rem">${escapeHtml(ev.subtype || 'system')}</summary><pre class="muted" style="font-size:0.72rem;margin-top:4px">${escapeHtml(JSON.stringify(ev.raw, null, 2))}</pre></details>`;
     }
@@ -759,7 +759,7 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
     body = `
       <div class="block-label">${ICON.output} Session ended</div>
       ${meta.length ? `<div class="result-meta muted">${meta.map(escapeHtml).join(' · ')}</div>` : ''}
-      ${ev.result_text ? `<div class="block-text">${escapeHtml(ev.result_text)}</div>` : ''}
+      ${ev.result_text ? `<div class="block-card agent-text markdown-body result-text">${renderMarkdown(ev.result_text)}</div>` : ''}
     `;
   } else if (ev.type === 'codex_item') {
     body = renderCodexItem(ev.item, expandResults);
@@ -787,9 +787,9 @@ function renderBlock(block, resultByUseId, expandResults) {
   switch (block.type) {
     case 'text':
       // Agent message — bordered card, same shape as other blocks.
-      return `<div class="block-card agent-text">${mdLite(block.text || '')}</div>`;
+      return `<div class="block-card agent-text markdown-body">${renderMarkdown(block.text || '')}</div>`;
     case 'thinking':
-      return `<details class="block-card agent-thinking" ${TRACE_VIEW === 'all' ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(block.thinking || '')}</div></details>`;
+      return `<details class="block-card agent-thinking" ${TRACE_VIEW === 'all' ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body markdown-body">${renderMarkdown(block.thinking || '')}</div></details>`;
     case 'tool_use': {
       const pair = resultByUseId.get(block.id);
       return renderToolCall(block, pair, expandResults);
@@ -866,10 +866,10 @@ function renderCodexItem(item, expandResults) {
   switch (item.type) {
     case 'reasoning':
     case 'agent_reasoning':
-      return `<details class="block-card agent-thinking" ${TRACE_VIEW === 'all' ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body">${mdLite(item.text || '')}</div></details>`;
+      return `<details class="block-card agent-thinking" ${TRACE_VIEW === 'all' ? 'open' : ''}><summary>${ICON.thought} <span>Thought</span></summary><div class="thinking-body markdown-body">${renderMarkdown(item.text || '')}</div></details>`;
     case 'agent_message':
     case 'assistant_message':
-      return `<div class="block-card agent-text">${mdLite(item.text || '')}</div>`;
+      return `<div class="block-card agent-text markdown-body">${renderMarkdown(item.text || '')}</div>`;
     case 'todo_list':
       return `<div class="standalone-output"><div class="block-label">Todo list</div>${renderTodos(item.items || [])}</div>`;
     case 'command_execution': {
@@ -1268,25 +1268,8 @@ function renderJudge() {
   </details>`;
 }
 
-// Minimal markdown renderer for judge verdicts. The judge frequently
-// wraps identifiers in `backticks`, occasionally emphasises with *foo* /
-// **foo**, and uses newlines between paragraphs. Escapes HTML FIRST so
-// the input can never inject markup, then applies the four transforms
-// on the already-escaped text.
 function renderJudgeMarkdown(text) {
-  if (!text) return '';
-  let html = escapeHtml(String(text));
-  // Inline code: `foo` — do this before bold/italic since a lot of
-  // judge code snippets contain * that would otherwise be misparsed.
-  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-  // Bold: **text** (non-greedy, no nesting).
-  html = html.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
-  // Italic: *text* — require the preceding char to not be a * so we
-  // don't chew into an adjacent bold run.
-  html = html.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
-  // Preserve line breaks so multi-paragraph justifications stay legible.
-  html = html.replace(/\n/g, '<br>');
-  return html;
+  return renderMarkdown(text);
 }
 
 function renderJudgeVerdicts() {
@@ -1320,7 +1303,7 @@ function renderJudgeVerdicts() {
         <span class="verdict-state">${state}</span>
         <span class="verdict-caret" aria-hidden="true">›</span>
       </summary>
-      <div class="verdict-item-body"><div class="verdict-item-copy">${renderJudgeMarkdown(text)}</div></div>
+      <div class="verdict-item-body"><div class="verdict-item-copy markdown-body">${renderJudgeMarkdown(text)}</div></div>
     </details>`);
   }
   // Cell-level judge_version — same for both axes, since they come from the
@@ -1618,16 +1601,74 @@ function escapeHtml(s) {
   }[c]));
 }
 
-// Minimal markdown for agent prose (thought + message cards). Agents emit
-// **bold** and `code` constantly; showing the raw asterisks/backticks reads
-// as a rendering bug, but a full markdown parser is overkill (and risky on
-// untrusted trace text). Escape first, then upgrade just those two forms.
-// Code spans are converted before bold so `**args` inside backticks stays
-// literal.
-function mdLite(s) {
-  return escapeHtml(s)
+// Agent and judge prose is untrusted, so parse Markdown and then reduce the
+// result to a deliberately small HTML vocabulary. This keeps headings,
+// lists, tables, quotes, and code readable without allowing trace text to
+// inject scripts, event handlers, remote images, or unsafe links.
+function renderMarkdown(value) {
+  if (!value) return '';
+  const source = String(value).replace(/^[\u200B\u200C\u200D\u200E\u200F\uFEFF]/, '');
+  if (typeof window.marked?.parse !== 'function') return fallbackMarkdown(source);
+  try {
+    return sanitizeMarkdownHtml(window.marked.parse(source, {
+      gfm: true,
+      breaks: true,
+    }));
+  } catch (error) {
+    console.warn('Markdown rendering failed; using the safe fallback.', error);
+    return fallbackMarkdown(source);
+  }
+}
+
+function sanitizeMarkdownHtml(html) {
+  const template = document.createElement('template');
+  template.innerHTML = String(html);
+  const allowedTags = new Set([
+    'A', 'BLOCKQUOTE', 'BR', 'CODE', 'DEL', 'EM', 'H1', 'H2', 'H3',
+    'H4', 'H5', 'H6', 'HR', 'LI', 'OL', 'P', 'PRE', 'STRONG', 'TABLE',
+    'TBODY', 'TD', 'TH', 'THEAD', 'TR', 'UL',
+  ]);
+
+  for (const node of [...template.content.querySelectorAll('*')]) {
+    const tag = node.tagName;
+    if (tag === 'IMG') {
+      node.replaceWith(document.createTextNode(node.getAttribute('alt') || ''));
+      continue;
+    }
+    if (!allowedTags.has(tag)) {
+      node.replaceWith(document.createTextNode(node.textContent || ''));
+      continue;
+    }
+
+    const href = tag === 'A' ? node.getAttribute('href') : null;
+    const title = tag === 'A' ? node.getAttribute('title') : null;
+    const codeClass = tag === 'CODE' ? node.getAttribute('class') : null;
+    for (const attr of [...node.attributes]) node.removeAttribute(attr.name);
+
+    if (tag === 'A' && href) {
+      try {
+        const url = new URL(href, window.location.href);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('unsafe protocol');
+        node.setAttribute('href', url.href);
+        node.setAttribute('target', '_blank');
+        node.setAttribute('rel', 'noopener noreferrer');
+        if (title) node.setAttribute('title', title);
+      } catch {
+        node.replaceWith(document.createTextNode(node.textContent || ''));
+      }
+    } else if (tag === 'CODE' && /^language-[A-Za-z0-9_+-]+$/.test(codeClass || '')) {
+      node.setAttribute('class', codeClass);
+    }
+  }
+  return template.innerHTML;
+}
+
+function fallbackMarkdown(source) {
+  const inline = escapeHtml(source)
     .replace(/`([^`\n]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+    .replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+  return `<p>${inline.replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
 }
 function fmtNum(v) {
   if (typeof v !== 'number') return escapeHtml(String(v));

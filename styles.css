@@ -2604,6 +2604,10 @@ tbody tr:last-child td {
     overflow: hidden;
 }
 
+.time-scope-toggle[hidden] {
+    display: none;
+}
+
 .time-scope-toggle::before {
     position: absolute;
     z-index: 0;

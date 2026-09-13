@@ -1512,8 +1512,24 @@ function formatRuntimeDuration(time) {
     return `${hours}h ${String(minutes).padStart(2, '0')}m`;
 }
 
+function getTimeScopeAgentKeys() {
+    const main = new Set(leaderboardData
+        .filter(d => !d.isBaseline && d.showInChart !== false)
+        .map(d => d.agentKey));
+    const all = new Set(timeSpentData
+        .filter(d => !d.isBaseline && timeChartAgentKeys.includes(d.agentKey))
+        .map(d => d.agentKey));
+    const supportsExpandedScope = [...all].some(agentKey => !main.has(agentKey));
+    return { main, all, supportsExpandedScope };
+}
+
 function updateTimeScopeControl() {
+    const scopeState = getTimeScopeAgentKeys();
+    const { supportsExpandedScope } = scopeState;
+    if (!supportsExpandedScope) showAllTimeAgents = false;
+
     document.querySelectorAll('.time-scope-toggle').forEach((toggle) => {
+        toggle.hidden = !supportsExpandedScope;
         toggle.classList.toggle('is-all', showAllTimeAgents);
     });
     document.querySelectorAll('[data-time-scope]').forEach((button) => {
@@ -1523,10 +1539,13 @@ function updateTimeScopeControl() {
     });
     const scopeNote = document.getElementById('time-scope-note');
     if (scopeNote) {
-        scopeNote.textContent = showAllTimeAgents
+        scopeNote.textContent = !supportsExpandedScope
+            ? 'Agents with recorded runtimes only.'
+            : showAllTimeAgents
             ? 'All agents with recorded runtimes shown.'
             : 'Main-chart agents with recorded runtimes only.';
     }
+    return scopeState;
 }
 
 function animateBudgetScopeContent(showAll) {
@@ -1570,28 +1589,38 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
     const mobileRuntimeGutter = 50;
-    updateTimeScopeControl();
+    const {
+        main: mainRuntimeAgentKeys,
+        all: allRuntimeAgentKeys,
+        supportsExpandedScope,
+    } = updateTimeScopeControl();
 
     // Sort by hours (descending), filter out baselines
-    const agentFilter = showAllTimeAgents ? timeChartAgentKeys : chartAgentKeys;
+    // Show the scope control only when this results version actually contains
+    // timed agents beyond its Main set. It will appear automatically as future
+    // version data grows, without exposing archived agents in current results.
+    const useExpandedScope = showAllTimeAgents && supportsExpandedScope;
+    const agentFilter = useExpandedScope
+        ? allRuntimeAgentKeys
+        : mainRuntimeAgentKeys;
     const sortedData = [...timeSpentData]
-        .filter(d => !d.isBaseline && agentFilter.includes(d.agentKey))
+        .filter(d => !d.isBaseline && agentFilter.has(d.agentKey))
         .sort((a, b) => b.hours - a.hours);
 
     // Set wrapper dimensions based on screen size and agent count
     const wrapper = ctx.closest('.leaderboard-chart-wrapper');
     const chartShell = ctx.closest('.budget-chart');
     const mainAgentCount = timeSpentData.filter(d =>
-        !d.isBaseline && chartAgentKeys.includes(d.agentKey)).length;
+        !d.isBaseline && mainRuntimeAgentKeys.has(d.agentKey)).length;
     const mainDesktopHeight = Math.max(480, mainAgentCount * 40);
     chartShell?.style.setProperty('--budget-main-wrapper-height', `${mainDesktopHeight}px`);
-    chartShell?.classList.toggle('is-all-agents', showAllTimeAgents);
+    chartShell?.classList.toggle('is-all-agents', useExpandedScope);
     if (isMobile) {
         const dynamicHeight = Math.max(300, sortedData.length * 36 + 28);
         wrapper.style.minWidth = '';
         wrapper.style.height = `${dynamicHeight}px`;
     } else {
-        const hasMainRowMetrics = showAllTimeAgents &&
+        const hasMainRowMetrics = useExpandedScope &&
             Number.isFinite(budgetMainRowPitch) && Number.isFinite(budgetChartChromeHeight);
         const dynamicHeight = hasMainRowMetrics
             ? budgetChartChromeHeight + budgetMainRowPitch * sortedData.length
@@ -1609,7 +1638,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
         measureContext.save();
         measureContext.font = `600 ${labelFontSize}px 'JetBrains Mono', monospace`;
         const maxLabelWidth = timeSpentData
-            .filter(d => !d.isBaseline && timeChartAgentKeys.includes(d.agentKey))
+            .filter(d => allRuntimeAgentKeys.has(d.agentKey))
             .reduce((maxWidth, d) =>
                 Math.max(maxWidth, measureContext.measureText(getChartAgentMeta(d).name).width), 0);
         measureContext.restore();
@@ -1955,7 +1984,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
 
     // All keeps Main's exact row rhythm. Without this, Chart.js divides the
     // larger canvas differently, making bars thicker and shifting every label.
-    if (!isMobile && !showAllTimeAgents && timeSpentChart.chartArea) {
+    if (!isMobile && !useExpandedScope && timeSpentChart.chartArea) {
         budgetMainRowPitch = timeSpentChart.chartArea.height / sortedData.length;
         budgetChartChromeHeight = mainDesktopHeight - timeSpentChart.chartArea.height;
     }
