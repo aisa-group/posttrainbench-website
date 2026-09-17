@@ -765,6 +765,8 @@ function verdictDots(r) {
   const tipParts = [
     `contamination: ${axisTip(r.contamination)}`,
     `disallowed model: ${axisTip(r.disallowed_model)}`,
+    `disallowed api usage: ${axisTip(r.api_usage)}`,
+    `ptb lookup: ${axisTip(r.ptb_lookup)}`,
   ];
   if (r.judge_version) tipParts.push(`judged: ${r.judge_version}`);
   const tip = escapeHtml(tipParts.join(' · '));

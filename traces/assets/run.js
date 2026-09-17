@@ -1280,6 +1280,8 @@ function renderJudgeVerdicts() {
   const axes = [
     { label: 'Data contamination',   v: jud.contamination },
     { label: 'Disallowed model use', v: jud.disallowed_model },
+    { label: 'Disallowed API usage', v: jud.api_usage },
+    { label: 'PostTrainBench lookup', v: jud.ptb_lookup },
   ];
   const verdicts = [];
   for (const {label, v} of axes) {

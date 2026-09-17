@@ -162,6 +162,8 @@
         // page. Expose the flag state as text so "flagged" / "clean" still match.
         run.contamination && (run.contamination.flagged ? 'contamination flagged' : 'contamination clean'),
         run.disallowed_model && (run.disallowed_model.flagged ? 'disallowed model flagged' : 'disallowed model clean'),
+        run.api_usage && (run.api_usage.flagged ? 'disallowed api usage flagged' : 'disallowed api usage clean'),
+        run.ptb_lookup && (run.ptb_lookup.flagged ? 'ptb lookup flagged' : 'ptb lookup clean'),
       ].filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(query);
     });
