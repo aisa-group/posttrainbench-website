@@ -126,7 +126,7 @@
                             </blockquote>
                             <div class="review-response">
                                 <span class="review-response-label">Our response</span>
-                                <p>This is the intended behaviour, as PTB v1.1 measures an agent's ability to post-train a model to hillclimb on a narrow domain or benchmark. When we developed this benchmark in November 2025, models were poor at this task.</p>
+                                <p>This is the intended behaviour. Each agent gets one H100 for ten hours to post-train a base model. Within that budget, teaching broad, transferable skills is not realistic, so we ask a narrower question: can the agent improve the model on one target benchmark?</p>
                             </div>
                         </div>
 
@@ -139,7 +139,7 @@
                             <div class="review-response">
                                 <span class="review-response-label">Our response</span>
                                 <p>We manually verify most runs flagged by the judge to make sure the judge is calibrated and the reason for flagging matches the agent's behaviour.</p>
-                                <p>That being said, we agree that high variance can be caused from the agent side through inconsistency, or disparate run results through flagged and unflagged runs. To further account for judge variance and improve reliability, we are planning on a best of three judge verdict for PTB v1.2.</p>
+                                <p>That being said, we agree that high variance can be caused from the agent side through inconsistency, or disparate run results through flagged and unflagged runs. To further account for judge variance and improve reliability, we are planning on a best of three judge verdict for PostTrainBench v1.2.</p>
                             </div>
                         </div>
 
@@ -151,7 +151,7 @@
                             </blockquote>
                             <div class="review-response">
                                 <span class="review-response-label">Our response</span>
-                                <p>We designed PTB to measure progress towards automated post-training at varying levels of difficulty. Therefore, we use several different, increasingly difficult benchmarks as targets. More difficult benchmarks are given greater weighting in order to accurately reflect gains, as described in Table 5 of our paper.</p>
+                                <p>We designed PostTrainBench to measure progress towards automated post-training at varying levels of difficulty. Therefore, we use several different, increasingly difficult benchmarks as targets. More difficult benchmarks are given greater weighting in order to accurately reflect gains, as described in Table 5 of our paper.</p>
                             </div>
                         </div>
                     </section>
@@ -168,7 +168,7 @@
                             </blockquote>
                             <div class="review-response">
                                 <span class="review-response-label">Our response</span>
-                                <p>We agree with this analysis of BFCL and are planning to remove it from PTB v1.2.</p>
+                                <p>We agree with this analysis of BFCL and are planning to remove it from PostTrainBench v1.2.</p>
                             </div>
                         </div>
 
