@@ -110,7 +110,8 @@
                             </div>
                             <p>Epoch AI designated PostTrainBench as Verified.</p>
                         </div>
-                        <p>Thanks a lot for the very detailed and accurate report. We really liked the depth and attention to detail. The responses below follow the sections in Epoch AI’s review. For each point, we quote the relevant finding and respond directly.</p>
+                        <p>We found the report to be very detailed and accurate, and we appreciated the depth of its analysis and attention to detail. We also identified some of these shortcomings independently. We will soon release version 1.2, which addresses most of the major issues flagged in the report, as well as some additional issues that we identified.</p>
+                        <p>The responses below follow the sections in Epoch AI’s review. For each point, we quote the relevant finding and respond directly.</p>
                     </div>
 
                     <section id="interpretation" class="release-section article-copy">
@@ -125,7 +126,7 @@
                             </blockquote>
                             <div class="review-response">
                                 <span class="review-response-label">Our response</span>
-                                <p>Agreed. This is generally the intended behaviour, as PTB v1.1 measures an agent's ability to post-train a model to hillclimb on a narrow domain or benchmark. When we developed this benchmark in November 2025, models were poor at this task. We are working on measuring general post-training capabilities.</p>
+                                <p>Agreed. This is generally the intended behaviour, as PTB v1.1 measures an agent's ability to post-train a model to hillclimb on a narrow domain or benchmark. When we developed this benchmark in November 2025, models were poor at this task.</p>
                             </div>
                         </div>
 
@@ -137,7 +138,7 @@
                             </blockquote>
                             <div class="review-response">
                                 <span class="review-response-label">Our response</span>
-                                <p>We still manually verify most runs flagged by the judge to make sure the judge is calibrated and the reason for flagging matches the agent's behaviour.</p>
+                                <p>We manually verify most runs flagged by the judge to make sure the judge is calibrated and the reason for flagging matches the agent's behaviour.</p>
                                 <p>That being said, we agree that high variance can be caused from the agent side through inconsistency, or disparate run results through flagged and unflagged runs. To further account for judge variance and improve reliability, we are planning on a best of three judge verdict for PTB v1.2.</p>
                             </div>
                         </div>
@@ -192,7 +193,7 @@
                             </blockquote>
                             <div class="review-response">
                                 <span class="review-response-label">Our response</span>
-                                <p>Thank you! This was an oversight on our side, and we updated the public viewer to show the API and PostTrainBench lookup verdicts too, as of 17 September 2026.</p>
+                                <p>This was an oversight on our side, and we have now updated the public viewer to show the API and PostTrainBench lookup verdicts too.</p>
                             </div>
                         </div>
 
@@ -268,7 +269,7 @@
                             </blockquote>
                             <div class="review-response">
                                 <span class="review-response-label">Our response</span>
-                                <p>We agree that unreliability is a large concern regarding LLM judges. We address this concern in two ways. First, we manually review some of the traces to ensure the verdicts are reasonable and calibrated. When necessary, we update the judge to a newer model or update the prompt and overall design of the judges. These were our main updates in version 1.1.</p>
+                                <p>We agree that unreliability is a concern regarding LLM judges. We address this concern in two ways. First, we manually review some of the traces to ensure the verdicts are reasonable and calibrated. When necessary, we update the judge to a newer model or update the prompt and overall design of the judges. These were our main updates in version 1.1.</p>
                                 <p>When updating to v1.1, we tested various models from different providers and selected the most effective one. Second, in version 1.2, we plan to run the same judge three times and use a majority vote to determine the final verdict to further reduce noise.</p>
                             </div>
                         </div>
