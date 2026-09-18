@@ -1,0 +1,183 @@
+.review-page .release-hero h1 {
+    max-width: 54rem;
+}
+
+.review-page .release-deck {
+    max-width: 45rem;
+}
+
+.review-verdict {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: 1.25rem;
+    margin: 0 0 2.35rem;
+    padding: 1.15rem 1.25rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--accent-primary) 4%, var(--bg-secondary));
+}
+
+.review-verdict-mark {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+}
+
+.review-verdict-mark span {
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
+.review-verdict-mark strong {
+    color: var(--accent-text);
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    letter-spacing: -0.025em;
+}
+
+.review-verdict > p {
+    align-self: center;
+    margin: 0;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    line-height: 1.65;
+}
+
+.review-subsection {
+    margin-top: 2.75rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.review-subsection h3 {
+    margin: 0 0 1.15rem;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.4;
+}
+
+.review-quote {
+    margin: 0 0 1.45rem;
+    padding: 1rem 1.1rem;
+    border-left: 2px solid var(--border-color);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: var(--bg-secondary);
+}
+
+.review-quote-label,
+.review-response-label {
+    display: block;
+    color: var(--accent-text);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
+
+.review-quote p {
+    margin: 0.55rem 0 0;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.94rem;
+    font-style: italic;
+    line-height: 1.7;
+    text-wrap: pretty;
+}
+
+.review-response-label {
+    margin-bottom: 0.7rem;
+}
+
+.review-response > p {
+    margin: 0 0 1.15rem;
+    color: color-mix(in srgb, var(--text-primary) 91%, var(--text-secondary));
+    font-size: 1rem;
+    line-height: 1.78;
+    text-wrap: pretty;
+}
+
+.review-response > p:last-child {
+    margin-bottom: 0;
+}
+
+.review-seed-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 1.6rem;
+}
+
+.review-seed-group {
+    min-width: 0;
+    padding: 1rem 1.1rem 1.15rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+}
+
+.review-seed-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    font-family: var(--font-mono);
+}
+
+.review-seed-heading strong {
+    color: var(--accent-text);
+    font-size: 0.72rem;
+}
+
+.review-seed-heading span {
+    color: var(--text-secondary);
+    font-size: 0.6rem;
+}
+
+.review-seed-group ul {
+    columns: 2;
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    line-height: 1.55;
+    list-style: none;
+}
+
+.review-seed-group li {
+    break-inside: avoid;
+    margin-bottom: 0.35rem;
+}
+
+@media (max-width: 620px) {
+    .review-verdict,
+    .review-seed-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .review-verdict-mark {
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .review-verdict > p {
+        padding: 0;
+    }
+
+    .review-seed-group ul {
+        columns: 1;
+    }
+}

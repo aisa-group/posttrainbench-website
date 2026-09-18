@@ -46,16 +46,17 @@
                         <span class="hamburger-line"></span>
                         <span class="hamburger-line"></span>
                     </button>
-                    <div class="logo">PostTrain<span class="logo-accent">Bench</span></div>
+                    <a class="logo" href="/" aria-label="PostTrainBench home">PostTrain<span class="logo-accent">Bench</span></a>
                 </div>
                 <div class="nav-right">
                     <div class="nav-links" id="nav-links">
                         <a href="#leaderboard">Leaderboard</a>
+                        <a href="/traces/" data-goatcounter-click="traces-opened/nav"
+                            data-goatcounter-title="Traces navigation">Traces</a>
                         <a href="#process-flow">Scoring</a>
                         <a href="#benchmarks">Setup</a>
                         <a href="#observations">Observations</a>
-                        <a href="/traces/" data-goatcounter-click="traces-opened/nav"
-                            data-goatcounter-title="Traces navigation">Traces</a>
+                        <a href="/blog/">Blog</a>
                         <a href="#team">Team</a>
                     </div>
                     <a href="https://github.com/aisa-group/PostTrainBench" target="_blank" class="nav-github" aria-label="GitHub"
@@ -87,14 +88,16 @@
 
     <section class="hero">
         <div class="container">
-            <a class="hero-release" href="/blog/posttrainbench-1-1/" data-goatcounter-click="release-details-opened"
-                data-goatcounter-title="Version 1.1 release notes">
-                <span class="hero-release-version">New · v1.1</span>
-                <span class="hero-release-copy">Clearer rules, improved judging</span>
+            <a class="hero-release" href="/blog/epoch-ai-review-response/" data-goatcounter-click="review-response-opened/hero"
+                data-goatcounter-title="Epoch AI review response">
+                <span class="hero-release-version">New · Verified by Epoch AI</span>
+                <span class="hero-release-copy">Read our response</span>
                 <span class="hero-release-arrow" aria-hidden="true">→</span>
             </a>
             <h1 class="hero-title">
-                <span class="title-main">PostTrain</span><span class="title-accent">Bench</span>
+                <span class="hero-title-name"><span class="title-main">PostTrain</span><span class="title-accent">Bench</span></span>
+                <a class="hero-version-link" href="/blog/posttrainbench-1-1/" data-goatcounter-click="release-details-opened/title"
+                    data-goatcounter-title="PostTrainBench v1.1 title link">v1.1</a>
             </h1>
             <p class="hero-subtitle">Measuring how well AI agents can post-train language models</p>
             <div class="hero-description">
@@ -175,8 +178,15 @@
                     </div>
                 </details>
                 <details class="changelog compact-disclosure">
-                <summary>Changelog <span class="disclosure-meta">Updated Sep 3</span></summary>
+                <summary>Changelog <span class="disclosure-meta">Updated Sep 17</span></summary>
                 <div class="changelog-content">
+                    <div class="changelog-entry">
+                        <div class="changelog-date">Sep 17, 2026</div>
+                        <ul class="changelog-list">
+                            <li>Published our <a href="/blog/epoch-ai-review-response/">response to Epoch AI's independent review</a> of PostTrainBench v1.1.</li>
+                            <li>The trace viewer now exposes contamination, API-use, PostTrainBench-lookup, and model-identity verdicts.</li>
+                        </ul>
+                    </div>
                     <div class="changelog-entry">
                         <div class="changelog-date">Sep 3, 2026</div>
                         <ul class="changelog-list">

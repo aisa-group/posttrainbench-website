@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Our response to Epoch AI's review of PostTrainBench v1.1.">
+    <meta property="og:title" content="Our response to Epoch AI's review of PostTrainBench">
+    <meta property="og:description" content="We are happy to see PostTrainBench designated as Verified and are working on v1.2 to address the major issues flagged in the review.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://posttrainbench.com/blog/epoch-ai-review-response/">
+    <meta name="twitter:card" content="summary">
+    <title>Our response to Epoch AI's review of PostTrainBench</title>
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            var theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="../../styles.css">
+    <link rel="stylesheet" href="../posttrainbench-1-1/article.css">
+    <link rel="stylesheet" href="article.css">
+</head>
+<body class="release-page review-page">
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="nav-left">
+                    <button class="hamburger" id="hamburger-btn" aria-label="Open menu" aria-controls="nav-links" aria-expanded="false">
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                    </button>
+                    <a class="logo blog-nav-logo" href="/" aria-label="PostTrainBench home">PostTrain<span class="logo-accent">Bench</span></a>
+                </div>
+                <div class="nav-right">
+                    <div class="nav-links" id="nav-links">
+                        <a href="/#leaderboard">Leaderboard</a>
+                        <a href="/traces/" data-goatcounter-click="traces-opened/nav"
+                            data-goatcounter-title="Traces navigation">Traces</a>
+                        <a href="/#process-flow">Scoring</a>
+                        <a href="/#benchmarks">Setup</a>
+                        <a href="/#observations">Observations</a>
+                        <a href="/blog/" aria-current="page">Blog</a>
+                        <a href="/#team">Team</a>
+                    </div>
+                    <a href="https://github.com/aisa-group/PostTrainBench" target="_blank" rel="noopener noreferrer" class="nav-github" aria-label="GitHub"
+                        data-goatcounter-click="github-opened/nav" data-goatcounter-title="GitHub navigation">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                        <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        </svg>
+                        <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <article class="release-article">
+            <header class="release-hero">
+                <h1>Our response to Epoch AI's review of PostTrainBench</h1>
+                <p class="release-deck">We are happy to see PostTrainBench designated as Verified and are working on v1.2 of the benchmark to address the issues flagged in the review and also the ones we found.</p>
+                <div class="release-meta">
+                    <span><time datetime="2026-09-17">17 Sep 2026</time></span>
+                    <span>Ben Rank, Hardik Bhatnagar, Ameya Prabhu &amp; Maksym Andriushchenko</span>
+                </div>
+            </header>
+
+            <div class="release-hero-links release-wide">
+                <a class="release-hero-link release-hero-link-primary" href="https://epoch.ai/benchmarks/post-train-bench/review" target="_blank" rel="noopener noreferrer" data-goatcounter-click="review-response-epoch" data-goatcounter-title="Review response: Epoch AI review">Read Epoch AI's review</a>
+                <div class="release-hero-secondary-links">
+                    <a class="release-hero-link" href="/#leaderboard" data-goatcounter-click="review-response-leaderboard" data-goatcounter-title="Review response: leaderboard">View leaderboard <span aria-hidden="true">→</span></a>
+                    <a class="release-hero-link" href="/blog/posttrainbench-1-1/" data-goatcounter-click="review-response-v1.1" data-goatcounter-title="Review response: v1.1 notes">v1.1 release notes <span aria-hidden="true">→</span></a>
+                </div>
+            </div>
+
+            <div class="release-story release-wide">
+                <nav class="release-toc" aria-label="Our response to Epoch AI's review">
+                    <span>Our response to Epoch AI's review</span>
+                    <a href="#interpretation">Interpretation</a>
+                    <a href="#task-analysis">Task analysis</a>
+                    <a href="#limitations">Limitations</a>
+                </nav>
+
+                <div class="release-body">
+                    <div class="release-intro">
+                        <div class="review-verdict" aria-label="Epoch AI verdict: Verified">
+                            <div class="review-verdict-mark">
+                                <span>Epoch AI verdict</span>
+                                <strong>Verified</strong>
+                            </div>
+                            <p>Epoch AI designated PostTrainBench as Verified.</p>
+                        </div>
+                        <p>Thanks a lot for the very detailed and accurate report. We really liked the depth and attention to detail. The responses below follow the sections in Epoch AI’s review. For each point, we quote the relevant finding and respond directly.</p>
+                    </div>
+
+                    <section id="interpretation" class="release-section article-copy">
+                        <p class="release-kicker">Our response</p>
+                        <h2>“Interpretation”</h2>
+
+                        <div class="review-subsection">
+                            <h3>Narrowly fitting a single eval</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“Models can achieve high scores by narrowly (over)fitting to the single eval rather than teaching general, transferable skills to the base model.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>Agreed. This is generally the intended behaviour, as PTB v1.1 measures an agent's ability to post-train a model to hillclimb on a narrow domain or benchmark. When we developed this benchmark in November 2025, models were poor at this task. We are working on measuring general post-training capabilities.</p>
+                            </div>
+                        </div>
+
+                        <div class="review-subsection">
+                            <h3>A middling average and judge variance</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“A middling average can mix strong legitimate runs with disqualified ones. High variance can be created either by inconsistent models or a mixture of strong runs and runs flagged as contaminated.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>We still manually verify most runs flagged by the judge to make sure the judge is calibrated and the reason for flagging matches the agent's behaviour.</p>
+                                <p>That being said, we agree that high variance can be caused from the agent side through inconsistency, or disparate run results through flagged and unflagged runs. To further account for judge variance and improve reliability, we are planning on a best of three judge verdict for PTB v1.2.</p>
+                            </div>
+                        </div>
+
+                        <div class="review-subsection">
+                            <h3>Uneven gains across benchmarks</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“Gains are generally uneven across benchmarks. An average score can reflect strong performance on easier tasks and limited progress on the hardest ones rather than moderate improvement across the board.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>We designed PTB to measure progress towards automated post-training at varying levels of difficulty. Therefore, we use several different, increasingly difficult benchmarks as targets. More difficult benchmarks are given greater weighting in order to accurately reflect gains, as described in Table 5 of our paper.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="task-analysis" class="release-section article-copy">
+                        <p class="release-kicker">Our response</p>
+                        <h2>“Task analysis”</h2>
+
+                        <div class="review-subsection">
+                            <h3>BFCL</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“We classify one of the included benchmarks, BFCL, as Flawed due to an observed error rate of 48%, but the selected subset used in PostTrainBench may have a different error profile.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>We generally agree with this analysis of BFCL and are planning to remove it from PTB v1.2.</p>
+                            </div>
+                        </div>
+
+                        <div class="review-subsection">
+                            <h3>Trace coverage</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“We analyzed the traces produced by Opus 5, the only agent with a complete set of v1.1 traces.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>All agents have the full set of traces. For most agents, the traces are a mixture of v1.1 and v1.0. This is intentional, as we only ran v1.1 on flagged runs for older agents because the unflagged runs did not need to be rerun under the new settings.</p>
+                                <p>Opus 5 is the only agent which was released after the v1.1 ruleset and thus has a full set of v1.1 traces. Other agents have a mixture, where we reran on the v1.1 setting if it was needed. This is highlighted in the trace viewer when present.</p>
+                            </div>
+                        </div>
+
+                        <div class="review-subsection">
+                            <h3>Public viewer</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“The public viewer only shows traces and verdicts for contamination and model identity, not API-distillation and PostTrainBench lookup.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>Thank you! This was an oversight on our side, and we updated the public viewer to show the API and PostTrainBench lookup verdicts too, as of 17 September 2026.</p>
+                            </div>
+                        </div>
+
+                        <div class="review-subsection">
+                            <h3>Number of runs</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“The original paper mentions three runs, but we limit our review on v1.1, which ran just twice.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>The majority of agents ran for three runs. For more expensive agents we had to run twice due to our compute constraints:</p>
+                                <div class="review-seed-grid" aria-label="Number of runs by agent at the time of Epoch AI's review">
+                                    <div class="review-seed-group">
+                                        <div class="review-seed-heading"><strong>2 runs</strong><span>8 agents</span></div>
+                                        <ul>
+                                            <li>Fable 5</li>
+                                            <li>GPT-5.6 Sol</li>
+                                            <li>Opus 5</li>
+                                            <li>Opus 4.8 High</li>
+                                            <li>Opus 4.8 Max</li>
+                                            <li>GPT-5.5 xHigh</li>
+                                            <li>Grok 4.5</li>
+                                            <li>GPT-5.1 Codex Max High</li>
+                                        </ul>
+                                    </div>
+                                    <div class="review-seed-group">
+                                        <div class="review-seed-heading"><strong>3 runs</strong><span>14 agents</span></div>
+                                        <ul>
+                                            <li>Kimi K3</li>
+                                            <li>GLM 5.2</li>
+                                            <li>Opus 4.7</li>
+                                            <li>Gemini 3.1 Pro</li>
+                                            <li>GPT-5.2</li>
+                                            <li>GPT-5.1 Codex Max</li>
+                                            <li>GPT-5.4 High</li>
+                                            <li>Gemini 3 Pro</li>
+                                            <li>Opus 4.6 1M</li>
+                                            <li>GPT-5.3 Codex High</li>
+                                            <li>GPT-5.2 Codex</li>
+                                            <li>Opus 4.6</li>
+                                            <li>Opus 4.5</li>
+                                            <li>GPT-5.3 Codex Medium</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="limitations" class="release-section article-copy">
+                        <p class="release-kicker">Our response</p>
+                        <h2>“Limitations”</h2>
+
+                        <div class="review-subsection">
+                            <h3>Distillation and previous results</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“Distillation and reuse of previous results are legitimate, widely used post-training techniques, but are banned here.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>Distillation is permitted. Agents can distill from locally served models. However, it is disallowed to distill from a model served through an API. Such distillation could violate the benchmark constraint of one H100.</p>
+                                <p>We do not allow looking up PostTrainBench traces or previous runs to ensure independent, comparable results. Part of the purpose of PostTrainBench is to measure how well agents can conduct literature reviews and exploratory experiments to converge on a good strategy.</p>
+                            </div>
+                        </div>
+
+                        <div class="review-subsection">
+                            <h3>LLM judges</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“LLM judges are used to check for cheating behaviors. These have documented biases and can be unreliable, especially when grading non-discrete behaviors.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>We agree that unreliability is a large concern regarding LLM judges. We address this concern in two ways. First, we manually review some of the traces to ensure the verdicts are reasonable and calibrated. When necessary, we update the judge to a newer model or update the prompt and overall design of the judges. These were our main updates in version 1.1.</p>
+                                <p>When updating to v1.1, we tested various models from different providers and selected the most effective one. Second, in version 1.2, we plan to run the same judge three times and use a majority vote to determine the final verdict to further reduce noise.</p>
+                            </div>
+                        </div>
+
+                        <div class="review-subsection">
+                            <h3>Judge traces</h3>
+                            <blockquote class="review-quote">
+                                <span class="review-quote-label">Epoch AI's review</span>
+                                <p>“Judge traces for the other two checks, API-distillation and PostTrainBench lookup, aren't provided, and thus were not evaluated.”</p>
+                            </blockquote>
+                            <div class="review-response">
+                                <span class="review-response-label">Our response</span>
+                                <p>We have now updated the trace viewer to also show the API and PostTrainBench lookup checks.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <script src="../../traces/assets/theme.js"></script>
+    <script src="../nav.js"></script>
+    <script>
+        window.goatcounter = {
+            path: function () { return window.location.pathname; },
+        };
+    </script>
+    <script data-goatcounter="https://hrdkbhatnagar.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

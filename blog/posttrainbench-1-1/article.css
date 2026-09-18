@@ -13,6 +13,17 @@
     font-family: var(--font-mono);
 }
 
+.release-page .logo {
+    opacity: 1;
+    text-decoration: none;
+    visibility: visible;
+}
+
+.release-page .nav-links a[aria-current="page"] {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
 .release-page code {
     padding: 0.05em 0.24em;
     background: var(--bg-secondary);
@@ -328,8 +339,7 @@
     text-wrap: balance;
 }
 
-.release-kicker,
-.release-section-number {
+.release-kicker {
     margin-bottom: 0.7rem !important;
     color: var(--accent-text) !important;
     font-family: var(--font-mono);

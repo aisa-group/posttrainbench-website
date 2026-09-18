@@ -176,6 +176,7 @@ body {
 .navbar {
     background-color: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
+    font-family: var(--font-sans);
     padding: 1rem 0;
     position: sticky;
     top: 0;
@@ -202,10 +203,12 @@ body {
 
 .logo {
     font-size: 1.25rem;
+    font-family: var(--font-mono);
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
     opacity: 0;
+    text-decoration: none;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
@@ -381,12 +384,46 @@ body {
 }
 
 .hero-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.7rem;
     font-size: 3.5rem;
     font-weight: 700;
     margin-bottom: 1.5rem;
     line-height: 1.1;
     /* Keep tracking gentle — negative tracking fights a monospace grid. */
     letter-spacing: -0.01em;
+}
+
+.hero-title-name {
+    display: inline-flex;
+}
+
+.hero-version-link {
+    padding: 0.18rem 0.34rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--accent-text);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1;
+    text-decoration: none;
+    transform: translateY(-0.15em);
+    transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .hero-version-link:hover {
+        border-color: var(--accent-primary);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+}
+
+.hero-version-link:active {
+    transform: translateY(-0.15em) scale(0.96);
 }
 
 .title-main {
@@ -428,6 +465,16 @@ body {
     justify-content: center;
     margin-top: 2rem;
     flex-wrap: wrap;
+}
+
+@media (max-width: 1100px) and (min-width: 769px) {
+    .nav-links {
+        gap: 1.15rem;
+    }
+
+    .nav-right {
+        gap: 1rem;
+    }
 }
 
 /* Buttons */
@@ -1878,6 +1925,68 @@ tbody tr:last-child td {
     }
 }
 
+@media (max-width: 950px) {
+    .hamburger {
+        display: flex;
+    }
+
+    .nav-links {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.65rem 1rem 0.8rem;
+        gap: 0.1rem;
+        display: flex;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-6px) scale(0.99);
+        transform-origin: top center;
+        box-shadow: var(--shadow-panel);
+        transition: opacity 160ms var(--ease-out), transform 180ms var(--ease-out), visibility 0s linear 180ms;
+    }
+
+    .nav-links.active {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+        transition-delay: 0s;
+    }
+
+    .nav-links a {
+        font-size: 0.95rem;
+        padding: 0.6rem 0.75rem;
+        border: 0;
+        border-radius: var(--radius-sm);
+        text-align: center;
+        transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out);
+    }
+
+    .nav-links a:last-of-type {
+        border: 0;
+    }
+
+    .nav-links a:active {
+        background: var(--bg-tertiary);
+    }
+
+    .nav-right {
+        gap: 0.5rem;
+    }
+
+    .logo {
+        font-size: 1rem;
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 0 1rem;
@@ -2392,6 +2501,12 @@ tbody tr:last-child td {
 
     .hero-title {
         font-size: 1.75rem;
+        gap: 0.45rem;
+    }
+
+    .hero-version-link {
+        padding: 0.16rem 0.28rem;
+        font-size: 0.66rem;
     }
 
     .hero-subtitle {

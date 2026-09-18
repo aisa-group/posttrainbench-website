@@ -2263,15 +2263,15 @@ if (leaderboardBody) {
 // Navbar logo visibility based on hero section.
 // While the hero is on screen, the giant "PostTrainBench" title IS the
 // brand mark — repeating it in the desktop navbar would be visual duplication.
-// Phones keep the compact logo visible for wayfinding; desktop fades it in
-// after the hero scrolls off, so it picks up where the hero left off.
+// Narrow layouts keep the compact logo visible for wayfinding; wide desktop
+// fades it in after the hero scrolls off, so it picks up where the hero left off.
 const logo = document.querySelector('.logo');
 const heroSection = document.querySelector('.hero');
 
 function handleNavbarLogoVisibility() {
     if (!heroSection || !logo) return;
     const heroBottom = heroSection.getBoundingClientRect().bottom;
-    if (heroBottom > 0 && window.innerWidth > 768) {
+    if (heroBottom > 0 && window.innerWidth > 950) {
         logo.style.opacity = '0';
         logo.style.visibility = 'hidden';
     } else {

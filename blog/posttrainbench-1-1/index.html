@@ -3,7 +3,6 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex">
     <meta name="description" content="PostTrainBench v1.1 clarifies the boundary between legitimate benchmark hill climbing and item specific contamination, with specialized checks for external LLM API use, model substitution, and direct lookup.">
     <title>PostTrainBench v1.1: Hardening the benchmark against reward hacking</title>
     <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
@@ -20,33 +19,54 @@
     <link rel="stylesheet" href="article.css">
 </head>
 <body class="release-page">
-    <header class="release-topbar">
-        <div class="release-topbar-inner">
-            <a class="release-brand" href="/">
-                <span>PostTrain<span class="logo-accent">Bench</span></span>
-                <span class="release-brand-section">/ release notes</span>
-            </a>
-            <div class="release-topbar-actions">
-                <a class="release-back" href="/#leaderboard">Leaderboard</a>
-                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
-                    <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="19.78" x2="19.78" y2="18.36"></line>
-                    </svg>
-                    <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                    </svg>
-                </button>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="nav-left">
+                    <button class="hamburger" id="hamburger-btn" aria-label="Open menu" aria-controls="nav-links" aria-expanded="false">
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                    </button>
+                    <a class="logo blog-nav-logo" href="/" aria-label="PostTrainBench home">PostTrain<span class="logo-accent">Bench</span></a>
+                </div>
+                <div class="nav-right">
+                    <div class="nav-links" id="nav-links">
+                        <a href="/#leaderboard">Leaderboard</a>
+                        <a href="/traces/" data-goatcounter-click="traces-opened/nav"
+                            data-goatcounter-title="Traces navigation">Traces</a>
+                        <a href="/#process-flow">Scoring</a>
+                        <a href="/#benchmarks">Setup</a>
+                        <a href="/#observations">Observations</a>
+                        <a href="/blog/" aria-current="page">Blog</a>
+                        <a href="/#team">Team</a>
+                    </div>
+                    <a href="https://github.com/aisa-group/PostTrainBench" target="_blank" rel="noopener noreferrer" class="nav-github" aria-label="GitHub"
+                        data-goatcounter-click="github-opened/nav" data-goatcounter-title="GitHub navigation">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+                        <svg class="theme-icon theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        </svg>
+                        <svg class="theme-icon theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
-    </header>
+    </nav>
 
     <main>
         <article class="release-article">
@@ -87,7 +107,6 @@
                     </div>
 
             <section id="contamination" class="release-section article-copy">
-                <p class="release-section-number">01</p>
                 <h2>Train-test contamination</h2>
                 <p class="release-count"><span>234</span> runs were flagged for train-test contamination.</p>
                 <p>Running <code>evaluate.py</code>, inspecting mistakes, and responding to a general weakness are part of the task. An agent may notice poor percent to decimal conversion, weak multilingual medical answers, or unreliable function calling for Python primitives, then generate diverse examples that exercise the underlying skill across many contexts and phrasings.</p>
@@ -110,7 +129,6 @@
             </section>
 
             <section id="model-swapping" class="release-section article-copy">
-                <p class="release-section-number">02</p>
                 <h2>Submitting a different model</h2>
                 <p>PostTrainBench asks the agent to post-train a specific base model. Replacing it with an existing instruction-tuned checkpoint makes the final score incomparable, even when that checkpoint belongs to the same model family.</p>
                 <div class="release-change">
@@ -122,7 +140,6 @@
             </section>
 
             <section id="external-apis" class="release-section article-copy">
-                <p class="release-section-number">03</p>
                 <h2>Using external LLM APIs as teachers</h2>
                 <p>Some environments contain provider credentials needed to run the agent or an evaluator. Those credentials are infrastructure, not an extra training resource. We found agents reading keys from the environment and using hosted frontier models to generate training data, including cases where the surrounding evaluation code explicitly said not to use the key for that purpose.</p>
                 <blockquote class="release-rule">API keys present in the environment may run the agent or evaluation. They may not be used to call an external model for training data or other post-training work.</blockquote>
@@ -139,7 +156,6 @@
             </section>
 
             <section id="benchmark-lookup" class="release-section article-copy">
-                <p class="release-section-number">04</p>
                 <h2>Direct benchmark lookup</h2>
                 <p class="release-count"><span>3</span> runs were flagged for direct PostTrainBench lookup, all from GPT-5.6 (Sol).</p>
                 <p>In a GPT-5.6 (Sol) HumanEval run on Qwen3-1.7B, the agent searched for PostTrainBench by name, cloned the public repository, opened the trace viewer, and located the public trajectory corpus. It then narrowed the corpus to earlier runs on the same benchmark and base model.</p>
@@ -212,7 +228,6 @@
             </section>
 
             <section class="release-section article-copy">
-                <p class="release-section-number">05</p>
                 <h2>Reruns and infrastructure fixes</h2>
                 <p>We reran 121 runs affected by disallowed API use, missing eval credentials, or other infrastructure faults. Promoting Fable 5 to two seeds also removed the earlier SmolLM substitutions. Its GPQA result still falls back to Opus 4.8 Max because Fable refused that benchmark.</p>
                 <p>Runs affected by the v1.1 contamination policy were rerun with the new settings. When an older agent cannot be rerun comparably, such as when it is no longer available through its API, we leave the affected result unreported rather than carry it into the leaderboard.</p>
@@ -233,15 +248,11 @@
         </article>
     </main>
 
-    <footer class="release-footer">
-        <span>PostTrainBench v1.1</span>
-        <a href="/#team">The team</a>
-    </footer>
-
     <script src="../../config.js"></script>
     <script src="../../scores-v1.js"></script>
     <script src="../../scores.js"></script>
     <script src="../../traces/assets/theme.js"></script>
+    <script src="../nav.js"></script>
     <script src="article.js"></script>
     <script>
         window.goatcounter = {
