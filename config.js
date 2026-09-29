@@ -200,8 +200,22 @@ const agentInfo = {
     "opus-5.5-max": { name: "Opus 5.5", description: "Claude Opus 5.5 with a 1M context window, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max" },
     "grok-4.5-high": { name: "Grok 4.5", description: "Grok 4.5 high reasoning agent", scaffold: "Cursor CLI", reasoningEffort: "High" },
     "qwen3-max": { name: "Qwen3 Max", description: "Qwen3 Max agent", isOpenCode: true, scaffold: "Claude Code" },
-    "fable-5": { name: "Fable 5", description: "Claude Fable 5 with 1M context, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max", footnoteMarker: "‡" },
-    "fable-5.1": { name: "Fable 5.1", description: "Claude Fable 5.1 with a 1M context window, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max", footnoteMarker: "§" }
+    "fable-5": {
+        name: "Fable 5",
+        description: "Claude Fable 5 with 1M context, max reasoning agent",
+        scaffold: "Claude Code",
+        reasoningEffort: "Max",
+        provenanceLabel: "mixed GPQA",
+        provenanceNote: "Fable 5 GPQA Main cells use Opus 4.8 Max fallback scores."
+    },
+    "fable-5.1": {
+        name: "Fable 5.1",
+        description: "Claude Fable 5.1 with a 1M context window, max reasoning agent",
+        scaffold: "Claude Code",
+        reasoningEffort: "Max",
+        provenanceLabel: "mixed GPQA",
+        provenanceNote: "Five Fable 5.1 GPQA Main cells fell back to Opus 5."
+    }
 };
 
 // Benchmark metadata (weights are loaded from scores.json)

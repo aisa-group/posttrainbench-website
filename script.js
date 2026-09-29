@@ -20,21 +20,21 @@ let heroVersionLoadTimer = null;
 
 const resultsVersionCopy = {
     'v1.2': {
-        status: '<span aria-hidden="true">§</span> Five Fable 5.1 GPQA Main cells fell back to Opus 5.',
-        methodology: '<sup>§</sup> Five underlying Fable 5.1 GPQA Main cells fell back to Opus 5. The aggregate GPQA Main values therefore include both Fable 5.1 and Opus 5 results.',
-        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>§</sup> Five Fable 5.1 GPQA Main cells use Opus 5 fallback scores; see Methodology &amp; caveats.',
+        status: 'Fable 5.1 · GPQA Main includes five Opus 5 fallback cells.',
+        methodology: '<strong>Fable 5.1 GPQA fallback.</strong> Five underlying Fable 5.1 GPQA Main cells fell back to Opus 5. The aggregate GPQA Main values therefore include both Fable 5.1 and Opus 5 results.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.',
         efficiencyNote: ''
     },
     'v1.1': {
-        status: '<span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.',
-        methodology: '<sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.',
-        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.',
+        status: 'Fable 5 · GPQA Main uses Opus 4.8 Max fallback scores.',
+        methodology: '<strong>Fable 5 GPQA fallback.</strong> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.',
         efficiencyNote: ''
     },
     'v1': {
-        status: '<span aria-hidden="true">‡</span> Archived v1 results use the original single-judge pipeline. Fable 5 results are preliminary.',
-        methodology: '<sup>‡</sup> Fable 5 results come from its initial limited-availability period, when rate limits and refusals caused several SmolLM3-3B runs to fail. Those cells use Opus 4.8 (Max) results.',
-        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Preliminary Fable 5 cell; see Methodology &amp; caveats.',
+        status: 'Archived v1 results use the original single-judge pipeline. Fable 5 results are preliminary.',
+        methodology: '<strong>Preliminary Fable 5 results.</strong> These results come from its initial limited-availability period, when rate limits and refusals caused several SmolLM3-3B runs to fail. Those cells use Opus 4.8 (Max) results.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.',
         efficiencyNote: 'Fable 5 runtime is from its preliminary v1 run.'
     }
 };
@@ -401,6 +401,10 @@ function getAgentStatusNote(agentKey) {
     return agentInfo[agentKey]?.statusNote || '';
 }
 
+function getAgentProvenanceNote(agentKey) {
+    return agentInfo[agentKey]?.provenanceNote || '';
+}
+
 function getChartModelFamily(agentKey) {
     if (/^(opus|sonnet|fable)-/.test(agentKey)) return 'anthropic';
     if (/^gpt-/.test(agentKey)) return 'openai';
@@ -665,15 +669,20 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
         const displayAgentNameHtml = statusNote
             ? `<span class="agent-name-status" data-tip="${statusNote}">${displayAgent}<span class="agent-status-dot" aria-hidden="true"></span></span>${markerHtml}`
             : `${displayAgent}${markerHtml}`;
-        const displayAgentHtml = entry.isExternal
-            ? `<span class="agent-title-line">${displayAgentNameHtml}<span class="external-result-badge" data-tip="${entry.verificationNote}">External</span></span>`
-            : displayAgentNameHtml;
-        let agentNameHtml = displayAgentHtml;
+        const externalLabel = entry.isExternal
+            ? `<span class="external-result-label" tabindex="0" data-tip="${entry.verificationNote}">External</span>`
+            : '';
+        const provenanceLabel = agentInfo[entry.agentKey]?.provenanceLabel
+            ? `<span class="mixed-source-label" tabindex="0" data-tip="${getAgentProvenanceNote(entry.agentKey)}">${agentInfo[entry.agentKey].provenanceLabel}</span>`
+            : '';
+        let agentNameHtml = displayAgentNameHtml;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
-            agentNameHtml = `${displayAgentHtml}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}</span>`;
+            agentNameHtml = `${displayAgentNameHtml}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}${provenanceLabel}${externalLabel}</span>`;
         } else if (entry.agent === 'Official Instruct Models') {
-            agentNameHtml = `${displayAgentHtml}<span class="scaffold-label reference-context">Reference · outside 10h budget</span>`;
+            agentNameHtml = `${displayAgentNameHtml}<span class="scaffold-label reference-context">Reference · outside 10h budget</span>`;
+        } else if (externalLabel) {
+            agentNameHtml = `${displayAgentNameHtml}<span class="scaffold-label">${externalLabel}</span>`;
         }
 
         row.innerHTML = `
@@ -1245,7 +1254,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                         },
                         afterLabel: function(context) {
                             const entry = plottedData[context.dataIndex];
-                            return getAgentStatusNote(entry.agentKey) || entry.verificationNote || null;
+                            return getAgentStatusNote(entry.agentKey) || getAgentProvenanceNote(entry.agentKey) || entry.verificationNote || null;
                         }
                     }
                 }),
@@ -2050,7 +2059,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                                 labelMeta.effort ? `Effort: ${labelMeta.effort}` : null,
                                 scaffold ? `Scaffold: ${scaffold}` : null,
                                 dataItem.verificationNote || null,
-                                getAgentStatusNote(dataItem.agentKey) || null
+                                getAgentStatusNote(dataItem.agentKey) || getAgentProvenanceNote(dataItem.agentKey) || null
                             ].filter(Boolean);
                         }
                     }
