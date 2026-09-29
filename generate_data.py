@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
+import argparse
 import csv
 import json
 import os
 from pathlib import Path
 
-DATA_DIR = Path("data")
+ROOT_DATA_DIR = Path("data")
+DATA_DIR = ROOT_DATA_DIR
 OUTPUT_FILE = Path("scores.json")
+SCORES_GLOBAL = "SCORES_DATA"
 
 BASE_MODELS = ["Qwen3-1.7B-Base", "Qwen3-4B-Base", "SmolLM3-3B-Base", "gemma-3-4b-pt"]
 HUMAN_MODELS = ["Qwen3-1.7B", "Qwen3-4B", "SmolLM3-3B", "gemma-3-4b-it"]
@@ -31,8 +34,24 @@ V11_AGENT_KEYS = {
     "gpt-5.4-high",
 }
 
+# Filled when the v1.2 roster is locked. Keeping this explicit prevents every
+# historical CSV in a full aggregation export from appearing automatically.
+V12_AGENT_KEYS = {
+    *V11_AGENT_KEYS,
+    "fable-5.1",
+    "glm-5.3",
+    "glm-5.3-flash",
+    "gpt-6-astra",
+    "opus-5.5-max",
+}
+
 AGGREGATED_NAME_TO_KEY = {
     "Locus": "locus",
+    "Fable 5.1 (Max)": "fable-5.1",
+    "GLM 5.3": "glm-5.3",
+    "GLM 5.3 Flash": "glm-5.3-flash",
+    "GPT-6-Astra": "gpt-6-astra",
+    "Opus-5.5 (Max)": "opus-5.5-max",
     "GPT-5.2": "gpt-5.2",
     "GPT-5.1-Codex-Max": "gpt-5.1-codex-max",
     "GPT-5.2-Codex": "gpt-5.2-codex",
@@ -58,6 +77,12 @@ AGGREGATED_NAME_TO_KEY = {
 
 CSV_TO_AGENT = {
     "external/intology-locus/aggregated_avg_locus.csv": "locus",
+    "aggregated_avg_Locus.csv": "locus",
+    "aggregated_avg_Fable_5.1_(Max).csv": "fable-5.1",
+    "aggregated_avg_GLM_5.3.csv": "glm-5.3",
+    "aggregated_avg_GLM_5.3_Flash.csv": "glm-5.3-flash",
+    "aggregated_avg_GPT-6-Astra.csv": "gpt-6-astra",
+    "aggregated_avg_Opus-5.5_(Max).csv": "opus-5.5-max",
     "aggregated_avg_GPT-5.2.csv": "gpt-5.2",
     "aggregated_avg_GPT-5.1-Codex-Max.csv": "gpt-5.1-codex-max",
     "aggregated_avg_GPT-5.2-Codex.csv": "gpt-5.2-codex",
@@ -83,6 +108,12 @@ CSV_TO_AGENT = {
 
 STD_CSV_TO_AGENT = {
     "external/intology-locus/aggregated_std_locus.csv": "locus",
+    "aggregated_std_Locus.csv": "locus",
+    "aggregated_std_Fable_5.1_(Max).csv": "fable-5.1",
+    "aggregated_std_GLM_5.3.csv": "glm-5.3",
+    "aggregated_std_GLM_5.3_Flash.csv": "glm-5.3-flash",
+    "aggregated_std_GPT-6-Astra.csv": "gpt-6-astra",
+    "aggregated_std_Opus-5.5_(Max).csv": "opus-5.5-max",
     "aggregated_std_GPT-5.2.csv": "gpt-5.2",
     "aggregated_std_GPT-5.1-Codex-Max.csv": "gpt-5.1-codex-max",
     "aggregated_std_GPT-5.2-Codex.csv": "gpt-5.2-codex",
@@ -121,6 +152,11 @@ SUBSTITUTIONS = []
 # not copy or otherwise change scores.
 CELL_PROVENANCE = [
     {
+        "agent": "fable-5.1",
+        "benchmarks": ["gpqamain"],
+        "sourceLabel": "Opus 5",
+    },
+    {
         "agent": "fable-5",
         "benchmarks": ["gpqamain"],
         "sourceLabel": "Opus 4.8 Max",
@@ -128,13 +164,13 @@ CELL_PROVENANCE = [
 ]
 
 AGGREGATED_METRICS_FILES = [
-    DATA_DIR / "single_metrics_aggregated.csv",
-    DATA_DIR / "external/intology-locus/single_metrics_aggregated.csv",
+    "single_metrics_aggregated.csv",
+    "external/intology-locus/single_metrics_aggregated.csv",
 ]
 
 TIME_AGGREGATED_FILES = [
-    DATA_DIR / "time_aggregated.csv",
-    DATA_DIR / "external/intology-locus/time_aggregated.csv",
+    "time_aggregated.csv",
+    "external/intology-locus/time_aggregated.csv",
 ]
 
 OPENCODE_CSV_TO_AGENT = {
@@ -153,7 +189,9 @@ QWEN3MAX_KEY = "qwen3-max"
 SONNET_KEY = "sonnet-4.5"
 SONNET46_KEY = "sonnet-4.6"
 
-BENCHMARKS = ["aime2025", "arenahardwriting", "bfcl", "gpqamain", "gsm8k", "healthbench", "humaneval"]
+# Populated from the selected version's factors file. Keeping this as the
+# single source of truth lets v1.2 omit BFCL while archived versions retain it.
+BENCHMARKS = []
 
 TIME_OVERVIEW_TO_KEY = {
     "baseline": "human",
@@ -175,6 +213,11 @@ TIME_OVERVIEW_TO_KEY = {
 
 TIME_AGGREGATED_TO_KEY = {
     "Locus": "locus",
+    "Fable 5.1 (Max)": "fable-5.1",
+    "GLM 5.3": "glm-5.3",
+    "GLM 5.3 Flash": "glm-5.3-flash",
+    "GPT-6-Astra": "gpt-6-astra",
+    "Opus-5.5 (Max)": "opus-5.5-max",
     "Opus-4.5": "opus-4.5",
     "GPT-5.1-Codex-Max": "gpt-5.1-codex-max",
     "GPT-5.2-Codex": "gpt-5.2-codex",
@@ -203,6 +246,13 @@ def read_csv(filepath):
     data = {}
     with open(filepath, 'r') as f:
         reader = csv.DictReader(f)
+        required_columns = {"model", *BENCHMARKS}
+        missing_columns = sorted(required_columns - set(reader.fieldnames or []))
+        if missing_columns:
+            raise RuntimeError(
+                f"{filepath} is missing columns required by this results version: "
+                f"{', '.join(missing_columns)}"
+            )
         for row in reader:
             model = row['model']
             data[model] = {bm: row[bm] for bm in BENCHMARKS}
@@ -240,7 +290,8 @@ def format_time_display(time_str):
 def load_time_data():
     time_data = {}
 
-    for time_agg_file in TIME_AGGREGATED_FILES:
+    for relative_path in TIME_AGGREGATED_FILES:
+        time_agg_file = DATA_DIR / relative_path
         if time_agg_file.exists():
             with open(time_agg_file, 'r') as f:
                 reader = csv.DictReader(f)
@@ -257,6 +308,8 @@ def load_time_data():
                         }
 
     time_overview_file = DATA_DIR / "aggregated_time_overview.csv"
+    if not time_overview_file.exists():
+        time_overview_file = DATA_DIR / "time_overview.csv"
     if time_overview_file.exists():
         with open(time_overview_file, 'r') as f:
             reader = csv.DictReader(f)
@@ -276,10 +329,50 @@ def load_time_data():
     return time_data
 
 
-def generate_scores_json():
-    weights = read_json(DATA_DIR / "factors.json")
-    baseline_data = read_csv(DATA_DIR / "aggregated_baseline.csv")
-    baseline_fewshot_data = read_csv(DATA_DIR / "aggregated_baseline_fewshot.csv")
+def configure_version(version, input_dir=None, output_file=None):
+    global DATA_DIR, OUTPUT_FILE, SCORES_GLOBAL, BENCHMARKS
+
+    if version == "v1.2":
+        DATA_DIR = Path(input_dir) if input_dir else ROOT_DATA_DIR / "v1.2"
+        OUTPUT_FILE = Path(output_file) if output_file else Path("scores-v1.2.json")
+        SCORES_GLOBAL = "SCORES_DATA_V12"
+        factors_file = ROOT_DATA_DIR / "factors-v1.2.json"
+    else:
+        DATA_DIR = Path(input_dir) if input_dir else ROOT_DATA_DIR
+        OUTPUT_FILE = Path(output_file) if output_file else Path("scores.json")
+        SCORES_GLOBAL = "SCORES_DATA"
+        factors_file = ROOT_DATA_DIR / "factors.json"
+
+    weights = read_json(factors_file)
+    weight_sum = sum(weights.values())
+    if abs(weight_sum - 1.0) > 1e-9:
+        raise RuntimeError(
+            f"Weights in {factors_file} sum to {weight_sum:.12f}, expected 1.0"
+        )
+    BENCHMARKS = list(weights.keys())
+    return weights
+
+
+def get_published_agent_keys(version):
+    if version == "v1.1":
+        return set(V11_AGENT_KEYS)
+    return set(V12_AGENT_KEYS)
+
+
+def generate_scores_json(version="v1.1", input_dir=None, output_file=None):
+    weights = configure_version(version, input_dir, output_file)
+    published_agent_keys = get_published_agent_keys(version)
+
+    if version == "v1.2" and len(published_agent_keys) == 2:
+        raise RuntimeError(
+            "No v1.2 competitors are configured. Add the final roster to "
+            "V12_AGENT_KEYS and map any new filenames/names before generating."
+        )
+
+    # Baseline source data is shared. read_csv selects only the benchmarks
+    # listed by the active version's factors file.
+    baseline_data = read_csv(ROOT_DATA_DIR / "aggregated_baseline.csv")
+    baseline_fewshot_data = read_csv(ROOT_DATA_DIR / "aggregated_baseline_fewshot.csv")
 
     model_benchmark_data = {}
 
@@ -422,7 +515,8 @@ def generate_scores_json():
                 model_benchmark_data[agent_key][model][bm]["sourceLabel"] = annotation["sourceLabel"]
 
     aggregated_scores = {}
-    for aggregated_file in AGGREGATED_METRICS_FILES:
+    for relative_path in AGGREGATED_METRICS_FILES:
+        aggregated_file = DATA_DIR / relative_path
         if aggregated_file.exists():
             with open(aggregated_file, 'r') as f:
                 reader = csv.DictReader(f)
@@ -450,33 +544,46 @@ def generate_scores_json():
 
     time_data = load_time_data()
 
-    missing_agents = sorted(V11_AGENT_KEYS - model_benchmark_data.keys())
+    missing_agents = sorted(published_agent_keys - model_benchmark_data.keys())
     if missing_agents:
-        raise RuntimeError(f"Missing v1.1 score data for: {', '.join(missing_agents)}")
+        raise RuntimeError(f"Missing {version} score data for: {', '.join(missing_agents)}")
 
-    competitor_keys = V11_AGENT_KEYS - {"human", "base-model"}
+    competitor_keys = published_agent_keys - {"human", "base-model"}
+    single_run_keys = set(SINGLE_RUN_FINAL_TO_KEY.values())
+    missing_aggregates = sorted(competitor_keys - single_run_keys - aggregated_scores.keys())
+    if missing_aggregates:
+        raise RuntimeError(
+            f"Missing {version} overall aggregate rows for: {', '.join(missing_aggregates)}"
+        )
+    missing_stds = sorted(competitor_keys - single_run_keys - std_data.keys())
+    if missing_stds:
+        raise RuntimeError(
+            f"Missing {version} per-benchmark std data for: {', '.join(missing_stds)}"
+        )
     missing_runtimes = sorted(competitor_keys - time_data.keys())
     if missing_runtimes:
-        raise RuntimeError(f"Missing v1.1 runtime data for: {', '.join(missing_runtimes)}")
+        raise RuntimeError(f"Missing {version} runtime data for: {', '.join(missing_runtimes)}")
 
     model_benchmark_data = {
         key: value for key, value in model_benchmark_data.items()
-        if key in V11_AGENT_KEYS
+        if key in published_agent_keys
     }
     aggregated_scores = {
         key: value for key, value in aggregated_scores.items()
-        if key in V11_AGENT_KEYS
+        if key in published_agent_keys
     }
     std_data = {
         key: value for key, value in std_data.items()
-        if key in V11_AGENT_KEYS
+        if key in published_agent_keys
     }
     time_data = {
         key: value for key, value in time_data.items()
-        if key in V11_AGENT_KEYS
+        if key in published_agent_keys
     }
 
     output = {
+        "resultsVersion": version,
+        "benchmarkKeys": BENCHMARKS,
         "benchmarkWeights": weights,
         "modelBenchmarkData": model_benchmark_data,
         "aggregatedScores": aggregated_scores,
@@ -495,7 +602,7 @@ def generate_scores_json():
     js_file = OUTPUT_FILE.with_suffix(".js")
     with open(js_file, 'w') as f:
         f.write("// Auto-generated by generate_data.py from the data/ CSVs. Do not edit.\n")
-        f.write("window.SCORES_DATA = ")
+        f.write(f"window.{SCORES_GLOBAL} = ")
         json.dump(output, f, indent=2)
         f.write(";\n")
 
@@ -503,5 +610,22 @@ def generate_scores_json():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate a versioned PostTrainBench score bundle.")
+    parser.add_argument(
+        "--version",
+        choices=("v1.1", "v1.2"),
+        default="v1.1",
+        help="Results version to generate (default: v1.1).",
+    )
+    parser.add_argument(
+        "--input-dir",
+        help="Override the version's input directory (useful for validating a staged export).",
+    )
+    parser.add_argument(
+        "--output",
+        help="Override the generated JSON path; the JS bundle uses the same basename.",
+    )
+    args = parser.parse_args()
+
     os.chdir(Path(__file__).parent)
-    generate_scores_json()
+    generate_scores_json(args.version, args.input_dir, args.output)

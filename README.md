@@ -46,10 +46,25 @@ When you have new benchmark results:
    Keep the first filename and store the second as
    `data/aggregated_time_overview.csv` to match the site generator.
 
-2. **Regenerate scores.json:**
+2. **Regenerate the current v1.1 bundle:**
    ```bash
-   python3 generate_data.py
+   python3 generate_data.py --version v1.1
    ```
+
+### Preparing v1.2 results
+
+v1.2 omits BFCL and uses the six normalized weights in
+`data/factors-v1.2.json`. Keep its inputs separate from the published v1.1
+files by placing them under `data/v1.2/`, then run:
+
+```bash
+python3 generate_data.py --version v1.2
+```
+
+This emits `scores-v1.2.json` and `scores-v1.2.js`; it does not overwrite the
+v1.1 `scores.json`/`scores.js` bundle. The published roster is explicit in
+`V12_AGENT_KEYS`; new agents also need filename/name mappings in
+`generate_data.py` and display metadata in `config.js`.
 
 
 ### CSV File Formats
@@ -66,6 +81,14 @@ Qwen3-1.7B-Base,0.0,0.009,0.0,0.140,0.126,0.075,0.079
 ```csv
 model,aime2025,arenahardwriting,bfcl,gpqamain,gsm8k,healthbench,humaneval
 Qwen3-1.7B-Base,0.022,0.004,0.293,0.174,0.509,0.093,0.327
+...
+```
+
+For v1.2, omit the `bfcl` column:
+
+```csv
+model,aime2025,arenahardwriting,gpqamain,gsm8k,healthbench,humaneval
+Qwen3-1.7B-Base,0.022,0.004,0.174,0.509,0.093,0.327
 ...
 ```
 
@@ -163,7 +186,7 @@ const agentInfo = {
 ### 4. Regenerate data
 
 ```bash
-python3 generate_data.py
+python3 generate_data.py --version v1.1
 ```
 ## Development
 
@@ -173,7 +196,6 @@ python3 generate_data.py
 |------|---------|
 | `config.js` | Static config that rarely changes |
 | `data.js` | Data loading and computation functions |
-| `scores.json` | Generated benchmark data (don't edit manually) |
+| `scores*.json` / `scores*.js` | Generated, versioned benchmark data (don't edit manually) |
 | `script.js` | UI rendering and interactions |
 | `generate_data.py` | Converts CSVs to scores.json |
-
