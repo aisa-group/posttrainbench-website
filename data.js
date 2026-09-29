@@ -1,4 +1,5 @@
 let benchmarkWeights = {};
+let activeBenchmarkKeys = [];
 let modelBenchmarkData = {};
 let aggregatedScores = {};
 let stdData = {};
@@ -8,12 +9,25 @@ let leaderboardData = [];
 let timeSpentData = [];
 let statistics = {};
 
-const CURRENT_RESULTS_VERSION = 'v1.1';
+const CURRENT_RESULTS_VERSION = (
+    typeof document !== 'undefined'
+        ? document.documentElement.getAttribute('data-current-results-version')
+        : null
+) || 'v1.1';
 const ARCHIVED_RESULTS_VERSION = 'v1';
 
+function getAvailableResultsVersions() {
+    if (typeof window === 'undefined') return ['v1.1', 'v1'];
+    return [
+        window.SCORES_DATA_V12 ? 'v1.2' : null,
+        window.SCORES_DATA ? 'v1.1' : null,
+        window.SCORES_DATA_V1 ? 'v1' : null
+    ].filter(Boolean);
+}
+
 function normalizeResultsVersion(version) {
-    return version === ARCHIVED_RESULTS_VERSION
-        ? ARCHIVED_RESULTS_VERSION
+    return getAvailableResultsVersions().includes(version)
+        ? version
         : CURRENT_RESULTS_VERSION;
 }
 
@@ -27,9 +41,9 @@ let activeResultsVersion = getInitialResultsVersion();
 
 function getInlinedScoresData(version = activeResultsVersion) {
     if (typeof window === 'undefined') return null;
-    return version === ARCHIVED_RESULTS_VERSION
-        ? window.SCORES_DATA_V1
-        : window.SCORES_DATA;
+    if (version === 'v1.2') return window.SCORES_DATA_V12;
+    if (version === ARCHIVED_RESULTS_VERSION) return window.SCORES_DATA_V1;
+    return window.SCORES_DATA;
 }
 
 function calculateWeightedAverage(agentKey) {
@@ -131,8 +145,14 @@ function getStdDev(agentKey) {
 }
 
 function buildLeaderboardData() {
-    const leaderboardDataRaw = allAgentKeys
-        .filter(key => modelBenchmarkData[key])
+    const configuredOrder = new Set(allAgentKeys);
+    const activeChartAgentKeys = getChartAgentKeys(activeResultsVersion);
+    const resultKeys = [
+        ...allAgentKeys.filter(key => modelBenchmarkData[key]),
+        ...Object.keys(modelBenchmarkData).filter(key => !configuredOrder.has(key))
+    ];
+    const leaderboardDataRaw = resultKeys
+        .filter(key => agentInfo[key])
         .map(key => ({
             agentKey: key,
             agent: agentInfo[key].name,
@@ -147,7 +167,7 @@ function buildLeaderboardData() {
             chartSourceLabel: agentInfo[key].chartSourceLabel || null,
             scaffold: agentInfo[key].scaffold || null,
             reasoningEffort: agentInfo[key].reasoningEffort || null,
-            showInChart: chartAgentKeys.includes(key)
+            showInChart: activeChartAgentKeys.includes(key)
         }));
 
     const sorted = leaderboardDataRaw.sort((a, b) => parseFloat(b.averageScore) - parseFloat(a.averageScore));
@@ -160,10 +180,13 @@ function buildLeaderboardData() {
 }
 
 function buildTaskData() {
-    taskData = Object.entries(benchmarkInfo).map(([key, info]) => ({
-        ...info,
-        weight: benchmarkWeights[key]
-    }));
+    taskData = activeBenchmarkKeys
+        .filter(key => benchmarkInfo[key])
+        .map(key => ({
+            key,
+            ...benchmarkInfo[key],
+            weight: benchmarkWeights[key]
+        }));
 }
 
 function buildStatistics() {
@@ -195,6 +218,7 @@ function buildTimeSpentData() {
 
 function applyScoresData(data) {
     benchmarkWeights = data.benchmarkWeights;
+    activeBenchmarkKeys = data.benchmarkKeys || Object.keys(benchmarkWeights);
     modelBenchmarkData = data.modelBenchmarkData;
     aggregatedScores = data.aggregatedScores || {};
     stdData = data.stdData || {};

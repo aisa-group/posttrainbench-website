@@ -15,8 +15,16 @@ let isThemeTransitioning = false;
 let activeThemeTransition = null;
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 let resultsVersionContentAnimations = [];
+let heroVersionInitialized = false;
+let heroVersionLoadTimer = null;
 
 const resultsVersionCopy = {
+    'v1.2': {
+        status: '<span aria-hidden="true">§</span> Five Fable 5.1 GPQA Main cells fell back to Opus 5.',
+        methodology: '<sup>§</sup> Five underlying Fable 5.1 GPQA Main cells fell back to Opus 5. The aggregate GPQA Main values therefore include both Fable 5.1 and Opus 5 results.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>§</sup> Five Fable 5.1 GPQA Main cells use Opus 5 fallback scores; see Methodology &amp; caveats.',
+        efficiencyNote: ''
+    },
     'v1.1': {
         status: '<span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.',
         methodology: '<sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.',
@@ -36,19 +44,66 @@ function trackGoatCounterEvent(path, title) {
     window.goatcounter.count({ path, title, event: true });
 }
 
+function setHeroVersion(version, { animate = true } = {}) {
+    const odometer = document.getElementById('hero-version-odometer');
+    const majorReel = document.getElementById('hero-version-major');
+    const minorReel = document.getElementById('hero-version-minor');
+    const fraction = document.getElementById('hero-version-fraction');
+    const link = document.querySelector('.hero-version-link');
+    const match = /^v(\d)(?:\.(\d))?$/.exec(version);
+    if (!odometer || !majorReel || !minorReel || !fraction || !link || !match) return;
+
+    if (heroVersionLoadTimer !== null) {
+        clearTimeout(heroVersionLoadTimer);
+        heroVersionLoadTimer = null;
+    }
+
+    const shouldAnimate = animate && !reducedMotionQuery.matches;
+    majorReel.classList.toggle('is-animated', shouldAnimate);
+    minorReel.classList.toggle('is-animated', shouldAnimate);
+    fraction.classList.toggle('is-animated', shouldAnimate);
+    const major = Number(match[1]);
+    const minor = match[2] === undefined ? null : Number(match[2]);
+    const applyPosition = () => {
+        majorReel.style.transform = `translate3d(0, -${major}em, 0)`;
+        if (minor !== null) {
+            minorReel.style.transform = `translate3d(0, -${minor}em, 0)`;
+        }
+        fraction.classList.toggle('is-visible', minor !== null);
+    };
+    if (shouldAnimate) requestAnimationFrame(applyPosition);
+    else applyPosition();
+
+    link.setAttribute('aria-label', `PostTrainBench ${version}`);
+    link.setAttribute('data-goatcounter-title', `PostTrainBench ${version} title link`);
+    link.setAttribute('href', version === 'v1.1' ? '/blog/posttrainbench-1-1/' : '#leaderboard');
+}
+
+function initializeHeroVersion(version) {
+    if (heroVersionInitialized) return;
+    heroVersionInitialized = true;
+    setHeroVersion('v1.1', { animate: false });
+
+    if (version === 'v1.1' || reducedMotionQuery.matches) {
+        setHeroVersion(version, { animate: false });
+        return;
+    }
+
+    heroVersionLoadTimer = setTimeout(() => {
+        heroVersionLoadTimer = null;
+        setHeroVersion(version, { animate: true });
+    }, 240);
+}
+
 function updateResultsVersionUI({ instant = false } = {}) {
     const version = normalizeResultsVersion(activeResultsVersion);
-    const toggle = document.querySelector('.results-version-toggle');
-    if (instant && toggle) {
-        toggle.classList.add('is-instant');
-        requestAnimationFrame(() => requestAnimationFrame(() => toggle.classList.remove('is-instant')));
-    }
-    toggle?.classList.toggle('is-v1', version === ARCHIVED_RESULTS_VERSION);
-
-    document.querySelectorAll('[data-results-version]').forEach((button) => {
-        const isActive = button.dataset.resultsVersion === version;
-        button.classList.toggle('is-active', isActive);
-        button.setAttribute('aria-pressed', String(isActive));
+    renderResultsVersionOptions();
+    const value = document.getElementById('results-version-value');
+    if (value) value.textContent = version;
+    document.querySelectorAll('#results-version-options [data-results-version]').forEach((option) => {
+        const isActive = option.dataset.resultsVersion === version;
+        option.classList.toggle('active', isActive);
+        option.setAttribute('aria-selected', String(isActive));
     });
 
     document.documentElement.setAttribute('data-results-version', version);
@@ -57,10 +112,97 @@ function updateResultsVersionUI({ instant = false } = {}) {
     const methodology = document.getElementById('fable-methodology-note');
     const tableFootnote = document.getElementById('table-footnote');
     const efficiencyNote = document.getElementById('efficiency-version-note');
-    if (status) status.innerHTML = copy.status;
-    if (methodology) methodology.innerHTML = copy.methodology;
-    if (tableFootnote) tableFootnote.innerHTML = copy.tableFootnote;
-    if (efficiencyNote) efficiencyNote.textContent = copy.efficiencyNote;
+    if (status) {
+        status.innerHTML = copy?.status || '';
+        status.hidden = !copy?.status;
+    }
+    if (methodology) {
+        methodology.innerHTML = copy?.methodology || '';
+        methodology.hidden = !copy?.methodology;
+    }
+    if (tableFootnote) tableFootnote.innerHTML = copy?.tableFootnote || '';
+    if (efficiencyNote) efficiencyNote.textContent = copy?.efficiencyNote || '';
+
+    updateBenchmarkVersionUI();
+}
+
+function renderResultsVersionOptions() {
+    const options = document.getElementById('results-version-options');
+    if (!options) return;
+
+    const versions = getAvailableResultsVersions();
+    const signature = versions.join(',');
+    if (options.dataset.versionSignature === signature) return;
+
+    options.dataset.versionSignature = signature;
+    options.innerHTML = versions.map((version) => {
+        const isActive = version === activeResultsVersion;
+        return `<button class="dropdown-option${isActive ? ' active' : ''}" type="button" role="option" aria-selected="${String(isActive)}" tabindex="-1" data-results-version="${version}">${version}</button>`;
+    }).join('');
+}
+
+function setResultsVersionDropdownOpen(isOpen, optionToFocus = null, { instant = false } = {}) {
+    const dropdown = document.getElementById('results-version-dropdown');
+    const display = document.getElementById('results-version-display');
+    if (!dropdown || !display) return;
+    if (instant) {
+        dropdown.classList.add('no-motion');
+        requestAnimationFrame(() => requestAnimationFrame(() => dropdown.classList.remove('no-motion')));
+    }
+    dropdown.classList.toggle('open', isOpen);
+    display.setAttribute('aria-expanded', String(isOpen));
+    if (isOpen && optionToFocus) requestAnimationFrame(() => optionToFocus.focus());
+}
+
+function getBenchmarkDisplayTitle(key) {
+    const info = benchmarkInfo[key];
+    if (!info) return key;
+    return info.version ? `${info.title} ${info.version}` : info.title;
+}
+
+function getBenchmarkColumnTitle(key) {
+    return benchmarkInfo[key]?.columnTitle || benchmarkInfo[key]?.title || key;
+}
+
+function formatCountWord(count) {
+    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+    return words[count] || String(count);
+}
+
+function updateBenchmarkVersionUI() {
+    const count = activeBenchmarkKeys.length;
+    if (!count) return;
+
+    const countWord = formatCountWord(count);
+    const benchmarkNames = activeBenchmarkKeys.map(getBenchmarkDisplayTitle);
+    const leaderboardDescription = document.getElementById('leaderboard-description');
+    const methodology = document.getElementById('benchmark-methodology-note');
+    const pipeline = document.getElementById('pipeline-flow');
+    const pipelineScore = document.getElementById('pipeline-score-description');
+    const setupScore = document.getElementById('setup-score-description');
+
+    if (leaderboardDescription) {
+        leaderboardDescription.textContent = `Average performance across four base models and ${countWord} weighted benchmarks.`;
+    }
+    if (methodology) {
+        methodology.innerHTML = `<sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and ${countWord} benchmarks (${benchmarkNames.join(', ')}). Each run asks a CLI agent to maximize one base model on one benchmark.`;
+    }
+    if (pipeline) {
+        pipeline.setAttribute('aria-label', `Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated and aggregated into a leaderboard score across four base models and ${countWord} benchmarks.`);
+    }
+    if (pipelineScore) pipelineScore.textContent = `Weighted average across 4 base models × ${count} benchmarks`;
+    if (setupScore) setupScore.textContent = `Weighted average across ${countWord} benchmarks`;
+
+    const header = document.getElementById('leaderboard-header-row');
+    if (header) {
+        header.closest('table')?.style.setProperty('--benchmark-count', String(count));
+        header.innerHTML = `
+            <th>Rank</th>
+            <th>Method</th>
+            <th>Avg</th>
+            ${activeBenchmarkKeys.map(key => `<th class="benchmark-col">${getBenchmarkColumnTitle(key)}</th>`).join('')}
+        `;
+    }
 }
 
 function updateResultsVersionURL(version) {
@@ -103,7 +245,10 @@ function renderResultsVersion(version, { updateURL = true, animate = true, track
     if (!applyResultsVersion(normalizedVersion)) return false;
 
     updateResultsVersionUI({ instant: !animate });
+    setHeroVersion(normalizedVersion, { animate });
     populateLeaderboard(currentSelectedModel);
+    populateTasks();
+    populateStatistics();
 
     if (performanceChart) {
         performanceChart.destroy();
@@ -454,17 +599,15 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
             : `Show all ${rankedData.length} agents`;
     }
 
-    // Collect all ranked-agent values for each column to find min/max.
+    // Collect all ranked-agent values for each active benchmark column. The
+    // benchmark list belongs to the selected results version (v1/v1.1/v1.2),
+    // so versions can add or remove tasks without leaving empty table cells.
     const columns = {
-        average: heatmapData.map(e => parseFloat(e.averageScore)),
-        aime2025: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.aime2025)),
-        arenahardwriting: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.arenahardwriting)),
-        bfcl: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.bfcl)),
-        gpqamain: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.gpqamain)),
-        gsm8k: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.gsm8k)),
-        healthbench: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.healthbench)),
-        humaneval: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.humaneval))
+        average: heatmapData.map(e => parseFloat(e.averageScore))
     };
+    activeBenchmarkKeys.forEach((key) => {
+        columns[key] = heatmapData.map(entry => getBenchmarkValue(entry.benchmarkScores[key]));
+    });
 
     // Find min and max for each column
     const ranges = {};
@@ -494,22 +637,17 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
 
         // Create cells with heatmap colors normalized per column
         const avgValue = parseFloat(entry.averageScore);
-        const aimeValue = getBenchmarkValue(entry.benchmarkScores.aime2025);
-        const arenaValue = getBenchmarkValue(entry.benchmarkScores.arenahardwriting);
-        const bfclValue = getBenchmarkValue(entry.benchmarkScores.bfcl);
-        const gpqaValue = getBenchmarkValue(entry.benchmarkScores.gpqamain);
-        const gsmValue = getBenchmarkValue(entry.benchmarkScores.gsm8k);
-        const healthValue = getBenchmarkValue(entry.benchmarkScores.healthbench);
-        const humanValue = getBenchmarkValue(entry.benchmarkScores.humaneval);
-
         const avgColor = getHeatmapColor(normalize(avgValue, 'average'), 'summary');
-        const aimeColor = getHeatmapColor(normalize(aimeValue, 'aime2025'));
-        const arenaColor = getHeatmapColor(normalize(arenaValue, 'arenahardwriting'));
-        const bfclColor = getHeatmapColor(normalize(bfclValue, 'bfcl'));
-        const gpqaColor = getHeatmapColor(normalize(gpqaValue, 'gpqamain'));
-        const gsmColor = getHeatmapColor(normalize(gsmValue, 'gsm8k'));
-        const healthColor = getHeatmapColor(normalize(healthValue, 'healthbench'));
-        const humanColor = getHeatmapColor(normalize(humanValue, 'humaneval'));
+        const benchmarkCells = activeBenchmarkKeys.map((key) => {
+            const score = entry.benchmarkScores[key];
+            const value = getBenchmarkValue(score);
+            return {
+                key,
+                label: getBenchmarkDisplayTitle(key),
+                score,
+                color: getHeatmapColor(normalize(value, key))
+            };
+        });
 
         // Format std display (only show if available)
         const stdDisplay = formatStdDisplay(entry.stdDev);
@@ -542,13 +680,9 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
             <td><span class="rank-badge ${rankClass}">${rankDisplay}</span></td>
             <td class="method-cell"><strong>${agentNameHtml}</strong><span class="row-details-indicator"></span></td>
             <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
-            <td class="benchmark-col" style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${bfclColor}">${formatBenchmarkValue(entry.benchmarkScores.bfcl, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${gpqaColor}">${formatBenchmarkValue(entry.benchmarkScores.gpqamain, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${gsmColor}">${formatBenchmarkValue(entry.benchmarkScores.gsm8k, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${healthColor}">${formatBenchmarkValue(entry.benchmarkScores.healthbench, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${humanColor}">${formatBenchmarkValue(entry.benchmarkScores.humaneval, showMarkers, showStd)}</td>
+            ${benchmarkCells.map(({ score, color }) => `
+                <td class="benchmark-col" style="background-color: ${color}">${formatBenchmarkValue(score, showMarkers, showStd)}</td>
+            `).join('')}
         `;
 
         tbody.appendChild(row);
@@ -569,15 +703,6 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
             );
         }
 
-        const detailScores = [
-            ['AIME 2025', entry.benchmarkScores.aime2025, aimeColor],
-            ['Arena Hard', entry.benchmarkScores.arenahardwriting, arenaColor],
-            ['BFCL', entry.benchmarkScores.bfcl, bfclColor],
-            ['GPQA Main', entry.benchmarkScores.gpqamain, gpqaColor],
-            ['GSM8K', entry.benchmarkScores.gsm8k, gsmColor],
-            ['HealthBench', entry.benchmarkScores.healthbench, healthColor],
-            ['HumanEval', entry.benchmarkScores.humaneval, humanColor]
-        ];
         const detailRow = document.createElement('tr');
         detailRow.className = `benchmark-detail-row${entry.isBaseline ? ' reference-detail-row' : ''}`;
         detailRow.hidden = true;
@@ -585,7 +710,7 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
             <td colspan="3">
                 <div class="benchmark-detail-panel">
                     <div class="benchmark-detail-grid">
-                        ${detailScores.map(([label, score, color]) => `
+                        ${benchmarkCells.map(({ label, score, color }) => `
                             <div class="benchmark-detail-item" style="background-color: ${color}">
                                 <span class="benchmark-detail-label">${label}</span>
                                 <strong>${formatBenchmarkValue(score, showMarkers, showStd)}</strong>
@@ -604,6 +729,7 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
 function populateTasks() {
     const tbody = document.getElementById('benchmark-table-body');
     if (!tbody) return;
+    tbody.innerHTML = '';
 
     taskData.forEach(task => {
         const tr = document.createElement('tr');
@@ -746,6 +872,15 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
             baseReference
         ].filter(Boolean)
         : [...data].reverse();
+
+    const chartKey = document.querySelector('.main-chart-key');
+    const externalKey = chartKey?.querySelector('.main-chart-key-external');
+    const repromptedKey = chartKey?.querySelector('.main-chart-key-reprompted');
+    const hasExternalResults = plottedData.some(entry => entry.isExternal);
+    const hasRepromptedResults = plottedData.some(entry => entry.reasoningEffort?.includes('Reprompted'));
+    if (externalKey) externalKey.hidden = !hasExternalResults;
+    if (repromptedKey) repromptedKey.hidden = !hasRepromptedResults;
+    if (chartKey) chartKey.hidden = !hasExternalResults && !hasRepromptedResults;
 
     const effortLabels = plottedData.map(d => getChartAgentMeta(d).effort);
     const sourceLabels = plottedData.map(d => d.chartSourceLabel || '');
@@ -2301,6 +2436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.documentElement.classList.remove('leaderboard-loading');
     }
     updateResultsVersionUI({ instant: true });
+    initializeHeroVersion(activeResultsVersion);
 
     // Wait specifically for the chart face instead of every page font. This
     // avoids a blank chart card on slow connections while still preventing its
@@ -2336,14 +2472,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     createTimeSpentChart();
     handleNavbarLogoVisibility(); // Set initial state based on scroll position
 
-    document.querySelectorAll('[data-results-version]').forEach((versionButton) => {
-        versionButton.addEventListener('click', (event) => {
-            const shouldAnimate = event.detail !== 0 && !reducedMotionQuery.matches;
-            renderResultsVersion(versionButton.dataset.resultsVersion, {
-                animate: shouldAnimate
+    const resultsDropdown = document.getElementById('results-version-dropdown');
+    const resultsDisplay = document.getElementById('results-version-display');
+    const resultsOptions = document.getElementById('results-version-options');
+    const getResultsOptions = () => [...(resultsOptions?.querySelectorAll('[data-results-version]') || [])];
+
+    if (resultsDropdown && resultsDisplay && resultsOptions) {
+        resultsDisplay.addEventListener('click', (event) => {
+            setResultsVersionDropdownOpen(!resultsDropdown.classList.contains('open'), null, {
+                instant: event.detail === 0
             });
         });
-    });
+
+        resultsDisplay.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                const options = getResultsOptions();
+                const selected = options.find(option => option.getAttribute('aria-selected') === 'true');
+                const optionToFocus = event.key === 'ArrowUp' ? options[options.length - 1] : selected || options[0];
+                setResultsVersionDropdownOpen(true, optionToFocus, { instant: true });
+            } else if (event.key === 'Escape') {
+                setResultsVersionDropdownOpen(false, null, { instant: true });
+            }
+        });
+
+        resultsOptions.addEventListener('click', (event) => {
+            const option = event.target.closest('[data-results-version]');
+            if (!option) return;
+            setResultsVersionDropdownOpen(false);
+            resultsDisplay.focus();
+            renderResultsVersion(option.dataset.resultsVersion, {
+                animate: event.detail !== 0 && !reducedMotionQuery.matches
+            });
+        });
+
+        resultsOptions.addEventListener('keydown', (event) => {
+            const option = event.target.closest('[data-results-version]');
+            if (!option) return;
+            const options = getResultsOptions();
+            const index = options.indexOf(option);
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                const direction = event.key === 'ArrowDown' ? 1 : -1;
+                options[(index + direction + options.length) % options.length]?.focus();
+            } else if (event.key === 'Home' || event.key === 'End') {
+                event.preventDefault();
+                options[event.key === 'Home' ? 0 : options.length - 1]?.focus();
+            } else if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setResultsVersionDropdownOpen(false, null, { instant: true });
+                resultsDisplay.focus();
+                renderResultsVersion(option.dataset.resultsVersion, { animate: false });
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                setResultsVersionDropdownOpen(false, null, { instant: true });
+                resultsDisplay.focus();
+            } else if (event.key === 'Tab') {
+                setResultsVersionDropdownOpen(false, null, { instant: true });
+            }
+        });
+
+        resultsDropdown.addEventListener('focusout', (event) => {
+            if (!resultsDropdown.contains(event.relatedTarget)) {
+                setResultsVersionDropdownOpen(false, null, { instant: true });
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!resultsDropdown.contains(event.target)) setResultsVersionDropdownOpen(false);
+        });
+    }
 
     window.addEventListener('popstate', () => {
         renderResultsVersion(getInitialResultsVersion(), {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" data-current-results-version="v1.2">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,9 +20,11 @@
             } catch (e) {}
             try {
                 var version = new URLSearchParams(window.location.search).get('version');
-                root.setAttribute('data-results-version', version === 'v1' ? 'v1' : 'v1.1');
+                var currentVersion = root.getAttribute('data-current-results-version') || 'v1.1';
+                var knownVersions = ['v1.2', 'v1.1', 'v1'];
+                root.setAttribute('data-results-version', knownVersions.indexOf(version) >= 0 ? version : currentVersion);
             } catch (e) {
-                root.setAttribute('data-results-version', 'v1.1');
+                root.setAttribute('data-results-version', root.getAttribute('data-current-results-version') || 'v1.1');
             }
             root.classList.add('leaderboard-loading');
             setTimeout(function () { root.classList.remove('leaderboard-loading'); }, 3000);
@@ -97,7 +99,26 @@
             <h1 class="hero-title">
                 <span class="hero-title-name"><span class="title-main">PostTrain</span><span class="title-accent">Bench</span></span>
                 <a class="hero-version-link" href="/blog/posttrainbench-1-1/" data-goatcounter-click="release-details-opened/title"
-                    data-goatcounter-title="PostTrainBench v1.1 title link">v1.1</a>
+                    data-goatcounter-title="PostTrainBench v1.1 title link" aria-label="PostTrainBench v1.1">
+                    <span class="hero-version-odometer" id="hero-version-odometer" aria-hidden="true">
+                        <span class="hero-version-prefix">v</span>
+                        <span class="hero-version-digit-window">
+                            <span class="hero-version-digit-reel" id="hero-version-major" style="transform: translate3d(0, -1em, 0)">
+                                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+                                <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                            </span>
+                        </span>
+                        <span class="hero-version-fraction is-visible" id="hero-version-fraction">
+                            <span class="hero-version-decimal">.</span>
+                            <span class="hero-version-digit-window">
+                                <span class="hero-version-digit-reel" id="hero-version-minor" style="transform: translate3d(0, -1em, 0)">
+                                    <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+                                    <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                                </span>
+                            </span>
+                        </span>
+                    </span>
+                </a>
             </h1>
             <p class="hero-subtitle">Measuring how well AI agents can post-train language models</p>
             <div class="hero-description">
@@ -133,28 +154,32 @@
     <section id="leaderboard" class="leaderboard">
         <div class="container">
             <h2 class="section-title">Leaderboard</h2>
-            <p class="section-description">Average performance across four base models and seven weighted benchmarks.</p>
+            <p class="section-description" id="leaderboard-description">Average performance across four base models and seven weighted benchmarks.</p>
             <div class="results-version-control">
                 <span class="results-version-label" id="results-version-label">Results version</span>
-                <div class="results-version-toggle" role="group" aria-labelledby="results-version-label">
-                    <button class="results-version-option is-active" type="button" data-results-version="v1.1" aria-pressed="true">
-                        <span>v1.1</span><small>Current</small>
+                <div class="custom-dropdown results-version-dropdown" id="results-version-dropdown">
+                    <button class="dropdown-selected results-version-selected" id="results-version-display" type="button"
+                        aria-haspopup="listbox" aria-expanded="false" aria-controls="results-version-options"
+                        aria-labelledby="results-version-label results-version-value">
+                        <span id="results-version-value">v1.2</span>
                     </button>
-                    <button class="results-version-option" type="button" data-results-version="v1" aria-pressed="false">
-                        <span>v1</span><small>Original</small>
-                    </button>
+                    <div class="dropdown-options results-version-options" id="results-version-options" role="listbox" aria-labelledby="results-version-label">
+                        <button class="dropdown-option active" type="button" role="option" aria-selected="true" tabindex="-1" data-results-version="v1.2">v1.2</button>
+                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-results-version="v1.1">v1.1</button>
+                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-results-version="v1">v1</button>
+                    </div>
                 </div>
             </div>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="performanceChart"></canvas>
                 </div>
-                <div class="main-chart-key" aria-label="Chart key">
-                    <span class="main-chart-key-item main-chart-key-external">
+                <div class="main-chart-key" aria-label="Chart key" hidden>
+                    <span class="main-chart-key-item main-chart-key-external" hidden>
                         <span class="main-chart-key-swatch main-chart-key-swatch-external" aria-hidden="true"></span>
                         <span>External submission</span>
                     </span>
-                    <span class="main-chart-key-item main-chart-key-reprompted">
+                    <span class="main-chart-key-item main-chart-key-reprompted" hidden>
                         <span class="main-chart-key-swatch" aria-hidden="true"></span>
                         <span>Reprompted</span>
                     </span>
@@ -164,17 +189,17 @@
                     <span id="mobile-chart-references">Full ranking below</span>
                 </p>
             </div>
-            <p class="results-status" id="results-status"><span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.</p>
+            <p class="results-status" id="results-status"><span aria-hidden="true">§</span> Five Fable 5.1 GPQA Main cells fell back to Opus 5.</p>
             <div class="leaderboard-meta">
                 <details class="methodology-notes compact-disclosure">
                     <summary>Methodology &amp; caveats</summary>
                     <div class="methodology-content">
-                        <p><sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and seven benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). Each run asks a CLI agent to maximize one base model on one benchmark.</p>
+                        <p id="benchmark-methodology-note"><sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and seven benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). Each run asks a CLI agent to maximize one base model on one benchmark.</p>
                         <p><sup>2</sup> “Official Instruct Models” are the official post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank" rel="noopener noreferrer">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank" rel="noopener noreferrer">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank" rel="noopener noreferrer">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank" rel="noopener noreferrer">Gemma-3-4B-IT</a>. Their training usually exceeds the ten-hour, one-GPU constraint, so they are not directly comparable.</p>
                         <p><strong>Reprompted</strong> means the agent was manually asked to continue whenever it stopped before the time budget expired.</p>
                         <p><strong>Contamination boundary.</strong> Agents may match a benchmark's general style, format, domain, or difficulty, but may not derive training data from specific test items, even without verbatim overlap. Agents receive the same n-gram decontamination tool used during review. Affected runs require a compliant rerun; unavailable legacy results are omitted.</p>
                         <p><strong>External result.</strong> Locus was run by <a href="https://www.intology.ai/" target="_blank" rel="noopener noreferrer">Intology</a> and reviewed for v1.1 compliance by the PostTrainBench team. The submission includes three score seeds and a mean runtime of 9h 38m 12s across 84 runs.</p>
-                        <p id="fable-methodology-note"><sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.</p>
+                        <p id="fable-methodology-note"><sup>§</sup> Five underlying Fable 5.1 GPQA Main cells fell back to Opus 5. The aggregate GPQA Main values therefore include both Fable 5.1 and Opus 5 results.</p>
                     </div>
                 </details>
                 <details class="changelog compact-disclosure">
@@ -319,7 +344,7 @@
             <div class="leaderboard-table" id="leaderboard-table">
                 <table>
                     <thead>
-                        <tr>
+                        <tr id="leaderboard-header-row">
                             <th>Rank</th>
                             <th>Method</th>
                             <th>Avg</th>
@@ -399,7 +424,7 @@
             <h2 class="section-title">How a Run Is Scored</h2>
             <p class="section-description">Version 1.1 gives agents an explicit test-item contamination rule and the same decontamination tool used during review. Independent contamination, API-usage, and PostTrainBench-lookup reviews audit each run; programmatic checks verify model identity, and flagged runs receive the base-model score.</p>
             <div class="pipeline-diagram">
-                <div class="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated and aggregated into a leaderboard score across four base models and seven benchmarks.">
+                <div class="pipeline-flow" id="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated and aggregated into a leaderboard score across four base models and seven benchmarks.">
                     <div class="pf-card pf-agent">
                         <div class="pf-title">Agent post-trains the LLM</div>
                         <ul class="pf-list">
@@ -427,7 +452,7 @@
                     <div class="pf-arrow pf-a3" aria-hidden="true"><span class="pf-glyph">→</span></div>
                     <div class="pf-card pf-score">
                         <div class="pf-title">Leaderboard score</div>
-                        <div class="pf-body">Weighted average across 4 base models × 7 benchmarks</div>
+                        <div class="pf-body" id="pipeline-score-description">Weighted average across 4 base models × 7 benchmarks</div>
                     </div>
                     <div class="pf-arrow pf-branch" aria-hidden="true"><span class="pf-glyph">↓</span><span class="pf-arrow-label pf-flag">flagged</span></div>
                     <div class="pf-card pf-fail">
@@ -447,7 +472,7 @@
                 <div class="setup-item"><dt>Base models</dt><dd>Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</dd></div>
                 <div class="setup-item"><dt>Hardware</dt><dd>One H100 GPU per agent</dd></div>
                 <div class="setup-item"><dt>Time limit</dt><dd>10 hours per run</dd></div>
-                <div class="setup-item"><dt>Score</dt><dd>Weighted average across seven benchmarks</dd></div>
+                <div class="setup-item"><dt>Score</dt><dd id="setup-score-description">Weighted average across seven benchmarks</dd></div>
                 <div class="setup-item"><dt>Scaffold &amp; tools</dt><dd>Native CLI environment + decontamination checker</dd></div>
             </dl>
             <h3 class="section-subtitle setup-subtitle">Evaluation mix</h3>
@@ -866,6 +891,7 @@ examples.extend(synthetic_examples(1000, 42000))</pre>
     <script src="config.js"></script>
     <script src="scores-v1.js"></script>
     <script src="scores.js"></script>
+    <script src="scores-v1.2.js"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
     <script src="photo-mode.js"></script>

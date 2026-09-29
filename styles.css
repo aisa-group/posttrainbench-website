@@ -401,17 +401,78 @@ body {
 }
 
 .hero-version-link {
+    display: inline-flex;
+    align-items: center;
     padding: 0.18rem 0.34rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--accent-text);
-    font-size: 0.82rem;
+    font-size: 0.9rem;
     font-weight: 600;
     letter-spacing: 0;
     line-height: 1;
     text-decoration: none;
     transform: translateY(-0.15em);
     transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+.hero-version-odometer {
+    display: inline-flex;
+    align-items: center;
+    height: 1em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.hero-version-prefix,
+.hero-version-decimal {
+    display: block;
+    height: 1em;
+}
+
+.hero-version-digit-window {
+    display: block;
+    width: 0.62em;
+    height: 1em;
+    overflow: hidden;
+}
+
+.hero-version-digit-reel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.hero-version-digit-reel.is-animated {
+    transition: transform 320ms cubic-bezier(0.77, 0, 0.175, 1);
+    will-change: transform;
+}
+
+.hero-version-digit-reel > span {
+    display: block;
+    flex: 0 0 1em;
+    width: 100%;
+    height: 1em;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.hero-version-fraction {
+    display: inline-flex;
+    align-items: center;
+    max-width: 0;
+    height: 1em;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.hero-version-fraction.is-visible {
+    max-width: 1.15em;
+    opacity: 1;
+}
+
+.hero-version-fraction.is-animated {
+    transition: max-width 240ms cubic-bezier(0.77, 0, 0.175, 1), opacity 160ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -777,87 +838,35 @@ section {
     font-weight: 500;
 }
 
-.results-version-toggle {
-    position: relative;
-    display: inline-flex;
-    flex: none;
-    gap: 0.1rem;
-    padding: 0.15rem;
-    overflow: hidden;
-    isolation: isolate;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+.custom-dropdown.results-version-dropdown {
+    min-width: 5rem;
 }
 
-.results-version-toggle::before {
-    position: absolute;
-    z-index: 0;
-    top: 0.15rem;
-    bottom: 0.15rem;
-    left: 0.15rem;
-    width: calc((100% - 0.4rem) / 2);
-    background: var(--bg-primary);
-    border-radius: calc(var(--radius-md) - 2px);
-    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent);
-    content: '';
-    pointer-events: none;
-    transform: translateX(0);
-    transition: transform 180ms var(--ease-out);
-    will-change: transform;
+.dropdown-selected.results-version-selected {
+    min-height: 2.125rem;
+    padding: 0.32rem 1.65rem 0.32rem 0.65rem;
+    background: color-mix(in srgb, var(--bg-primary) 88%, var(--bg-secondary));
+    font-size: 0.72rem;
+    font-weight: 550;
+    letter-spacing: 0.01em;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 5%, transparent);
 }
 
-.results-version-toggle.is-v1::before {
-    transform: translateX(calc(100% + 0.1rem));
+.dropdown-options.results-version-options {
+    top: calc(100% + 0.375rem);
+    min-width: 100%;
 }
 
-.results-version-toggle.is-instant::before {
-    transition-duration: 0ms;
+.results-version-options .dropdown-option {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.72rem;
 }
 
-.results-version-option {
-    position: relative;
-    z-index: 1;
-    display: inline-flex;
-    min-width: 5.6rem;
-    align-items: baseline;
-    justify-content: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.55rem;
-    background: transparent;
-    color: var(--text-secondary);
-    border: 0;
-    border-radius: calc(var(--radius-md) - 2px);
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    line-height: 1.35;
-    cursor: pointer;
-    transition: color 120ms var(--ease-out), transform 120ms var(--ease-out);
-}
-
-.results-version-option small {
-    font-size: 0.58rem;
-    font-weight: 500;
-    opacity: 0.72;
-}
-
-.results-version-option.is-active {
-    color: var(--text-primary);
-}
-
-.results-version-option:active {
-    transform: scale(0.97);
-}
-
-.results-version-option:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: -2px;
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .results-version-option:not(.is-active):hover {
-        color: var(--text-primary);
-    }
+.results-version-options .dropdown-option.active::after {
+    float: right;
+    color: var(--accent-text);
+    content: '✓';
+    font-weight: 700;
 }
 
 .chart-controls {
@@ -935,25 +944,14 @@ section {
     line-height: 1.4;
 }
 
-html[data-results-version="v1.1"] .reprompted-chart-key {
-    display: none;
-}
-
 .main-chart-key-item {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
 }
 
-.main-chart-key-external {
-    display: none;
-}
-
-html[data-results-version="v1.1"] .main-chart-key-external {
-    display: inline-flex;
-}
-
-html[data-results-version="v1.1"] .main-chart-key-reprompted {
+.main-chart-key[hidden],
+.main-chart-key-item[hidden] {
     display: none;
 }
 
@@ -1231,7 +1229,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
 }
 
 /* Keep the score area on a regular matrix. Rank and Method retain their
-   reading widths; Avg stays distinct; all seven benchmark columns share the
+   reading widths; Avg stays distinct; all active benchmark columns share the
    remaining space equally. Below the mobile breakpoint the compact disclosure
    layout provides its own column geometry. */
 @media (min-width: 769px) {
@@ -1253,7 +1251,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     }
 
     .leaderboard-table th:nth-child(n + 4) {
-        width: 9.321%;
+        width: calc(65.25% / var(--benchmark-count, 7));
     }
 
     .leaderboard-table .benchmark-col {
@@ -2506,7 +2504,7 @@ tbody tr:last-child td {
 
     .hero-version-link {
         padding: 0.16rem 0.28rem;
-        font-size: 0.66rem;
+        font-size: 0.7rem;
     }
 
     .hero-subtitle {
