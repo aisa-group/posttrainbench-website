@@ -279,25 +279,27 @@ function updateResultsVersionURL(version) {
     window.history.pushState({ ...window.history.state, resultsVersion: version }, '', url);
 }
 
-function animateResultsVersionContent(version) {
+// Data swapped in place (results version, base model): the regions that
+// changed briefly settle in from a light fade. No movement: the content stays
+// where it is, and the control that was used already shows the direction.
+function settleChangedContent(elements) {
     if (reducedMotionQuery.matches || typeof Element.prototype.animate !== 'function') return;
 
     resultsVersionContentAnimations.forEach(animation => animation.cancel());
-    resultsVersionContentAnimations = [
+    resultsVersionContentAnimations = elements.filter(Boolean).map((element) => element.animate(
+        [{ opacity: 0.72 }, { opacity: 1 }],
+        { duration: 180, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }
+    ));
+}
+
+function animateResultsVersionContent() {
+    settleChangedContent([
+        document.querySelector('#leaderboard .leaderboard-chart'),
         document.querySelector('#leaderboard .results-status'),
         document.querySelector('#leaderboard .leaderboard-table'),
         document.querySelector('#time-spent .efficiency-grid'),
         document.querySelector('#time-spent .efficiency-note')
-    ].filter(Boolean).map((element) => element.animate(
-        [
-            { opacity: 0.72, transform: `translateY(${version === ARCHIVED_RESULTS_VERSION ? 3 : -3}px)` },
-            { opacity: 1, transform: 'translateY(0)' }
-        ],
-        {
-            duration: 180,
-            easing: 'cubic-bezier(0.23, 1, 0.32, 1)'
-        }
-    ));
+    ]);
 }
 
 function renderResultsVersion(version, { updateURL = true, animate = true, track = true } = {}) {
@@ -330,7 +332,7 @@ function renderResultsVersion(version, { updateURL = true, animate = true, track
             `Results version: ${normalizedVersion}`
         );
     }
-    if (animate) animateResultsVersionContent(normalizedVersion);
+    if (animate) animateResultsVersionContent();
     return true;
 }
 
@@ -895,6 +897,12 @@ function chartTooltipOptions(style, isMobile, overrides = {}) {
     }, overrides);
 }
 
+// Hover feedback for every chart: quick enough to track the pointer as it
+// sweeps across bars or dots (Chart.js defaults to a sluggish 400ms).
+const CHART_HOVER_TRANSITIONS = {
+    active: { animation: { duration: 120, easing: 'easeOutCubic' } }
+};
+
 // Create Simple Performance Chart (average view)
 function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     const ctx = document.getElementById('performanceChart');
@@ -1286,6 +1294,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                         delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 20 : 0,
                     }
                     : { duration: 190, easing: 'easeOutCubic' },
+            transitions: CHART_HOVER_TRANSITIONS,
             // Tooltip only while actually over a bar — intersect: false would
             // keep a tooltip active anywhere in the plot area, which reads as
             // "stuck" when sweeping across empty space.
@@ -1858,10 +1867,11 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
         ? { duration: 0 }
         : motion === 'initial'
             ? {
-                duration: 450,
-                easing: 'easeOutCubic',
-                // Cascade the horizontal bars in from the top on first load only.
-                delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 22 : 0,
+                // Same build as the main leaderboard chart: cascade the
+                // horizontal bars in from the top, on first reveal only.
+                duration: 300,
+                easing: 'easeOutQuart',
+                delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 20 : 0,
             }
             : { duration: 190, easing: 'easeOutCubic' };
 
@@ -2080,6 +2090,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
             responsive: true,
             maintainAspectRatio: false,
             animation: buildAnimation,
+            transitions: CHART_HOVER_TRANSITIONS,
             // Tooltip only while actually over a bar (see main chart note).
             interaction: {
                 mode: 'index',
@@ -2288,7 +2299,15 @@ function selectModelOption(option, returnFocus = true, { motion = 'interaction',
         populateLeaderboard(selectedValue);
         if (performanceChart) {
             performanceChart.destroy();
-            createSimpleChart(selectedValue, { motion });
+            // Rebuild at rest rather than regrowing every bar from zero: the
+            // ranking reorders per model, so the change reads as a quick settle.
+            createSimpleChart(selectedValue, { motion: 'none' });
+        }
+        if (motion !== 'none') {
+            settleChangedContent([
+                document.querySelector('#leaderboard .leaderboard-chart'),
+                document.querySelector('#leaderboard .leaderboard-table')
+            ]);
         }
     }
 
@@ -2476,19 +2495,32 @@ if (leaderboardBody) {
 const logo = document.querySelector('.logo');
 const heroSection = document.querySelector('.hero');
 
+const navbar = document.querySelector('.navbar');
+const heroTitle = heroSection?.querySelector('.hero-title');
+let navbarLogoFrame = null;
+
+// Scroll-linked handoff: as the hero title slides up under the navbar, the
+// navbar logo fades in (and settles up a few px) in step with the scroll, so
+// one title visibly takes over from the other. Narrow layouts always show it.
 function handleNavbarLogoVisibility() {
-    if (!heroSection || !logo) return;
-    const heroBottom = heroSection.getBoundingClientRect().bottom;
-    if (heroBottom > 0 && window.innerWidth > 950) {
-        logo.style.opacity = '0';
-        logo.style.visibility = 'hidden';
-    } else {
-        logo.style.opacity = '1';
-        logo.style.visibility = 'visible';
+    navbarLogoFrame = null;
+    if (!logo) return;
+    let progress = 1;
+    if (window.innerWidth > 950 && navbar && heroTitle) {
+        const title = heroTitle.getBoundingClientRect();
+        const navBottom = navbar.getBoundingClientRect().bottom;
+        progress = Math.min(1, Math.max(0, (navBottom - title.top) / title.height));
     }
+    logo.style.opacity = String(progress);
+    logo.style.visibility = progress > 0 ? 'visible' : 'hidden';
+    logo.style.transform = progress < 1 && !reducedMotionQuery.matches
+        ? `translateY(${((1 - progress) * 6).toFixed(2)}px)`
+        : '';
 }
 
-window.addEventListener('scroll', handleNavbarLogoVisibility);
+window.addEventListener('scroll', () => {
+    if (navbarLogoFrame === null) navbarLogoFrame = requestAnimationFrame(handleNavbarLogoVisibility);
+}, { passive: true });
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2541,10 +2573,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         renderInitialPerformanceChart();
     }
-    createParetoChart();
-    createTimeSpentChart();
-    handleNavbarLogoVisibility(); // Set initial state based on scroll position
 
+    // The efficiency charts sit far below the fold. Build them at rest now so
+    // the section keeps its final height, then play their entrance once when
+    // they are actually on screen instead of animating unseen on load.
+    const efficiencyGrid = document.querySelector('#time-spent .efficiency-grid');
+    const canRevealEfficiency = efficiencyGrid && 'IntersectionObserver' in window && !reducedMotionQuery.matches;
+    createParetoChart({ motion: canRevealEfficiency ? 'none' : 'initial' });
+    createTimeSpentChart({ motion: canRevealEfficiency ? 'none' : 'initial' });
+    if (canRevealEfficiency) {
+        const efficiencyObserver = new IntersectionObserver((entries) => {
+            if (!entries.some(entry => entry.isIntersecting)) return;
+            efficiencyObserver.disconnect();
+            if (paretoChart) paretoChart.destroy();
+            createParetoChart();
+            if (timeSpentChart) timeSpentChart.destroy();
+            createTimeSpentChart();
+        }, { threshold: 0.2 });
+        efficiencyObserver.observe(efficiencyGrid);
+    }
+    handleNavbarLogoVisibility(); // Set initial state based on scroll position
 
     // Results version: a segmented radio group. Clicking animates the
     // highlight; arrow keys move and select instantly, like native radios.

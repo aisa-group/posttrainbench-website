@@ -210,7 +210,8 @@ body {
     opacity: 0;
     text-decoration: none;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    /* No transition: opacity is driven 1:1 by scroll in script.js, and a
+       transition would make it lag behind the page. */
 }
 
 .logo-accent {
