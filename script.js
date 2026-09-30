@@ -4,6 +4,22 @@ if (typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
 }
 
+// Scatter hover target: always exactly one agent — the nearest dot within its
+// hit radius. (Chart.js's default 'point' mode returns every overlapping dot.)
+if (typeof Chart !== 'undefined') {
+    Chart.Interaction.modes.paretoTarget = function (chart, event) {
+        const position = Chart.helpers.getRelativePosition(event, chart);
+        const elements = chart.getDatasetMeta(0).data;
+        let target = null;
+        elements.forEach((element, index) => {
+            const distance = Math.hypot(position.x - element.x, position.y - element.y);
+            const reach = element.options.radius + element.options.hitRadius;
+            if (distance <= reach && (!target || distance < target.distance)) target = { index, distance };
+        });
+        return target ? [{ element: elements[target.index], datasetIndex: 0, index: target.index }] : [];
+    };
+}
+
 // Global chart instances
 let performanceChart = null;
 let paretoChart = null;
@@ -893,6 +909,13 @@ function chartTooltipOptions(style, isMobile, overrides = {}) {
             family: "'JetBrains Mono', monospace",
             size: isMobile ? 10 : 12
         },
+        footerColor: style.getPropertyValue('--text-secondary').trim(),
+        footerFont: {
+            family: "'JetBrains Mono', monospace",
+            size: isMobile ? 9 : 10,
+            weight: 400
+        },
+        footerMarginTop: 6,
         animation: { duration: 150, easing: 'easeOutQuart' }
     }, overrides);
 }
@@ -902,6 +925,38 @@ function chartTooltipOptions(style, isMobile, overrides = {}) {
 const CHART_HOVER_TRANSITIONS = {
     active: { animation: { duration: 120, easing: 'easeOutCubic' } }
 };
+
+// Shared tooltip content, so every chart describes an agent the same way:
+//   title   "Opus 4.8 · Max"
+//   body    "Score    31.8% ± 3.6" / "Runtime  8h 50m ± 20m" (whichever apply)
+//   footer  one muted caveat line, if the entry has one
+function formatChartTooltipTitle(entry) {
+    const { name } = getChartAgentMeta(entry);
+    return entry.reasoningEffort ? `${name} · ${entry.reasoningEffort}` : name;
+}
+
+function formatScoreTooltipLine(score, std) {
+    return `Score    ${Number(score).toFixed(1)}%${std ? ` ± ${Number(std).toFixed(1)}` : ''}`;
+}
+
+function formatRuntimeTooltipLine(time, stdTime) {
+    return `Runtime  ${formatRuntimeDuration(time)}${stdTime ? ` ± ${formatRuntimeDuration(stdTime)}` : ''}`;
+}
+
+function formatChartTooltipNote(entry) {
+    const note = getAgentStatusNote(entry.agentKey)
+        || getAgentProvenanceNote(entry.agentKey)
+        || entry.verificationNote
+        || '';
+    // Canvas tooltips don't wrap; break long notes so the box stays compact.
+    const lines = [];
+    note.split(' ').forEach((word) => {
+        const last = lines[lines.length - 1];
+        if (last && `${last} ${word}`.length <= 34) lines[lines.length - 1] = `${last} ${word}`;
+        else lines.push(word);
+    });
+    return lines.filter(Boolean);
+}
 
 // Create Simple Performance Chart (average view)
 function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
@@ -1314,20 +1369,14 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                     callbacks: {
                         title: function(items) {
                             if (!items.length) return '';
-                            return getChartAgentMeta(plottedData[items[0].dataIndex]).name;
+                            return formatChartTooltipTitle(plottedData[items[0].dataIndex]);
                         },
                         label: function(context) {
-                            const std = errorBars[context.dataIndex];
-                            const stdText = std ? ` ± ${std}%` : '';
                             const value = isMobile ? context.parsed.x : context.parsed.y;
-                            const lines = [`Average score: ${value.toFixed(1)}%${stdText}`];
-                            const effort = getChartAgentMeta(plottedData[context.dataIndex]).effort;
-                            if (effort) lines.push(`Effort: ${effort}`);
-                            return lines;
+                            return formatScoreTooltipLine(value, errorBars[context.dataIndex]);
                         },
-                        afterLabel: function(context) {
-                            const entry = plottedData[context.dataIndex];
-                            return getAgentStatusNote(entry.agentKey) || getAgentProvenanceNote(entry.agentKey) || entry.verificationNote || null;
+                        footer: function(items) {
+                            return items.length ? formatChartTooltipNote(plottedData[items[0].dataIndex]) : [];
                         }
                     }
                 }),
@@ -1414,6 +1463,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
             const labelMeta = getChartAgentMeta(d);
             const modelFamily = getChartModelFamily(d.agentKey);
             return {
+                entry: d,
                 x: t.hours,
                 y: parseFloat(d.averageScore),
                 label: labelMeta.name,
@@ -1463,6 +1513,31 @@ function createParetoChart({ motion = 'initial' } = {}) {
 
     const pointRadius = isMobile ? 4 : 5.5;
 
+    // Entrance: each dot grows in place (fastest agent first, left to right)
+    // and its label fades in with it; the frontier fades in alongside. Nothing
+    // travels, so labels never float over empty space waiting for their dot.
+    const DOT_REVEAL_MS = 240;
+    const DOT_STAGGER_MS = 28;
+    const LINE_REVEAL_DELAY_MS = 120;
+    const LINE_REVEAL_MS = 320;
+    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
+    let entranceActive = !reduceMotion && motion === 'initial';
+    let revealStart = null;
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+    const revealProgress = (delay, duration) => {
+        if (!entranceActive) return 1;
+        if (revealStart === null) return 0;
+        const t = (performance.now() - revealStart - delay) / duration;
+        return easeOutCubic(Math.min(1, Math.max(0, t)));
+    };
+    const dotReveal = index => revealProgress(index * DOT_STAGGER_MS, DOT_REVEAL_MS);
+    const withAlpha = (color, alpha) => {
+        const match = /^#([0-9a-f]{6})$/i.exec(color);
+        if (!match) return color;
+        const n = parseInt(match[1], 16);
+        return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+    };
+
     // Direct labels with greedy collision avoidance: frontier points get
     // priority (and primary ink); a label that can't find a clear spot is
     // dropped — the tooltip still identifies its point.
@@ -1476,10 +1551,11 @@ function createParetoChart({ motion = 'initial' } = {}) {
             const effortFont = `600 ${effortFontSize}px 'JetBrains Mono', monospace`;
             c.save();
 
-            const pts = points.map(p => ({
+            const pts = points.map((p, index) => ({
                 px: scales.x.getPixelForValue(p.x),
                 py: scales.y.getPixelForValue(p.y),
-                p: p
+                p: p,
+                index
             }));
 
             // Points themselves are obstacles for label placement.
@@ -1491,7 +1567,8 @@ function createParetoChart({ motion = 'initial' } = {}) {
             const ordered = [...pts].sort((a, b) =>
                 (frontierKeys.has(b.p.agentKey) ? 1 : 0) - (frontierKeys.has(a.p.agentKey) ? 1 : 0));
 
-            ordered.forEach(({ px, py, p }) => {
+            ordered.forEach(({ px, py, p, index }) => {
+                const alpha = dotReveal(index);
                 if (isMobile && !frontierKeys.has(p.agentKey)) return;
                 c.font = nameFont;
                 const nameWidth = c.measureText(p.label).width;
@@ -1535,6 +1612,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
                     c.lineWidth = 3;
                     c.lineJoin = 'round';
                     c.font = nameFont;
+                    c.globalAlpha = alpha;
                     c.strokeText(p.label, textX, rect.top);
                     c.fillStyle = p.familyColor;
                     c.fillText(p.label, textX, rect.top);
@@ -1542,11 +1620,11 @@ function createParetoChart({ motion = 'initial' } = {}) {
                         const effortY = rect.top + fontSize + 2;
                         c.font = effortFont;
                         c.strokeText(p.reasoningLabel, textX, effortY);
-                        c.globalAlpha = 0.82;
+                        c.globalAlpha = 0.82 * alpha;
                         c.fillStyle = p.familyColor;
                         c.fillText(p.reasoningLabel, textX, effortY);
-                        c.globalAlpha = 1;
                     }
+                    c.globalAlpha = 1;
                     placed.push(rect);
                     break;
                 }
@@ -1581,19 +1659,6 @@ function createParetoChart({ motion = 'initial' } = {}) {
         }
     };
 
-    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
-    const buildAnimation = reduceMotion
-        ? { duration: 0 }
-        : motion === 'initial'
-            ? {
-                duration: 450,
-                easing: 'easeOutCubic',
-                // Points pop in fastest-agent-first (data is sorted by time).
-                delay: (c) => (c.type === 'data' && c.mode === 'default' && c.datasetIndex === 0)
-                    ? c.dataIndex * 40 : 0,
-            }
-            : { duration: 190, easing: 'easeOutCubic' };
-
     paretoChart = new Chart(ctx, {
         type: 'scatter',
         data: {
@@ -1604,26 +1669,24 @@ function createParetoChart({ motion = 'initial' } = {}) {
                     backgroundColor: points.map(p => p.familyColor),
                     borderColor: bgPrimary,
                     borderWidth: 2,
-                    pointRadius: pointRadius,
+                    pointRadius: (context) => pointRadius * dotReveal(context.dataIndex),
                     pointHoverRadius: pointRadius + 2,
                     pointHoverBorderWidth: 2,
-                    // Small forgiveness margin around the 11px dot — enough to
-                    // not demand pixel aim, small enough that the tooltip never
-                    // fires while visibly off the point.
+                    // Small forgiveness margin around the 11px dot. Where dots
+                    // sit close together, paretoTarget picks the nearest one.
                     pointHitRadius: 4
                 },
                 {
                     label: 'Pareto frontier',
                     type: 'line',
                     data: frontierLine,
-                    borderColor: textSecondary,
+                    borderColor: () => withAlpha(textSecondary, revealProgress(LINE_REVEAL_DELAY_MS, LINE_REVEAL_MS)),
                     borderWidth: 1.5,
                     borderDash: [6, 4],
                     pointRadius: 0,
                     pointHitRadius: 0,
                     fill: false,
-                    tension: 0,
-                    animation: false
+                    tension: 0
                 }
             ]
         },
@@ -1631,27 +1694,24 @@ function createParetoChart({ motion = 'initial' } = {}) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: buildAnimation,
+            // Positions never tween; the entrance is driven below.
+            animation: { duration: 0 },
+            transitions: CHART_HOVER_TRANSITIONS,
+            interaction: { mode: 'paretoTarget', intersect: true },
             layout: {
                 padding: { top: isMobile ? 14 : 18 }
             },
             plugins: {
                 legend: { display: false },
                 tooltip: chartTooltipOptions(style, isMobile, {
+                    filter: (item) => item.datasetIndex === 0,
                     callbacks: {
-                        title: (items) => items[0].raw.label,
-                        label: (item) => {
-                            const p = item.raw;
-                            const lines = [
-                                `Avg score: ${p.y.toFixed(1)}%${p.stdDev ? ` ± ${p.stdDev.toFixed(1)}%` : ''}`,
-                                `Runtime: ${formatRuntimeDuration(p.time)}${p.stdTime ? ` ± ${formatRuntimeDuration(p.stdTime)}` : ''}`
-                            ];
-                            if (p.reasoningEffort) lines.push(`Effort: ${p.reasoningEffort}`);
-                            if (p.scaffold) lines.push(`Scaffold: ${p.scaffold}`);
-                            if (p.verificationNote) lines.push(p.verificationNote);
-                            if (p.statusNote) lines.push(p.statusNote);
-                            return lines;
-                        }
+                        title: (items) => items.length ? formatChartTooltipTitle(items[0].raw.entry) : '',
+                        label: (item) => [
+                            formatScoreTooltipLine(item.raw.y, item.raw.stdDev),
+                            formatRuntimeTooltipLine(item.raw.time, item.raw.stdTime)
+                        ],
+                        footer: (items) => items.length ? formatChartTooltipNote(items[0].raw.entry) : []
                     }
                 }),
                 datalabels: { display: false }
@@ -1710,6 +1770,22 @@ function createParetoChart({ motion = 'initial' } = {}) {
             }
         }
     });
+
+    if (entranceActive) {
+        const chart = paretoChart;
+        const revealEnd = Math.max(
+            (points.length - 1) * DOT_STAGGER_MS + DOT_REVEAL_MS,
+            LINE_REVEAL_DELAY_MS + LINE_REVEAL_MS
+        );
+        revealStart = performance.now();
+        const step = () => {
+            if (paretoChart !== chart) return; // rebuilt or destroyed mid-entrance
+            if (performance.now() - revealStart >= revealEnd) entranceActive = false;
+            chart.update('none');
+            if (entranceActive) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    }
 }
 
 // Create Time Spent Chart
@@ -2116,26 +2192,14 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                         // built-in ticks are transparent and sometimes hold the
                         // scaffold name instead), so build the title from data.
                         title: function(items) {
-                            const d = sortedData[items[0].dataIndex];
-                            return getChartAgentMeta(d).name;
+                            return formatChartTooltipTitle(sortedData[items[0].dataIndex]);
                         },
                         label: function(context) {
                             const dataItem = sortedData[context.dataIndex];
-                            const lines = [`Average runtime: ${formatRuntimeDuration(dataItem.time)}`];
-                            if (dataItem.stdHours) lines.push(`Variation: ±${formatRuntimeDuration(dataItem.stdTime)}`);
-                            if (dataItem.n) lines.push(`Runs: ${dataItem.n}`);
-                            return lines;
+                            return formatRuntimeTooltipLine(dataItem.time, dataItem.stdHours ? dataItem.stdTime : null);
                         },
-                        afterLabel: function(context) {
-                            const dataItem = sortedData[context.dataIndex];
-                            const labelMeta = getChartAgentMeta(dataItem);
-                            const scaffold = agentInfo[dataItem.agentKey]?.scaffold;
-                            return [
-                                labelMeta.effort ? `Effort: ${labelMeta.effort}` : null,
-                                scaffold ? `Scaffold: ${scaffold}` : null,
-                                dataItem.verificationNote || null,
-                                getAgentStatusNote(dataItem.agentKey) || getAgentProvenanceNote(dataItem.agentKey) || null
-                            ].filter(Boolean);
+                        footer: function(items) {
+                            return items.length ? formatChartTooltipNote(sortedData[items[0].dataIndex]) : [];
                         }
                     }
                 }),
