@@ -627,7 +627,7 @@ function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
     const std = getBenchmarkStd(score);
     const sourceLabel = getBenchmarkSourceLabel(score);
 
-    let valueStr = `${value.toFixed(2)}%`;
+    let valueStr = `${value.toFixed(1)}%`;
 
     if (showMarkers) {
         const fallbackType = getFallbackType(score);
@@ -671,6 +671,14 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
         ? data
         : data.filter(entry => entry.isBaseline || previewEntries.has(entry));
     const canToggleLeaderboard = rankedData.length > LEADERBOARD_PREVIEW_LIMIT;
+
+    // The * / † footnote only explains markers that are actually on screen
+    // (they appear in the per-model view, for cells that fell back).
+    const tableFootnote = document.getElementById('table-footnote');
+    if (tableFootnote) {
+        tableFootnote.hidden = !(showMarkers && visibleData.some(entry =>
+            activeBenchmarkKeys.some(key => ['not_stored', 'error'].includes(getFallbackType(entry.benchmarkScores[key])))));
+    }
     const disclosure = document.getElementById('leaderboard-disclosure');
     const disclosureButton = document.getElementById('leaderboard-disclosure-button');
     const disclosureLabel = document.getElementById('leaderboard-disclosure-label');
@@ -770,7 +778,7 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
         row.innerHTML = `
             <td><span class="rank-badge ${rankClass}">${rankDisplay}</span></td>
             <td class="method-cell"><strong>${agentNameHtml}</strong><span class="row-details-indicator"></span></td>
-            <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
+            <td style="background-color: ${avgColor}"><strong>${avgValue.toFixed(1)}%</strong>${stdDisplay}</td>
             ${benchmarkCells.map(({ score, color }) => `
                 <td class="benchmark-col" style="background-color: ${color}">${formatBenchmarkValue(score, showMarkers, showStd)}</td>
             `).join('')}
