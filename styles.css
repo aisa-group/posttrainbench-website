@@ -407,7 +407,7 @@ body {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--accent-text);
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     font-weight: 600;
     letter-spacing: 0;
     line-height: 1;
@@ -430,11 +430,18 @@ body {
     height: 1em;
 }
 
+/* Each digit window is a little taller than the text and fades at its top and
+   bottom, so digits roll over a drum instead of being sliced by the clip.
+   Reels are positioned in percent of their own height (10% per digit), which
+   keeps script.js independent of the window size. */
 .hero-version-digit-window {
     display: block;
     width: 0.62em;
-    height: 1em;
+    height: 1.3em;
+    margin: -0.15em 0;
     overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 78%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 78%, transparent 100%);
 }
 
 .hero-version-digit-reel {
@@ -443,16 +450,12 @@ body {
     width: 100%;
 }
 
-.hero-version-digit-reel.is-animated {
-    transition: transform 320ms cubic-bezier(0.77, 0, 0.175, 1);
-    will-change: transform;
-}
-
 .hero-version-digit-reel > span {
     display: block;
-    flex: 0 0 1em;
+    flex: 0 0 1.3em;
     width: 100%;
-    height: 1em;
+    height: 1.3em;
+    line-height: 1.3em;
     text-align: center;
     white-space: nowrap;
 }
@@ -2539,7 +2542,7 @@ tbody tr:last-child td {
 
     .hero-version-link {
         padding: 0.16rem 0.28rem;
-        font-size: 0.7rem;
+        font-size: 0.8rem;
     }
 
     .hero-subtitle {

@@ -44,7 +44,54 @@ function trackGoatCounterEvent(path, title) {
     window.goatcounter.count({ path, title, event: true });
 }
 
-function setHeroVersion(version, { animate = true } = {}) {
+// Where the hero version badge leads for each results version.
+// TODO: point v1.2 at its release post once it is published.
+const heroVersionLinks = {
+    'v1.2': '#leaderboard',
+    'v1.1': '/blog/posttrainbench-1-1/',
+    'v1': '#leaderboard'
+};
+
+// How long the previous version stays readable before the intro tick.
+const HERO_VERSION_HOLD_MS = 200;
+const HERO_VERSION_TICK_MS = 400;
+const HERO_VERSION_ROLL_MS = 260;
+
+function getReelTransform(position) {
+    // Reels hold ten digits, so each digit is 10% of the reel's own height.
+    return `translate3d(0, ${-position * 10}%, 0)`;
+}
+
+// Roll one digit reel from wherever it currently is (including mid-roll) to
+// `digit`. The intro is a single deliberate step that travels a hair past the
+// new digit and settles back, like a counter wheel dropping into its detent;
+// everything else is a short direct roll.
+function rollHeroVersionReel(reel, digit, { animate, intro }) {
+    const storedDigit = Number(reel.dataset.digit);
+    const fromDigit = Number.isFinite(storedDigit) ? storedDigit : digit;
+    const isRunning = reel.getAnimations().some(a => a.playState === 'running');
+    const fromTransform = isRunning ? getComputedStyle(reel).transform : getReelTransform(fromDigit);
+    reel.getAnimations().forEach(a => a.cancel());
+    reel.dataset.digit = String(digit);
+    reel.style.transform = getReelTransform(digit);
+    if (!animate || (fromDigit === digit && !isRunning)) return;
+
+    if (intro) {
+        const overshoot = digit > fromDigit ? digit + 0.07 : digit - 0.07;
+        reel.animate([
+            { transform: fromTransform, easing: 'cubic-bezier(0.6, 0, 0.3, 1)' },
+            { transform: getReelTransform(overshoot), offset: 0.78, easing: 'cubic-bezier(0.3, 0, 0.3, 1)' },
+            { transform: getReelTransform(digit) }
+        ], { duration: HERO_VERSION_TICK_MS });
+    } else {
+        reel.animate(
+            [{ transform: fromTransform }, { transform: getReelTransform(digit) }],
+            { duration: HERO_VERSION_ROLL_MS, easing: 'cubic-bezier(0.77, 0, 0.175, 1)' }
+        );
+    }
+}
+
+function setHeroVersion(version, { animate = true, intro = false } = {}) {
     const odometer = document.getElementById('hero-version-odometer');
     const majorReel = document.getElementById('hero-version-major');
     const minorReel = document.getElementById('hero-version-minor');
@@ -59,40 +106,59 @@ function setHeroVersion(version, { animate = true } = {}) {
     }
 
     const shouldAnimate = animate && !reducedMotionQuery.matches;
-    majorReel.classList.toggle('is-animated', shouldAnimate);
-    minorReel.classList.toggle('is-animated', shouldAnimate);
     fraction.classList.toggle('is-animated', shouldAnimate);
     const major = Number(match[1]);
     const minor = match[2] === undefined ? null : Number(match[2]);
-    const applyPosition = () => {
-        majorReel.style.transform = `translate3d(0, -${major}em, 0)`;
-        if (minor !== null) {
-            minorReel.style.transform = `translate3d(0, -${minor}em, 0)`;
-        }
-        fraction.classList.toggle('is-visible', minor !== null);
-    };
-    if (shouldAnimate) requestAnimationFrame(applyPosition);
-    else applyPosition();
+    rollHeroVersionReel(majorReel, major, { animate: shouldAnimate, intro });
+    if (minor !== null) rollHeroVersionReel(minorReel, minor, { animate: shouldAnimate, intro });
+    fraction.classList.toggle('is-visible', minor !== null);
 
     link.setAttribute('aria-label', `PostTrainBench ${version}`);
     link.setAttribute('data-goatcounter-title', `PostTrainBench ${version} title link`);
-    link.setAttribute('href', version === 'v1.1' ? '/blog/posttrainbench-1-1/' : '#leaderboard');
+    link.setAttribute('href', heroVersionLinks[version] || '#leaderboard');
 }
 
+// On every load of the current results, show the previous version first and
+// tick up to the current one, so visitors see what just changed. The intro is
+// skipped when it could not be seen or would be misleading: an explicit
+// ?version=, a deep link into the page, a hero already scrolled away, or
+// reduced motion.
 function initializeHeroVersion(version) {
     if (heroVersionInitialized) return;
     heroVersionInitialized = true;
-    setHeroVersion('v1.1', { animate: false });
 
-    if (version === 'v1.1' || reducedMotionQuery.matches) {
+    const versions = getAvailableResultsVersions();
+    const previousVersion = versions[versions.indexOf(version) + 1];
+    const link = document.querySelector('.hero-version-link');
+    const rect = link?.getBoundingClientRect();
+    const isInView = rect && rect.bottom > 0 && rect.top < window.innerHeight;
+    const shouldIntro = version === CURRENT_RESULTS_VERSION
+        && previousVersion
+        && !window.location.hash
+        && isInView
+        && !reducedMotionQuery.matches;
+
+    if (!shouldIntro) {
         setHeroVersion(version, { animate: false });
         return;
     }
 
-    heroVersionLoadTimer = setTimeout(() => {
-        heroVersionLoadTimer = null;
-        setHeroVersion(version, { animate: true });
-    }, 240);
+    setHeroVersion(previousVersion, { animate: false });
+    // Start the hold once the badge's font is in, so the reader gets the full
+    // beat on the previous version before it ticks.
+    const fontReady = document.fonts?.load
+        ? Promise.race([
+            document.fonts.load("600 16px 'JetBrains Mono'"),
+            new Promise(resolve => setTimeout(resolve, 300))
+        ]).catch(() => {})
+        : Promise.resolve();
+    fontReady.then(() => {
+        if (!heroVersionInitialized || activeResultsVersion !== version) return;
+        heroVersionLoadTimer = setTimeout(() => {
+            heroVersionLoadTimer = null;
+            setHeroVersion(version, { intro: true });
+        }, HERO_VERSION_HOLD_MS);
+    });
 }
 
 function updateResultsVersionUI({ instant = false } = {}) {
@@ -2700,6 +2766,8 @@ if (typeof loadScoresDataSync === 'function' && loadScoresDataSync()) {
     populateTasks();
     populateStatistics();
     updateResultsVersionUI({ instant: true });
+    // Set the hero badge to its intro starting value before first paint.
+    initializeHeroVersion(activeResultsVersion);
     document.documentElement.classList.remove('leaderboard-loading');
     window.__ptbDataReady = true;
 }
