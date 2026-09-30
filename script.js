@@ -2093,6 +2093,9 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
         if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createTimeStripePattern(chartBar);
         return chartBar;
     });
+    // Each bar is outlined in its own colour; striped (reprompted) bars keep
+    // the solid accent outline that gives the stripes their shape.
+    const timeBarBorders = sortedData.map(d => (d.isExternal ? chartBarExternal : chartBar));
 
     // On phones, a subtle ten-hour track makes each row read as one compact
     // budget meter instead of a label floating above an unrelated bar.
@@ -2152,7 +2155,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                 label: 'Average runtime',
                 data: sortedData.map(d => d.hours),
                 backgroundColor: timeBarColors,
-                borderColor: chartBar,
+                borderColor: timeBarBorders,
                 borderWidth: isMobile ? 0 : 2,
                 borderRadius: isMobile ? 2 : 4,
                 barPercentage: isMobile ? 0.28 : 0.64,
