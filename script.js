@@ -926,6 +926,26 @@ const CHART_HOVER_TRANSITIONS = {
     active: { animation: { duration: 120, easing: 'easeOutCubic' } }
 };
 
+// Deferred entrances: a chart is drawn at its pre-entrance state (bars at
+// zero, dots hidden) so its frame — axes, gridlines, names — is on screen
+// immediately, and the build plays later via chart.$playEntrance().
+// While it waits, pointer events are ignored so hidden marks can't hover.
+function holdChartEntrance(chart, play) {
+    chart.$playEntrance = () => {
+        delete chart.$playEntrance;
+        play();
+    };
+}
+
+if (typeof Chart !== 'undefined') {
+    Chart.register({
+        id: 'pendingEntrance',
+        beforeEvent(chart) {
+            if (chart.$playEntrance) return false;
+        }
+    });
+}
+
 // Shared tooltip content, so every chart describes an agent the same way:
 //   title   "Opus 4.8 · Max"
 //   body    "Score    31.8% ± 3.6" / "Runtime  8h 50m ± 20m" (whichever apply)
@@ -1254,6 +1274,37 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     };
 
     const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning;
+    const playsEntrance = !reduceMotion && (motion === 'initial' || motion === 'deferred');
+    // 'deferred': draw bars at zero now, build when revealed (see holdChartEntrance).
+    const entrancePending = motion === 'deferred' && !reduceMotion;
+    // Value labels stay out of the build and fade in once the bars have landed,
+    // so no number ever sits on a bar that hasn't grown yet.
+    const LABEL_FADE_MS = 150;
+    let labelAlpha = playsEntrance ? 0 : 1;
+    const revealLabels = () => {
+        if (labelAlpha > 0) return;
+        const chart = performanceChart;
+        const start = performance.now();
+        const step = () => {
+            if (performanceChart !== chart) return;
+            labelAlpha = Math.max(0.01, Math.min(1, (performance.now() - start) / LABEL_FADE_MS));
+            chart.update('none');
+            if (labelAlpha < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    };
+    const BAR_BUILD_MS = 300;
+    const BAR_STAGGER_MS = 20;
+    const entranceAnimation = {
+        duration: BAR_BUILD_MS,
+        easing: 'easeOutQuint', // matches the site's --ease-out curve
+        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * BAR_STAGGER_MS : 0,
+    };
+    // The quint tail spends its last ~80ms moving under a pixel, so start the
+    // label fade as the last bar visually lands rather than when Chart.js
+    // reports the animation finished.
+    const scheduleLabelReveal = () => setTimeout(revealLabels,
+        (plottedData.length - 1) * BAR_STAGGER_MS + BAR_BUILD_MS * 0.73);
     const chartScales = isMobile ? {
         x: {
             beginAtZero: true,
@@ -1340,14 +1391,10 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
             indexAxis: isMobile ? 'y' : 'x',
             responsive: true,
             maintainAspectRatio: !isMobile,
-            animation: (reduceMotion || motion === 'none')
+            animation: (reduceMotion || motion === 'none' || motion === 'deferred')
                 ? { duration: 0 }
                 : motion === 'initial'
-                    ? {
-                        duration: 300,
-                        easing: 'easeOutQuart',
-                        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 20 : 0,
-                    }
+                    ? entranceAnimation
                     : { duration: 190, easing: 'easeOutCubic' },
             transitions: CHART_HOVER_TRANSITIONS,
             // Tooltip only while actually over a bar — intersect: false would
@@ -1381,7 +1428,8 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                     }
                 }),
                 datalabels: {
-                    display: true,
+                    display: () => labelAlpha > 0,
+                    opacity: () => labelAlpha,
                     color: function(context) {
                         const value = Number(context.dataset.data[context.dataIndex]);
                         return isMobile && value < 12 ? textPrimary : '#ffffff';
@@ -1420,6 +1468,19 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
             scales: chartScales
         }
     });
+
+    if (entrancePending) {
+        const chart = performanceChart;
+        chart.reset();
+        chart.draw();
+        holdChartEntrance(chart, () => {
+            chart.options.animation = entranceAnimation;
+            chart.update();
+            scheduleLabelReveal();
+        });
+    } else if (playsEntrance) {
+        scheduleLabelReveal();
+    }
 }
 
 // Create Performance vs. Time scatter with Pareto frontier.
@@ -1521,7 +1582,8 @@ function createParetoChart({ motion = 'initial' } = {}) {
     const LINE_REVEAL_DELAY_MS = 120;
     const LINE_REVEAL_MS = 320;
     const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
-    let entranceActive = !reduceMotion && motion === 'initial';
+    // 'deferred' holds the dots hidden until $playEntrance (revealStart stays null).
+    let entranceActive = !reduceMotion && (motion === 'initial' || motion === 'deferred');
     let revealStart = null;
     const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
     const revealProgress = (delay, duration) => {
@@ -1777,14 +1839,18 @@ function createParetoChart({ motion = 'initial' } = {}) {
             (points.length - 1) * DOT_STAGGER_MS + DOT_REVEAL_MS,
             LINE_REVEAL_DELAY_MS + LINE_REVEAL_MS
         );
-        revealStart = performance.now();
-        const step = () => {
-            if (paretoChart !== chart) return; // rebuilt or destroyed mid-entrance
-            if (performance.now() - revealStart >= revealEnd) entranceActive = false;
-            chart.update('none');
-            if (entranceActive) requestAnimationFrame(step);
+        const playEntrance = () => {
+            revealStart = performance.now();
+            const step = () => {
+                if (paretoChart !== chart) return; // rebuilt or destroyed mid-entrance
+                if (performance.now() - revealStart >= revealEnd) entranceActive = false;
+                chart.update('none');
+                if (entranceActive) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
         };
-        requestAnimationFrame(step);
+        if (motion === 'deferred') holdChartEntrance(chart, playEntrance);
+        else playEntrance();
     }
 }
 
@@ -1939,16 +2005,18 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
     })();
 
     const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
-    const buildAnimation = reduceMotion
+    // Same build as the main leaderboard chart: cascade the horizontal bars in
+    // from the top, on first reveal only.
+    const entranceAnimation = {
+        duration: 300,
+        easing: 'easeOutQuint', // matches the site's --ease-out curve
+        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 20 : 0,
+    };
+    const holdEntrance = motion === 'deferred' && !reduceMotion;
+    const buildAnimation = (reduceMotion || holdEntrance)
         ? { duration: 0 }
         : motion === 'initial'
-            ? {
-                // Same build as the main leaderboard chart: cascade the
-                // horizontal bars in from the top, on first reveal only.
-                duration: 300,
-                easing: 'easeOutQuart',
-                delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 20 : 0,
-            }
+            ? entranceAnimation
             : { duration: 190, easing: 'easeOutCubic' };
 
     const timeErrorBarPlugin = {
@@ -2273,6 +2341,16 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
     if (!isMobile && !useExpandedScope && timeSpentChart.chartArea) {
         budgetMainRowPitch = timeSpentChart.chartArea.height / sortedData.length;
         budgetChartChromeHeight = mainDesktopHeight - timeSpentChart.chartArea.height;
+    }
+
+    if (holdEntrance) {
+        const chart = timeSpentChart;
+        chart.reset();
+        chart.draw();
+        holdChartEntrance(chart, () => {
+            chart.options.animation = entranceAnimation;
+            chart.update();
+        });
     }
 }
 
@@ -2622,42 +2700,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) { /* render anyway */ }
     }
 
-    // The leaderboard chart is explanatory motion, so reveal it once when the
-    // chart is actually in view. Rebuilds caused by resizing, theme changes, or
-    // keyboard filtering remain instant elsewhere in this file.
-    const performanceChartPanel = document.getElementById('performanceChart')?.closest('.leaderboard-chart');
-    const renderInitialPerformanceChart = () => {
-        if (!performanceChart) createSimpleChart(currentSelectedModel);
+    // Chart entrances are explanatory motion, so each plays once, when it can
+    // actually be watched: once its plot's baseline (where bars grow from) is
+    // on screen. Until then the chart shows its frame with bars at zero / dots
+    // hidden, so the card never looks empty and nothing redraws on reveal.
+    // Rebuilds caused by resizing, theme changes, or filtering stay instant.
+    const canReveal = 'IntersectionObserver' in window && !reducedMotionQuery.matches;
+    const playWhenBaselineVisible = (canvas, getChart) => {
+        if (!canvas) return;
+        const observer = new IntersectionObserver((entries) => {
+            const entry = entries[entries.length - 1];
+            const chart = getChart();
+            if (!chart?.$playEntrance) {
+                // Rebuilt at rest in the meantime (resize, theme, version): nothing to play.
+                if (chart) observer.disconnect();
+                return;
+            }
+            if (!entry.isIntersecting || !chart.chartArea) return;
+            const viewportBottom = entry.rootBounds ? entry.rootBounds.bottom : window.innerHeight;
+            if (entry.boundingClientRect.top + chart.chartArea.bottom > viewportBottom) return;
+            observer.disconnect();
+            chart.$playEntrance();
+        }, { threshold: Array.from({ length: 21 }, (_, i) => i / 20) });
+        observer.observe(canvas);
     };
 
-    if (performanceChartPanel && 'IntersectionObserver' in window && !reducedMotionQuery.matches) {
-        const chartObserver = new IntersectionObserver((entries) => {
-            if (!entries.some(entry => entry.isIntersecting)) return;
-            chartObserver.disconnect();
-            renderInitialPerformanceChart();
-        }, { threshold: 0.12 });
-        chartObserver.observe(performanceChartPanel);
-    } else {
-        renderInitialPerformanceChart();
-    }
-
-    // The efficiency charts sit far below the fold. Build them at rest now so
-    // the section keeps its final height, then play their entrance once when
-    // they are actually on screen instead of animating unseen on load.
-    const efficiencyGrid = document.querySelector('#time-spent .efficiency-grid');
-    const canRevealEfficiency = efficiencyGrid && 'IntersectionObserver' in window && !reducedMotionQuery.matches;
-    createParetoChart({ motion: canRevealEfficiency ? 'none' : 'initial' });
-    createTimeSpentChart({ motion: canRevealEfficiency ? 'none' : 'initial' });
-    if (canRevealEfficiency) {
-        const efficiencyObserver = new IntersectionObserver((entries) => {
-            if (!entries.some(entry => entry.isIntersecting)) return;
-            efficiencyObserver.disconnect();
-            if (paretoChart) paretoChart.destroy();
-            createParetoChart();
-            if (timeSpentChart) timeSpentChart.destroy();
-            createTimeSpentChart();
-        }, { threshold: 0.2 });
-        efficiencyObserver.observe(efficiencyGrid);
+    const entranceMotion = canReveal ? 'deferred' : 'initial';
+    if (!performanceChart) createSimpleChart(currentSelectedModel, { motion: entranceMotion });
+    createParetoChart({ motion: entranceMotion });
+    createTimeSpentChart({ motion: entranceMotion });
+    if (canReveal) {
+        playWhenBaselineVisible(document.getElementById('performanceChart'), () => performanceChart);
+        playWhenBaselineVisible(document.getElementById('paretoChart'), () => paretoChart);
+        playWhenBaselineVisible(document.getElementById('timeSpentChart'), () => timeSpentChart);
     }
     handleNavbarLogoVisibility(); // Set initial state based on scroll position
 
