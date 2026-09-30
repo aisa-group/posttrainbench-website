@@ -164,13 +164,23 @@ function initializeHeroVersion(version) {
 function updateResultsVersionUI({ instant = false } = {}) {
     const version = normalizeResultsVersion(activeResultsVersion);
     renderResultsVersionOptions();
-    const value = document.getElementById('results-version-value');
-    if (value) value.textContent = version;
-    document.querySelectorAll('#results-version-options [data-results-version]').forEach((option) => {
-        const isActive = option.dataset.resultsVersion === version;
-        option.classList.toggle('active', isActive);
-        option.setAttribute('aria-selected', String(isActive));
-    });
+    const toggle = document.getElementById('results-version-toggle');
+    if (toggle) {
+        const options = [...toggle.querySelectorAll('[data-results-version]')];
+        options.forEach((option) => {
+            const isActive = option.dataset.resultsVersion === version;
+            option.classList.toggle('is-active', isActive);
+            option.setAttribute('aria-checked', String(isActive));
+            option.tabIndex = isActive ? 0 : -1;
+        });
+        // The sliding highlight is positioned purely from --index in CSS.
+        toggle.classList.toggle('is-instant', instant);
+        toggle.style.setProperty('--index', String(Math.max(0, options.findIndex(o => o.dataset.resultsVersion === version))));
+        if (instant) {
+            toggle.getBoundingClientRect();
+            toggle.classList.remove('is-instant');
+        }
+    }
 
     document.documentElement.setAttribute('data-results-version', version);
     const copy = resultsVersionCopy[version];
@@ -193,31 +203,19 @@ function updateResultsVersionUI({ instant = false } = {}) {
 }
 
 function renderResultsVersionOptions() {
-    const options = document.getElementById('results-version-options');
-    if (!options) return;
+    const toggle = document.getElementById('results-version-toggle');
+    if (!toggle) return;
 
     const versions = getAvailableResultsVersions();
     const signature = versions.join(',');
-    if (options.dataset.versionSignature === signature) return;
+    if (toggle.dataset.versionSignature === signature) return;
 
-    options.dataset.versionSignature = signature;
-    options.innerHTML = versions.map((version) => {
+    toggle.dataset.versionSignature = signature;
+    toggle.style.setProperty('--count', String(versions.length));
+    toggle.innerHTML = versions.map((version) => {
         const isActive = version === activeResultsVersion;
-        return `<button class="dropdown-option${isActive ? ' active' : ''}" type="button" role="option" aria-selected="${String(isActive)}" tabindex="-1" data-results-version="${version}">${version}</button>`;
+        return `<button class="results-version-option${isActive ? ' is-active' : ''}" type="button" role="radio" aria-checked="${String(isActive)}" tabindex="${isActive ? 0 : -1}" data-results-version="${version}">${version}</button>`;
     }).join('');
-}
-
-function setResultsVersionDropdownOpen(isOpen, optionToFocus = null, { instant = false } = {}) {
-    const dropdown = document.getElementById('results-version-dropdown');
-    const display = document.getElementById('results-version-display');
-    if (!dropdown || !display) return;
-    if (instant) {
-        dropdown.classList.add('no-motion');
-        requestAnimationFrame(() => requestAnimationFrame(() => dropdown.classList.remove('no-motion')));
-    }
-    dropdown.classList.toggle('open', isOpen);
-    display.setAttribute('aria-expanded', String(isOpen));
-    if (isOpen && optionToFocus) requestAnimationFrame(() => optionToFocus.focus());
 }
 
 function getBenchmarkDisplayTitle(key) {
@@ -2547,74 +2545,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     createTimeSpentChart();
     handleNavbarLogoVisibility(); // Set initial state based on scroll position
 
-    const resultsDropdown = document.getElementById('results-version-dropdown');
-    const resultsDisplay = document.getElementById('results-version-display');
-    const resultsOptions = document.getElementById('results-version-options');
-    const getResultsOptions = () => [...(resultsOptions?.querySelectorAll('[data-results-version]') || [])];
 
-    if (resultsDropdown && resultsDisplay && resultsOptions) {
-        resultsDisplay.addEventListener('click', (event) => {
-            setResultsVersionDropdownOpen(!resultsDropdown.classList.contains('open'), null, {
-                instant: event.detail === 0
-            });
-        });
-
-        resultsDisplay.addEventListener('keydown', (event) => {
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                event.preventDefault();
-                const options = getResultsOptions();
-                const selected = options.find(option => option.getAttribute('aria-selected') === 'true');
-                const optionToFocus = event.key === 'ArrowUp' ? options[options.length - 1] : selected || options[0];
-                setResultsVersionDropdownOpen(true, optionToFocus, { instant: true });
-            } else if (event.key === 'Escape') {
-                setResultsVersionDropdownOpen(false, null, { instant: true });
-            }
-        });
-
-        resultsOptions.addEventListener('click', (event) => {
+    // Results version: a segmented radio group. Clicking animates the
+    // highlight; arrow keys move and select instantly, like native radios.
+    const resultsToggle = document.getElementById('results-version-toggle');
+    if (resultsToggle) {
+        resultsToggle.addEventListener('click', (event) => {
             const option = event.target.closest('[data-results-version]');
             if (!option) return;
-            setResultsVersionDropdownOpen(false);
-            resultsDisplay.focus();
             renderResultsVersion(option.dataset.resultsVersion, {
                 animate: event.detail !== 0 && !reducedMotionQuery.matches
             });
         });
 
-        resultsOptions.addEventListener('keydown', (event) => {
-            const option = event.target.closest('[data-results-version]');
-            if (!option) return;
-            const options = getResultsOptions();
-            const index = options.indexOf(option);
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                event.preventDefault();
-                const direction = event.key === 'ArrowDown' ? 1 : -1;
-                options[(index + direction + options.length) % options.length]?.focus();
-            } else if (event.key === 'Home' || event.key === 'End') {
-                event.preventDefault();
-                options[event.key === 'Home' ? 0 : options.length - 1]?.focus();
-            } else if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                setResultsVersionDropdownOpen(false, null, { instant: true });
-                resultsDisplay.focus();
-                renderResultsVersion(option.dataset.resultsVersion, { animate: false });
-            } else if (event.key === 'Escape') {
-                event.preventDefault();
-                setResultsVersionDropdownOpen(false, null, { instant: true });
-                resultsDisplay.focus();
-            } else if (event.key === 'Tab') {
-                setResultsVersionDropdownOpen(false, null, { instant: true });
-            }
-        });
-
-        resultsDropdown.addEventListener('focusout', (event) => {
-            if (!resultsDropdown.contains(event.relatedTarget)) {
-                setResultsVersionDropdownOpen(false, null, { instant: true });
-            }
-        });
-
-        document.addEventListener('click', (event) => {
-            if (!resultsDropdown.contains(event.target)) setResultsVersionDropdownOpen(false);
+        resultsToggle.addEventListener('keydown', (event) => {
+            const options = [...resultsToggle.querySelectorAll('[data-results-version]')];
+            const index = options.indexOf(event.target.closest('[data-results-version]'));
+            if (index < 0) return;
+            let next = null;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % options.length;
+            else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index - 1 + options.length) % options.length;
+            else if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = options.length - 1;
+            if (next === null) return;
+            event.preventDefault();
+            options[next].focus();
+            renderResultsVersion(options[next].dataset.resultsVersion, { animate: false });
         });
     }
 

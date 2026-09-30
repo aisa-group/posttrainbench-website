@@ -157,17 +157,10 @@
             <p class="section-description" id="leaderboard-description">Average performance across four base models and seven weighted benchmarks.</p>
             <div class="results-version-control">
                 <span class="results-version-label" id="results-version-label">Results version</span>
-                <div class="custom-dropdown results-version-dropdown" id="results-version-dropdown">
-                    <button class="dropdown-selected results-version-selected" id="results-version-display" type="button"
-                        aria-haspopup="listbox" aria-expanded="false" aria-controls="results-version-options"
-                        aria-labelledby="results-version-label results-version-value">
-                        <span id="results-version-value">v1.2</span>
-                    </button>
-                    <div class="dropdown-options results-version-options" id="results-version-options" role="listbox" aria-labelledby="results-version-label">
-                        <button class="dropdown-option active" type="button" role="option" aria-selected="true" tabindex="-1" data-results-version="v1.2">v1.2</button>
-                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-results-version="v1.1">v1.1</button>
-                        <button class="dropdown-option" type="button" role="option" aria-selected="false" tabindex="-1" data-results-version="v1">v1</button>
-                    </div>
+                <div class="results-version-toggle" id="results-version-toggle" role="radiogroup" aria-labelledby="results-version-label" style="--count: 3; --index: 0">
+                    <button class="results-version-option is-active" type="button" role="radio" aria-checked="true" data-results-version="v1.2">v1.2</button>
+                    <button class="results-version-option" type="button" role="radio" aria-checked="false" tabindex="-1" data-results-version="v1.1">v1.1</button>
+                    <button class="results-version-option" type="button" role="radio" aria-checked="false" tabindex="-1" data-results-version="v1">v1</button>
                 </div>
             </div>
             <div class="leaderboard-chart">
