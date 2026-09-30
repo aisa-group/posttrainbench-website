@@ -2377,7 +2377,9 @@ tbody tr:last-child td {
         font-variant-numeric: tabular-nums;
     }
 
-    .benchmark-detail-item:last-child {
+    /* An odd tile out spans the row; with an even count (six benchmarks
+       since v1.2) every row is a pair and nothing is left half-empty. */
+    .benchmark-detail-item:last-child:nth-child(odd) {
         grid-column: 1 / -1;
     }
 
@@ -2408,7 +2410,7 @@ tbody tr:last-child td {
         display: none;
     }
 
-    .leaderboard-table.has-expanded-row ~ .table-footnote {
+    .leaderboard-table.has-expanded-row ~ .table-footnote:not([hidden]) {
         display: block;
         font-size: 0.7rem;
         line-height: 1.5;

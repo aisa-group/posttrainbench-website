@@ -1448,7 +1448,16 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                         if (isMobile && value < 12) return 'end';
                         return isMobile ? 'start' : 'end';
                     },
-                    offset: 4,
+                    // Phone bars are horizontal with the value inside the bar's
+                    // end, where the error bar's lower whisker also sits; move
+                    // the value clear of the whisker.
+                    offset: function(context) {
+                        const std = errorBars[context.dataIndex];
+                        const value = Number(context.dataset.data[context.dataIndex]);
+                        if (!isMobile || !std || value < 12) return 4;
+                        const scale = context.chart.scales.x;
+                        return Math.abs(scale.getPixelForValue(std) - scale.getPixelForValue(0)) + 5;
+                    },
                     // Size each label from the rendered bar width. Compact
                     // desktop bars reserve a stronger inset so values never
                     // appear pressed against their edges.
@@ -1724,7 +1733,10 @@ function createParetoChart({ motion = 'initial' } = {}) {
             c.font = "600 10px 'JetBrains Mono', monospace";
             c.textAlign = 'center';
             c.textBaseline = 'bottom';
-            c.fillText('10h budget', xPos, chartArea.top - 4);
+            // Keep the label inside the canvas: on phones the budget line sits
+            // close to the right edge and a centred label would be clipped.
+            const labelHalf = c.measureText('10h budget').width / 2;
+            c.fillText('10h budget', Math.min(xPos, chart.width - labelHalf - 2), chartArea.top - 4);
             c.restore();
         }
     };
@@ -2218,7 +2230,10 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
             c.font = "600 10px 'JetBrains Mono', monospace";
             c.textAlign = 'center';
             c.textBaseline = 'bottom';
-            c.fillText('10h budget', xPos, chartArea.top - 4);
+            // Keep the label inside the canvas: on phones the budget line sits
+            // close to the right edge and a centred label would be clipped.
+            const labelHalf = c.measureText('10h budget').width / 2;
+            c.fillText('10h budget', Math.min(xPos, chart.width - labelHalf - 2), chartArea.top - 4);
             c.restore();
         }
     };
@@ -2581,14 +2596,12 @@ function setLeaderboardRowExpanded(row, shouldExpand) {
     const panel = detailRow?.querySelector('.benchmark-detail-panel');
     if (!detailRow?.classList.contains('benchmark-detail-row') || !panel) return;
 
+    // The panel's height opens and closes with its contents, so the rows below
+    // move with it instead of jumping. Always start from what is on screen, so
+    // a quick second tap reverses mid-way rather than restarting.
     const wasHidden = detailRow.hidden;
-    const presentation = wasHidden ? null : getComputedStyle(panel);
-    const currentOpacity = wasHidden
-        ? 0
-        : Number.parseFloat(presentation.opacity || '1');
-    const currentTransform = wasHidden || presentation.transform === 'none'
-        ? (shouldExpand ? 'translateY(-4px)' : 'none')
-        : presentation.transform;
+    const fromHeight = wasHidden ? 0 : panel.getBoundingClientRect().height;
+    const fromOpacity = wasHidden ? 0 : Number.parseFloat(getComputedStyle(panel).opacity || '1');
     detailRow._detailAnimation?.cancel();
     detailRow._detailAnimation = null;
 
@@ -2597,21 +2610,16 @@ function setLeaderboardRowExpanded(row, shouldExpand) {
 
     if (reducedMotionQuery.matches || typeof panel.animate !== 'function') {
         if (!shouldExpand) detailRow.hidden = true;
-        panel.style.opacity = '';
-        panel.style.transform = '';
     } else {
+        const toHeight = shouldExpand ? panel.scrollHeight : 0;
         const animation = panel.animate([
-            {
-                opacity: currentOpacity,
-                transform: currentTransform
-            },
-            {
-                opacity: shouldExpand ? 1 : 0,
-                transform: shouldExpand ? 'none' : 'translateY(-3px)'
-            }
+            { height: `${fromHeight}px`, opacity: fromOpacity },
+            { height: `${toHeight}px`, opacity: shouldExpand ? 1 : 0 }
         ], {
-            duration: shouldExpand ? 180 : 140,
-            easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+            // Drawer curve: a gentler start than the site's sharp ease-out, so
+            // a 250px height change doesn't cover most of the distance in one frame.
+            duration: shouldExpand ? 260 : 220,
+            easing: 'cubic-bezier(0.32, 0.72, 0, 1)',
             fill: 'both'
         });
         detailRow._detailAnimation = animation;
@@ -2619,8 +2627,6 @@ function setLeaderboardRowExpanded(row, shouldExpand) {
             if (detailRow._detailAnimation !== animation) return;
             detailRow._detailAnimation = null;
             if (!shouldExpand) detailRow.hidden = true;
-            panel.style.opacity = '';
-            panel.style.transform = '';
             animation.cancel();
         };
     }
