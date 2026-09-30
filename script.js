@@ -36,13 +36,15 @@ let heroVersionLoadTimer = null;
 
 const resultsVersionCopy = {
     'v1.2': {
-        status: 'Fable 5.1 · GPQA Main includes five Opus 5 fallback cells.',
+        // Fable's GPQA caveat lives on its "mixed GPQA" pill and in the
+        // methodology notes; no separate status line under the chart.
+        status: '',
         methodology: '<strong>Fable 5.1 GPQA fallback.</strong> Five underlying Fable 5.1 GPQA Main cells fell back to Opus 5. The aggregate GPQA Main values therefore include both Fable 5.1 and Opus 5 results.',
         tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.',
         efficiencyNote: ''
     },
     'v1.1': {
-        status: 'Fable 5 · GPQA Main uses Opus 4.8 Max fallback scores.',
+        status: '',
         methodology: '<strong>Fable 5 GPQA fallback.</strong> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.',
         tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.',
         efficiencyNote: ''
@@ -61,9 +63,8 @@ function trackGoatCounterEvent(path, title) {
 }
 
 // Where the hero version badge leads for each results version.
-// TODO: point v1.2 at its release post once it is published.
 const heroVersionLinks = {
-    'v1.2': '#leaderboard',
+    'v1.2': '/blog/posttrainbench-1-2/',
     'v1.1': '/blog/posttrainbench-1-1/',
     'v1': '#leaderboard'
 };

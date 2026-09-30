@@ -220,13 +220,13 @@ const agentInfo = {
 
 // Benchmark metadata (weights are loaded from scores.json)
 const benchmarkInfo = {
-    aime2025: { title: "AIME 2025", version: "", difficulty: "hard", category: "Mathematics", description: "American Invitational Mathematics Examination - tests advanced mathematical problem-solving and reasoning capabilities." },
-    arenahardwriting: { title: "Arena Hard", columnTitle: "Arena Hard", version: "Writing", difficulty: "medium", category: "Writing", description: "Arena Hard Writing benchmark - evaluates writing quality and instruction following." },
-    bfcl: { title: "BFCL", version: "", difficulty: "medium", category: "Function Calling", description: "Berkeley Function Calling Leaderboard - evaluates function calling and tool use capabilities." },
-    gpqamain: { title: "GPQA", columnTitle: "GPQA Main", version: "Main", difficulty: "hard", category: "Knowledge", description: "Graduate-level Google-Proof Q&A - tests expert-level knowledge across science domains." },
-    gsm8k: { title: "GSM8K", version: "", difficulty: "medium", category: "Mathematics", description: "Grade School Math 8K - evaluates mathematical reasoning and multi-step problem solving." },
-    healthbench: { title: "HealthBench", version: "", difficulty: "hard", category: "Healthcare", description: "Health and medical knowledge benchmark - tests understanding of healthcare and medical concepts." },
-    humaneval: { title: "HumanEval", version: "", difficulty: "medium", category: "Coding", description: "Evaluates code generation capabilities through hand-written programming problems." }
+    aime2025: { title: "AIME 2025", version: "", difficulty: "hard", category: "Mathematics", description: "Competition math problems with integer answers." },
+    arenahardwriting: { title: "Arena Hard", columnTitle: "Arena Hard", version: "Writing", difficulty: "medium", category: "Writing", description: "Open-ended writing prompts, judged by an LLM against a baseline." },
+    bfcl: { title: "BFCL", version: "", difficulty: "medium", category: "Function Calling", description: "Choosing and formatting the right function calls." },
+    gpqamain: { title: "GPQA", columnTitle: "GPQA Main", version: "Main", difficulty: "hard", category: "Knowledge", description: "Graduate-level science questions that resist web search." },
+    gsm8k: { title: "GSM8K", version: "", difficulty: "medium", category: "Mathematics", description: "Multi-step grade-school math word problems." },
+    healthbench: { title: "HealthBench", version: "", difficulty: "hard", category: "Healthcare", description: "Medical conversations graded against physician-written rubrics." },
+    humaneval: { title: "HumanEval", version: "", difficulty: "medium", category: "Coding", description: "Python functions from docstrings, checked by unit tests." }
 };
 
 // Training setup information

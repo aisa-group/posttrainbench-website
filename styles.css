@@ -365,6 +365,11 @@ body {
     white-space: nowrap;
 }
 
+/* Version numbers stay lowercase ("v1.2") inside the uppercase label. */
+.hero-release-number {
+    text-transform: none;
+}
+
 .hero-release-copy {
     font-family: var(--font-sans);
 }
@@ -2981,17 +2986,6 @@ tbody tr:last-child td {
 .process-flow {
     background-color: var(--bg-secondary);
     padding: 4rem 0;
-}
-
-.process-flow-version {
-    margin: 0 auto 0.55rem;
-    color: var(--accent-text);
-    font-size: 0.67rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    line-height: 1.4;
-    text-align: center;
-    text-transform: uppercase;
 }
 
 .pipeline-diagram {
