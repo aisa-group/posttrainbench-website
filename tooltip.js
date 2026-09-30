@@ -78,7 +78,7 @@
 
   function hide() {
     if (pop) pop.classList.remove('tt-show');
-    if (currentTrigger?.getAttribute('aria-describedby') === pop?.id) {
+    if (currentTrigger && pop && currentTrigger.getAttribute('aria-describedby') === pop.id) {
       currentTrigger.removeAttribute('aria-describedby');
     }
     lastHideAt = performance.now();
