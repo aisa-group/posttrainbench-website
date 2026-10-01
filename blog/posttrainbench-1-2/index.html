@@ -74,7 +74,7 @@
             <header class="release-hero">
                 <p class="release-eyebrow">PostTrainBench v1.2</p>
                 <h1>More reliable scores and verdicts</h1>
-                <p class="release-deck">PostTrainBench v1.2 introduces Harbor support, drops BFCL, fixes HumanEval, averages evaluations over multiple seeds, and takes the majority verdict for LLM judging.</p>
+                <p class="release-deck">PostTrainBench v1.2 drops BFCL, fixes HumanEval and remote-code scoring, averages evaluations over multiple seeds, decides contamination by majority vote, and adds Harbor support.</p>
                 <div class="release-meta">
                     <span><time datetime="2026-09-30">30 Sep 2026</time></span>
                     <span>PostTrainBench team</span>
@@ -86,7 +86,7 @@
                     <span>In this release</span>
                     <a href="#bfcl">Removing BFCL</a>
                     <a href="#humaneval">HumanEval fix</a>
-                    <a href="#remote-code">Remote code fix</a>
+                    <a href="#remote-code">Arena Hard &amp; HealthBench fix</a>
                     <a href="#seeds">Multi-seed evaluation</a>
                     <a href="#judging">Majority vote judging</a>
                     <a href="#results">Results</a>
@@ -96,20 +96,20 @@
 
                 <div class="release-body">
                     <div class="release-intro">
-                        <p>Earlier this month, Epoch AI reviewed PostTrainBench v1.1 and designated it Verified. In <a href="/blog/epoch-ai-review-response/">our response</a>, we talked about two changes for v1.2: removing BFCL and deciding contamination with majority vote judging. Both are in v1.2.</p>
-                        <p>It also fixes three problems in how final model weights are evaluated: HumanEval could count a sample as passed without running its tests, two benchmarks could run code from the submitted model, and every benchmark was evaluated with a single sampling seed. <!-- HARBOR: remove the next sentence if Harbor does not ship with v1.2 -->Finally, a long-awaited Harbor adapter lets anyone run PostTrainBench on cloud GPUs.</p>
+                        <p>A few weeks ago, Epoch AI reviewed PostTrainBench v1.1 and designated it Verified. In <a href="/blog/epoch-ai-review-response/">our response</a>, we talked about two changes for v1.2: removing BFCL and deciding contamination by majority vote. Both are now in v1.2.</p>
+                        <p>v1.2 also fixes three issues in how the model weights are evaluated: HumanEval could count a sample as passed without running its tests, benchmarks could run code from the submitted model, and all benchmarks were evaluated with a single seed. <!-- HARBOR: remove the next sentence if Harbor does not ship with v1.2 -->Finally, a long awaited feature: an Harbor adapter lets anyone run PostTrainBench on cloud sandboxes.</p>
                     </div>
 
             <section id="bfcl" class="release-section article-copy">
                 <h2>Removing BFCL</h2>
                 <p>Epoch AI's review classified the Berkeley Function Calling Leaderboard as flawed:</p>
                 <blockquote class="release-rule release-trace-quote"><span class="release-quote-source">Epoch AI's review</span><span class="release-quote-copy">We classify one of the included benchmarks, BFCL, as Flawed due to an observed error rate of 48%, but the selected subset used in PostTrainBench may have a different error profile.</span></blockquote>
-                <p>We agree, and had noticed the same issues independently. BFCL was also where, in v1.1, we saw item-targeted training data produce the largest score jumps without a comparable general improvement.</p>
+                <p>We agree, and had noticed the same issues independently. BFCL was also where we saw very specific item targeted training, which sometimes gave the largest score increases without a comparable general improvement.</p>
                 <div class="release-change">
                     <strong>What changed</strong>
                     <ul>
-                        <li>BFCL is no longer included in the leaderboard, leaving six benchmarks.</li>
-                        <li>The six are reweighted with the same formula as before: each weight is proportional to the inverse of the gap between the official instruct models and their base models, so benchmarks where instruct tuning adds little count for more.</li>
+                        <li>BFCL is no longer included in the leaderboard and pipeline.</li>
+                        <li>The remaining six benchmarks are reweighted as before: the weight is proportional to the inverse of the gap between the official instruct models and the base models.</li>
                     </ul>
                 </div>
                 <div class="release-table-wrap">
@@ -189,15 +189,15 @@
 
             <section id="new-agents" class="release-section article-copy">
                 <h2>New agents</h2>
-                <p>We've added five new frontier agents to v1.2: Fable 5.1, Opus 5.5 and GPT-6 (Astra), GLM 5.3 and GLM 5.3 Flash, all at max reasoning. Fable 5.1 leads at 44.6%, followed by Opus 5.5 at 43.8% and GPT-6 (Astra) at 41.9%.</p>
-                <p>Five of Fable 5.1's GPQA Main cells use Opus 5 scores, due to fallback because of safety classifiers. </p>
+                <p>We've added five new frontier agents to v1.2: Fable 5.1, Opus 5.5 and GPT-6 (Astra), GLM 5.3 and GLM 5.3 Flash, all at max reasoning. Fable 5.1 is now #1 at 44.6%, followed by Opus 5.5 at 43.8% and GPT-6 (Astra) at 41.9%.</p>
+                <p>Five of Fable 5.1's GPQA Main runs fell back to Opus 5, due to safety classifiers. </p>
             </section>
 
             <section id="results" class="release-section release-wide" aria-labelledby="results-title">
                 <div class="article-copy release-block-heading">
                     <p class="release-kicker">Recomputed results</p>
                     <h2 id="results-title">How the leaderboard changed</h2>
-                    <p>We recomputed every v1.1 result under v1.2 setting. The chart compares each agent’s final score on both the leaderboards, and shows where the new agents enter the v1.2 leaderboard.</p>
+                    <p>All agents have their scores recomputed under the v1.2 setting. This is how their scores changed with the update:</p>
                 </div>
                 <figure class="score-comparison" aria-labelledby="comparison-title">
                     <div class="comparison-head">

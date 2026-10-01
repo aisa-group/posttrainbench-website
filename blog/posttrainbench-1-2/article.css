@@ -152,16 +152,13 @@
 /* Agents that joined in v1.2 have no v1.1 row, so no line reaches them. */
 .rank-new {
     flex: none;
-    padding: 0.05rem 0.35rem;
-    border: 1px solid var(--tag-border);
-    border-radius: 999px;
-    background: var(--tag-bg);
-    color: var(--tag-color);
-    font-size: 0.52rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    line-height: 1.4;
-    text-transform: uppercase;
+    padding: 0.1rem 0.42rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+    color: var(--accent-text);
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.35;
 }
 
 .rank-links {
@@ -216,9 +213,7 @@
     }
 
     .rank-new {
-        padding: 0;
-        border: 0;
-        background: none;
-        font-size: 0.5rem;
+        padding: 0.05rem 0.32rem;
+        font-size: 0.55rem;
     }
 }
