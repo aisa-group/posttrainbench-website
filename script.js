@@ -1111,7 +1111,11 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
 
     const effortLabels = plottedData.map(d => getChartAgentMeta(d).effort);
     const sourceLabels = plottedData.map(d => d.chartSourceLabel || '');
-    const secondaryLabels = plottedData.map((_, index) => sourceLabels[index] || effortLabels[index]);
+    // Desktop shows the base-model bar as "Base / Models" with a muted
+    // "baseline" line, the same short-name + secondary pattern as the agents,
+    // so its label stays within its slot instead of crowding its neighbour.
+    const secondaryLabels = plottedData.map((d, index) => sourceLabels[index] || effortLabels[index]
+        || (!isMobile && d.agent === 'Base Models' ? 'baseline' : ''));
     const secondaryLabelColors = plottedData.map((_, index) => (
         sourceLabels[index] ? externalLabelColor : effortColor
     ));
@@ -1130,7 +1134,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         }
         // Desktop: split long names into two lines
         if (d.agent === 'Base Models') {
-            return ['Base Models', '(baseline)'];
+            return ['Base', 'Models'];
         }
         if (d.agent === 'Official Instruct Models') {
             return ['Official', 'Instruct', 'Models²'];
