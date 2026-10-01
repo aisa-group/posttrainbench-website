@@ -597,6 +597,15 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   top: calc(var(--topbar-height) + var(--trace-tabs-height));
   z-index: 25;
 }
+/* While stuck, trace content scrolls behind the toolbar; a square backing in
+   the page colour fills its rounded corners so nothing shows through them. */
+.trace-toolbar::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  background: var(--bg-primary);
+}
 .trace-toolbar-summary {
   display: flex;
   align-items: center;
