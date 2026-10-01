@@ -149,6 +149,21 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Agents that joined in v1.2 have no v1.1 row, so no line reaches them. */
+.rank-new {
+    flex: none;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid var(--tag-border);
+    border-radius: 999px;
+    background: var(--tag-bg);
+    color: var(--tag-color);
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
+
 .rank-links {
     width: 100%;
     overflow: visible;
@@ -185,6 +200,12 @@
 }
 
 @media (max-width: 640px) {
+    /* The v1.2 column also carries the New tags, so it gets the extra width. */
+    .rank-head,
+    .rank-change {
+        grid-template-columns: minmax(0, 0.9fr) 2rem minmax(0, 1fr);
+    }
+
     .rank-row {
         gap: 0.35rem;
         font-size: 0.6rem;
@@ -192,5 +213,12 @@
 
     .rank-number {
         width: 1.1rem;
+    }
+
+    .rank-new {
+        padding: 0;
+        border: 0;
+        background: none;
+        font-size: 0.5rem;
     }
 }

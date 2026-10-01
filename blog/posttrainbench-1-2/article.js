@@ -1,7 +1,8 @@
 // v1.1 → v1.2 leaderboard order, computed from the site's score bundles so the
-// chart always matches the leaderboard. Only agents on both leaderboards are
-// ranked, so new arrivals don't push everyone down and each line shows a real
-// reordering.
+// chart always matches the leaderboard. The v1.2 column lists every agent and
+// marks the ones new in v1.2; lines join the agents on both leaderboards. The
+// v1.1 column leaves a blank row level with each new agent, so a flat line
+// means an agent kept its place among the returning agents.
 (function () {
     const root = document.getElementById('leaderboard-change');
     const previous = window.SCORES_DATA;
@@ -18,16 +19,18 @@
         return effort ? `${info.name} ${effort}` : info.name;
     }
 
-    const agentKeys = Object.keys(current.modelBenchmarkData)
-        .filter(key => agentInfo[key] && !agentInfo[key].isBaseline && Number.isFinite(score(current, key)));
-    const ranked = agentKeys
-        .filter(key => Number.isFinite(score(previous, key)))
-        .map(key => ({ key, name: agentInfo[key].name, before: score(previous, key), after: score(current, key) }));
-    const newCount = agentKeys.length - ranked.length;
-    if (ranked.length === 0) return;
+    const agents = Object.keys(current.modelBenchmarkData)
+        .filter(key => agentInfo[key] && !agentInfo[key].isBaseline && Number.isFinite(score(current, key)))
+        .map(key => {
+            const before = score(previous, key);
+            return { key, name: agentInfo[key].name, before, after: score(current, key), isNew: !Number.isFinite(before) };
+        });
+    const returning = agents.filter(a => !a.isNew);
+    const newCount = agents.length - returning.length;
+    if (returning.length === 0) return;
 
-    const byBefore = [...ranked].sort((a, b) => b.before - a.before);
-    const byAfter = [...ranked].sort((a, b) => b.after - a.after);
+    const byBefore = [...returning].sort((a, b) => b.before - a.before);
+    const byAfter = [...agents].sort((a, b) => b.after - a.after);
     byBefore.forEach((a, i) => { a.rankBefore = i + 1; });
     byAfter.forEach((a, i) => { a.rankAfter = i + 1; });
 
@@ -45,10 +48,10 @@
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg');
     svg.setAttribute('class', 'rank-links');
-    svg.setAttribute('viewBox', `0 0 100 ${ranked.length * ROW}`);
+    svg.setAttribute('viewBox', `0 0 100 ${byAfter.length * ROW}`);
     svg.setAttribute('preserveAspectRatio', 'none');
     svg.setAttribute('aria-hidden', 'true');
-    svg.style.height = `${ranked.length * ROW}px`;
+    svg.style.height = `${byAfter.length * ROW}px`;
 
     const row = (a, side) => {
         const li = el('li', 'rank-row');
@@ -60,21 +63,34 @@
         const number = el('span', 'rank-number', String(rank));
         if (side === 'before') li.append(name, scoreText, number);
         else li.append(number, name, scoreText);
+        if (a.isNew) li.append(el('span', 'rank-new', 'New'));
         li.setAttribute('aria-label', side === 'before'
             ? `v1.1 rank ${rank}: ${accessibleName(a.key)}, ${value.toFixed(1)} percent`
-            : `v1.2 rank ${rank}: ${accessibleName(a.key)}, ${value.toFixed(1)} percent, was rank ${a.rankBefore} in v1.1`);
+            : `v1.2 rank ${rank}: ${accessibleName(a.key)}, ${value.toFixed(1)} percent, ${a.isNew ? 'new in v1.2' : `was rank ${a.rankBefore} in v1.1`}`);
         return li;
     };
 
-    byBefore.forEach(a => left.append(row(a, 'before')));
+    let nextBefore = 0;
+    byAfter.forEach((a, i) => {
+        if (a.isNew) {
+            const blank = el('li', 'rank-row');
+            blank.setAttribute('aria-hidden', 'true');
+            left.append(blank);
+        } else {
+            const b = byBefore[nextBefore++];
+            b.rowBefore = i;
+            left.append(row(b, 'before'));
+        }
+    });
     byAfter.forEach(a => right.append(row(a, 'after')));
     byBefore.forEach(a => {
-        const y1 = (a.rankBefore - 0.5) * ROW;
-        const y2 = (a.rankAfter - 0.5) * ROW;
+        const rowAfter = a.rankAfter - 1;
+        const y1 = (a.rowBefore + 0.5) * ROW;
+        const y2 = (rowAfter + 0.5) * ROW;
         const path = document.createElementNS(svgNS, 'path');
         path.setAttribute('d', `M0 ${y1} C 50 ${y1}, 50 ${y2}, 100 ${y2}`);
         path.setAttribute('vector-effect', 'non-scaling-stroke');
-        path.setAttribute('class', `rank-link${a.rankAfter < a.rankBefore ? ' is-up' : a.rankAfter > a.rankBefore ? ' is-down' : ''}`);
+        path.setAttribute('class', `rank-link${rowAfter < a.rowBefore ? ' is-up' : rowAfter > a.rowBefore ? ' is-down' : ''}`);
         path.dataset.agent = a.key;
         svg.append(path);
     });
@@ -98,7 +114,7 @@
     head.append(el('span', '', 'v1.1'), el('span'), el('span', '', 'v1.2'));
 
     const note = el('p', 'rank-note');
-    note.append(`Ranked among the ${ranked.length} agents on both leaderboards. The ${newCount} new agents are listed under `);
+    note.append(`Lines join the ${returning.length} agents on both leaderboards and are colored by how each moved relative to the others. The ${newCount} agents marked New are introduced under `);
     const link = el('a', '', 'New agents');
     link.href = '#new-agents';
     note.append(link, '.');
