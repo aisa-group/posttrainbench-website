@@ -2,7 +2,8 @@
 // chart always matches the leaderboard. The v1.2 column lists every agent and
 // marks the ones new in v1.2; lines join the agents on both leaderboards. The
 // v1.1 column leaves a blank row level with each new agent, so a flat line
-// means an agent kept its place among the returning agents.
+// means an agent kept its place among the returning agents. Opus 4.8 appears
+// only at Max reasoning; its High run is left out.
 (function () {
     const root = document.getElementById('leaderboard-change');
     const previous = window.SCORES_DATA;
@@ -10,9 +11,13 @@
     if (!root || !previous || !current) return;
 
     const score = (data, key) => data.aggregatedScores?.[key]?.avg;
+    const EXCLUDED = new Set(['opus-4.8']);
+    EXCLUDED.forEach(key => {
+        if (!agentInfo[key]) throw new Error(`Excluded agent ${key} is not in agentInfo`);
+    });
 
     // Effort is left out of the visible names but kept for screen readers,
-    // where it tells apart runs of the same model (e.g. Opus 4.8 High / Max).
+    // where it tells apart runs of the same model at different efforts.
     function accessibleName(agentKey) {
         const info = agentInfo[agentKey];
         const effort = (info.reasoningEffort || '').split(',').map(p => p.trim()).find(p => p && p !== 'Reprompted');
@@ -21,6 +26,7 @@
 
     const agents = Object.keys(current.modelBenchmarkData)
         .filter(key => agentInfo[key] && !agentInfo[key].isBaseline && Number.isFinite(score(current, key)))
+        .filter(key => !EXCLUDED.has(key))
         .map(key => {
             const before = score(previous, key);
             return { key, name: agentInfo[key].name, before, after: score(current, key), isNew: !Number.isFinite(before) };
