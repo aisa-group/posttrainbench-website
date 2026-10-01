@@ -1315,7 +1315,7 @@ function renderJudgeVerdicts() {
     const tip = ver === 'v1.0'
       ? 'Judged under the v1.0 setting (pre-revamp). Check the home page for details on the new v1.1.'
       : 'Judged under the new v1.1 setting. Check the home page for details.';
-    head = `<a class="verdict-version ${verCls}" href="../" data-tip="${escapeHtml(tip)}">judged: ${ver}</a>`;
+    head = `<a class="verdict-version ${verCls}" href="../" data-tip="${escapeHtml(tip)}">judged: <span class="verdict-version-number">${escapeHtml(ver)}</span></a>`;
   }
   els.judgeVerdicts.innerHTML = `${head}<div class="verdict-list">${verdicts.join('')}</div>`;
 }

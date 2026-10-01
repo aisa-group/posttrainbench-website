@@ -507,9 +507,16 @@ function buildGroupDisclosure(group, mode, accMax, initiallyOpen) {
 
   details.addEventListener('toggle', () => {
     if (details.open) {
+      // Opening one group closes the others. When a closing group sits above
+      // this one, everything below it moves up by its height; scroll by the
+      // same amount so the header the reader just clicked stays put.
+      const head = details.querySelector('.exp-head');
+      const headTopBefore = head.getBoundingClientRect().top;
       els.runs.querySelectorAll('.exp-group[open]').forEach(other => {
         if (other !== details) other.open = false;
       });
+      const shift = head.getBoundingClientRect().top - headTopBefore;
+      if (shift !== 0) window.scrollBy(0, shift);
       OPEN_GROUP_KEY = group.key;
       materialize();
     } else if (OPEN_GROUP_KEY === group.key) {
