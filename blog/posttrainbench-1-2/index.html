@@ -137,7 +137,7 @@
                     <strong>What changed</strong>
                     <ul>
                         <li>The tests run in their own process and don't share a process with the model's code.</li>
-                        <li>Each call to the model's function runs in a fresh process inside a separate sandbox container, with no network, access to host files, and with its own process namespace.</li>
+                        <li>Each call to the model's function runs in a fresh process inside a separate sandbox container, with no network, no access to host files, and with its own process namespace.</li>
                     </ul>
                 </div>
             </section>
@@ -175,7 +175,7 @@
 
             <section id="judging" class="release-section article-copy">
                 <h2>Majority vote judging</h2>
-                <p>The contamination judge is an LLM reviewing the agent trace, so in principle there can be noise in the verdict, given the stochasticity of the judges. We didn't a lot of variance in our runs and have calibrated the judge. But to further reduce the variance, a run is now flagged for contamination only if at least two of three judge instances flag it.</p>
+                <p>The contamination judge is an LLM reviewing the agent trace, so in principle there can be noise in the verdict, given the stochasticity of the judges. We didn't see a lot of variance in our runs and have calibrated the judge. But to further reduce the variance, a run is now flagged for contamination only if at least two of three judge instances flag it.</p>
                 <div class="release-change">
                     <strong>What changed</strong>
                     <ul>
