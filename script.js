@@ -136,10 +136,11 @@ function setHeroVersion(version, { animate = true, intro = false } = {}) {
 }
 
 // On every load of the current results, show the previous version first and
-// tick up to the current one, so visitors see what just changed. The intro is
-// skipped when it could not be seen or would be misleading: an explicit
-// ?version=, a deep link into the page, a hero already scrolled away, or
-// reduced motion.
+// tick up to the current one, so visitors see what just changed. The tick
+// waits until the badge is actually on screen: after a deep link (#benchmarks)
+// or a restored scroll position it plays when the reader scrolls back up.
+// It is skipped only where it would be misleading or unwanted: an explicit
+// ?version= or reduced motion.
 function initializeHeroVersion(version) {
     if (heroVersionInitialized) return;
     heroVersionInitialized = true;
@@ -147,12 +148,9 @@ function initializeHeroVersion(version) {
     const versions = getAvailableResultsVersions();
     const previousVersion = versions[versions.indexOf(version) + 1];
     const link = document.querySelector('.hero-version-link');
-    const rect = link?.getBoundingClientRect();
-    const isInView = rect && rect.bottom > 0 && rect.top < window.innerHeight;
     const shouldIntro = version === CURRENT_RESULTS_VERSION
         && previousVersion
-        && !window.location.hash
-        && isInView
+        && link
         && !reducedMotionQuery.matches;
 
     if (!shouldIntro) {
@@ -161,21 +159,49 @@ function initializeHeroVersion(version) {
     }
 
     setHeroVersion(previousVersion, { animate: false });
-    // Start the hold once the badge's font is in, so the reader gets the full
-    // beat on the previous version before it ticks.
+    // Start the hold once the badge's font is in and the badge is fully in
+    // view below the sticky navbar, so the reader gets the full beat on the
+    // previous version before it ticks.
     const fontReady = document.fonts?.load
         ? Promise.race([
             document.fonts.load("600 16px 'JetBrains Mono'"),
             new Promise(resolve => setTimeout(resolve, 300))
         ]).catch(() => {})
         : Promise.resolve();
-    fontReady.then(() => {
-        if (!heroVersionInitialized || activeResultsVersion !== version) return;
+    const navbarHeight = () => document.querySelector('.navbar')?.offsetHeight || 0;
+    const badgeOnScreen = () => {
+        const rect = link.getBoundingClientRect();
+        return rect.top >= navbarHeight() && rect.bottom <= window.innerHeight;
+    };
+    const waitForBadge = () => {
+        // The reader switched versions meanwhile; the badge already shows it.
+        if (activeResultsVersion !== version) return;
+        if (!('IntersectionObserver' in window)) {
+            startHold();
+            return;
+        }
+        const badgeObserver = new IntersectionObserver((entries) => {
+            if (!entries.some(entry => entry.isIntersecting)) return;
+            badgeObserver.disconnect();
+            startHold();
+        }, { threshold: 1, rootMargin: `-${navbarHeight()}px 0px 0px 0px` });
+        badgeObserver.observe(link);
+    };
+    const startHold = () => {
+        if (activeResultsVersion !== version) return;
         heroVersionLoadTimer = setTimeout(() => {
             heroVersionLoadTimer = null;
+            if (activeResultsVersion !== version) return;
+            // Confirm before ticking: the observer's first report can predate a
+            // deep link's jump, and the reader may have scrolled away meanwhile.
+            if (!badgeOnScreen()) {
+                waitForBadge();
+                return;
+            }
             setHeroVersion(version, { intro: true });
         }, HERO_VERSION_HOLD_MS);
-    });
+    };
+    fontReady.then(waitForBadge);
 }
 
 function updateResultsVersionUI({ instant = false } = {}) {
