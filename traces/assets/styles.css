@@ -1743,7 +1743,9 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   transform: rotate(0deg);
   transition: transform 0.18s ease, color 0.18s ease;
 }
-.exp-group[open] .exp-head-caret { transform: rotate(90deg); color: var(--accent-primary); }
+/* Carets follow the click (data-expanded, set by fold.js) rather than [open],
+   which stays true until a closing fade finishes. */
+.exp-group:is([open]:not([data-expanded]), [data-expanded="true"]) .exp-head-caret { transform: rotate(90deg); color: var(--accent-primary); }
 .exp-group-body { padding: 0 0.7rem 0.7rem; }
 .paged-table { min-width: 0; }
 .load-more-btn {
@@ -3296,7 +3298,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   line-height: 1;
   transition: transform 160ms var(--ease-out);
 }
-.verdict-item[open] .verdict-caret { transform: rotate(90deg); }
+.verdict-item:is([open]:not([data-expanded]), [data-expanded="true"]) .verdict-caret { transform: rotate(90deg); }
 .verdict-item-body {
   border-top: 1px solid var(--border-color);
   padding: 0.8rem 1rem 0.95rem 3.65rem;
@@ -3373,7 +3375,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 .judge-details > summary::-webkit-details-marker { display: none; }
 .judge-details > summary::before { content: '›'; display: inline-block; margin-right: 0.55rem; color: var(--accent-primary); transition: transform 0.18s ease; }
-.judge-details[open] > summary::before { transform: rotate(90deg); }
+.judge-details:is([open]:not([data-expanded]), [data-expanded="true"]) > summary::before { transform: rotate(90deg); }
 .judge-details > summary span { color: var(--text-secondary); font-weight: 400; }
 .judge-stream {
   display: flex;
