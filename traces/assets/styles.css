@@ -41,12 +41,19 @@
   --topbar-height: 69px;
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
+  /* Elevation + focus tokens, shared with the main site's styles.css;
+     keep the two in sync. */
+  --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.15);
   --shadow-panel: 0 10px 28px rgba(20, 16, 11, 0.32);
+  --shadow-modal: 0 14px 40px rgba(0, 0, 0, 0.3);
+  --shadow-raised: 0 6px 16px rgba(20, 16, 11, 0.12);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 14%, transparent);
   --trace-tabs-height: 43px;
 }
 
 [data-theme="light"] {
   --shadow-panel: 0 8px 20px rgba(45, 42, 35, 0.12);
+  --shadow-modal: 0 14px 40px rgba(45, 42, 35, 0.18);
   /* Light theme — warm cream */
   --bg-primary:   #faf8f3;
   --bg-secondary: #f3f0e8;
@@ -133,7 +140,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   padding: 0.5rem 0.7rem;
   border: 1px solid var(--border-color);
   border-radius: 0.375rem;
-  box-shadow: 0 10px 28px rgba(20, 16, 11, 0.32);
+  box-shadow: var(--shadow-popover);
   max-width: 280px;
   width: max-content;
   z-index: 9999;
@@ -531,8 +538,10 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 .rail {
   position: sticky;
-  top: 70px;
-  max-height: calc(100vh - 88px);
+  /* Stick exactly where the tab bar does, so the three columns' first rows
+     form one band under the navbar. */
+  top: var(--topbar-height);
+  max-height: calc(100vh - var(--topbar-height) - 1.25rem);
   overflow-x: hidden;
   overflow-y: auto;
   display: flex;
@@ -666,7 +675,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 .trace-jump:focus-within {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  box-shadow: var(--focus-ring);
 }
 .trace-jump svg { color: var(--text-secondary); flex: none; opacity: 0.85; }
 .trace-jump input[type="number"] {
@@ -775,6 +784,11 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   border-radius: 0.375rem;
   width: max-content;
   transition: color 0.15s ease, background-color 0.15s ease;
+}
+.rail-left > .back-link {
+  /* Link height is 2 × 0.4rem padding + a 0.78rem line at 1.6; centre that box
+     within the tab row (minus its 2px underline). */
+  margin-top: calc((var(--trace-tabs-height) - 2px - (0.8rem + 0.78rem * 1.6)) / 2);
 }
 .back-link:hover {
   color: var(--accent-primary);
@@ -1358,13 +1372,13 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 @media (hover: hover) and (pointer: fine) {
   .matrix-cell:hover:not(:disabled) {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 1px var(--accent-primary), 0 6px 16px rgba(20, 16, 11, 0.12);
+    box-shadow: 0 0 0 1px var(--accent-primary), var(--shadow-raised);
     z-index: 1;
   }
   .matrix-cell.is-selected:hover:not(:disabled) {
     box-shadow:
       inset 0 0 0 1px var(--accent-primary),
-      0 6px 16px rgba(20, 16, 11, 0.12);
+      var(--shadow-raised);
   }
 }
 .matrix-cell:focus-visible {
@@ -1489,7 +1503,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 .filter-search:focus-within {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  box-shadow: var(--focus-ring);
 }
 .filter-search input[type="search"] {
   flex: 1;
@@ -1619,7 +1633,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 .cs-trigger:hover { border-color: var(--accent-primary); }
 .cs-open .cs-trigger {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  box-shadow: var(--focus-ring);
 }
 .cs-caret {
   color: var(--text-secondary);
@@ -1639,7 +1653,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 0.375rem;
-  box-shadow: 0 12px 28px rgba(20, 16, 11, 0.18);
+  box-shadow: var(--shadow-popover);
   list-style: none;
   margin: 0;
   padding: 0.25rem 0;
@@ -2784,7 +2798,10 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   top: 0;
   z-index: 2;
   margin-bottom: 0;
-  padding-bottom: 0.35rem;
+  /* Same height as the tab row (minus its 2px underline), so "System metrics"
+     and Expand share the tab labels' centre line. */
+  min-height: calc(var(--trace-tabs-height) - 2px);
+  padding-bottom: 0;
   background: var(--bg-primary);
 }
 .rail-header h3 {
@@ -2913,7 +2930,7 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
   opacity: 1;
   transition: transform 180ms var(--ease-out), opacity 140ms var(--ease-out);
