@@ -370,11 +370,45 @@ function setMobileNavOpen(isOpen, { instant = false } = {}) {
     navLinks.classList.toggle('active', isOpen);
     hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
     hamburgerBtn.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+    mobileNavOpenScrollY = isOpen ? window.scrollY : null;
 }
+
+// Scrolling the page means the reader has moved on: close the menu instead of
+// leaving it over the content. A small threshold ignores incidental drags.
+let mobileNavOpenScrollY = null;
+window.addEventListener('scroll', () => {
+    if (mobileNavOpenScrollY === null) return;
+    if (Math.abs(window.scrollY - mobileNavOpenScrollY) > 12) setMobileNavOpen(false);
+}, { passive: true });
 
 hamburgerBtn.addEventListener('click', (event) => {
     setMobileNavOpen(!navLinks.classList.contains('active'), { instant: event.detail === 0 });
 });
+
+// Wayfinding: mark the nav link for the section being read. Sections without
+// a link of their own count toward the link they belong with.
+const navSectionGroups = { leaderboard: ['time-spent'], team: ['citation'] };
+const navSectionLinks = [...navLinks.querySelectorAll('a[href^="#"]')].flatMap((link) => {
+    const id = link.getAttribute('href').slice(1);
+    return [id, ...(navSectionGroups[id] || [])]
+        .map(sectionId => ({ link, section: document.getElementById(sectionId) }))
+        .filter(({ section }) => section);
+});
+if (navSectionLinks.length && 'IntersectionObserver' in window) {
+    const sectionsInBand = new Set();
+    // A thin band a third of the way down the viewport: the section crossing it
+    // is the one being read.
+    const sectionSpy = new IntersectionObserver((entries) => {
+        entries.forEach(entry => (entry.isIntersecting ? sectionsInBand.add(entry.target) : sectionsInBand.delete(entry.target)));
+        const current = navSectionLinks.find(({ section }) => sectionsInBand.has(section))?.link;
+        navSectionLinks.forEach(({ link }) => {
+            link.classList.toggle('is-current', link === current);
+            if (link === current) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+        });
+    }, { rootMargin: '-33% 0px -62% 0px' });
+    navSectionLinks.forEach(({ section }) => sectionSpy.observe(section));
+}
 
 // Close menu when clicking a link
 navLinks.querySelectorAll('a').forEach(link => {
@@ -398,7 +432,9 @@ document.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('resize', () => {
-    if (window.innerWidth > 768 && navLinks.classList.contains('active')) {
+    // The hamburger layout applies up to 950px (see styles.css); close the menu
+    // once the full nav bar takes over.
+    if (window.innerWidth > 950 && navLinks.classList.contains('active')) {
         setMobileNavOpen(false, { instant: true });
     }
 });

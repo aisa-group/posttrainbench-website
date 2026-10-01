@@ -78,6 +78,9 @@
 
 [data-theme="light"] {
     /* Light Theme Colors - Warm Cream */
+    /* The dark-mode panel shadow reads heavy on cream; keep it soft here,
+       closer to the site's flat, bordered surfaces. */
+    --shadow-panel: 0 8px 20px rgba(45, 42, 35, 0.12);
     --bg-primary: #faf8f3;
     --bg-secondary: #f3f0e8;
     --bg-tertiary: #e8e4d9;
@@ -229,6 +232,12 @@ body {
     text-decoration: none;
     font-size: 0.875rem;
     transition: color 120ms var(--ease-out);
+}
+
+/* The section currently being read (set by the scroll spy in script.js). */
+.nav-links a.is-current,
+.nav-links a[aria-current="page"] {
+    color: var(--text-primary);
 }
 
 .nav-github {
@@ -2012,6 +2021,20 @@ tbody tr:last-child td {
 @media (max-width: 950px) {
     .hamburger {
         display: flex;
+        align-items: center;
+    }
+
+    /* 44×44 touch targets for the bar's icon buttons; the icons don't change. */
+    .hamburger,
+    .nav-github,
+    .theme-toggle {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Trim the bar's padding so the taller targets keep it at 69px. */
+    .navbar {
+        padding: 0.75rem 0;
     }
 
     .nav-links {
@@ -2023,7 +2046,9 @@ tbody tr:last-child td {
         border-bottom: 1px solid var(--border-color);
         flex-direction: column;
         align-items: stretch;
-        padding: 0.65rem 1rem 0.8rem;
+        /* Link text starts at the logo's edge: container padding + 44px button
+           (+ the gap, which matches each link's own inline padding). */
+        padding: 0.65rem 1rem 0.8rem calc(1.5rem + 44px);
         gap: 0.1rem;
         display: flex;
         visibility: hidden;
@@ -2048,7 +2073,7 @@ tbody tr:last-child td {
         padding: 0.6rem 0.75rem;
         border: 0;
         border-radius: var(--radius-sm);
-        text-align: center;
+        text-align: left;
         transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out);
     }
 
@@ -2153,7 +2178,7 @@ tbody tr:last-child td {
         border-bottom: 1px solid var(--border-color);
         flex-direction: column;
         align-items: stretch;
-        padding: 0.65rem 1rem 0.8rem;
+        padding: 0.65rem 1rem 0.8rem calc(1rem + 44px);
         gap: 0.1rem;
         display: flex;
         visibility: hidden;
@@ -2178,7 +2203,7 @@ tbody tr:last-child td {
         padding: 0.6rem 0.75rem;
         border: 0;
         border-radius: var(--radius-sm);
-        text-align: center;
+        text-align: left;
         transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out);
     }
 

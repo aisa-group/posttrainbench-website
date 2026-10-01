@@ -4,6 +4,9 @@
 
     if (!hamburgerBtn || !navLinks) return;
 
+    // Scroll position when the menu opened; null while it is closed.
+    var openScrollY = null;
+
     function setMobileNavOpen(isOpen, instant) {
         if (instant) {
             hamburgerBtn.classList.add('no-motion');
@@ -20,6 +23,7 @@
         navLinks.classList.toggle('active', isOpen);
         hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
         hamburgerBtn.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+        openScrollY = isOpen ? window.scrollY : null;
     }
 
     hamburgerBtn.addEventListener('click', function (event) {
@@ -45,8 +49,18 @@
         }
     });
 
+    // Scrolling the page means the reader has moved on: close the menu instead
+    // of leaving it over the content. A small threshold ignores incidental drags.
+    window.addEventListener('scroll', function () {
+        if (openScrollY !== null && Math.abs(window.scrollY - openScrollY) > 12) {
+            setMobileNavOpen(false, false);
+        }
+    }, { passive: true });
+
+    // The hamburger layout applies up to 950px; close the menu once the full
+    // nav bar takes over.
     window.addEventListener('resize', function () {
-        if (window.innerWidth > 768 && navLinks.classList.contains('active')) {
+        if (window.innerWidth > 950 && navLinks.classList.contains('active')) {
             setMobileNavOpen(false, true);
         }
     });
