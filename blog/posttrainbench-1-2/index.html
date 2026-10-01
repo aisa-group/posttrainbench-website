@@ -86,6 +86,7 @@
                     <span>In this release</span>
                     <a href="#bfcl">Removing BFCL</a>
                     <a href="#humaneval">HumanEval fix</a>
+                    <a href="#remote-code">Remote code fix</a>
                     <a href="#seeds">Multi-seed evaluation</a>
                     <a href="#judging">Majority vote judging</a>
                     <a href="#results">Results</a>
@@ -96,7 +97,7 @@
                 <div class="release-body">
                     <div class="release-intro">
                         <p>Earlier this month, Epoch AI reviewed PostTrainBench v1.1 and designated it Verified. In <a href="/blog/epoch-ai-review-response/">our response</a>, we talked about two changes for v1.2: removing BFCL and deciding contamination with majority vote judging. Both are in v1.2.</p>
-                        <p>It also fixes two problems in how final model weights are evaluated: HumanEval could count a sample as passed without running its tests, and every benchmark was evaluated with a single sampling seed. <!-- HARBOR: remove the next sentence if Harbor does not ship with v1.2 -->Finally, a long-awaited Harbor adapter lets anyone run PostTrainBench on cloud GPUs.</p>
+                        <p>It also fixes three problems in how final model weights are evaluated: HumanEval could count a sample as passed without running its tests, two benchmarks could run code from the submitted model, and every benchmark was evaluated with a single sampling seed. <!-- HARBOR: remove the next sentence if Harbor does not ship with v1.2 -->Finally, a long-awaited Harbor adapter lets anyone run PostTrainBench on cloud GPUs.</p>
                     </div>
 
             <section id="bfcl" class="release-section article-copy">
@@ -141,18 +142,31 @@
                 </div>
             </section>
 
+            <section id="remote-code" class="release-section article-copy">
+                <h2>Fixing Arena Hard and HealthBench scoring</h2>
+                <p>The Arena Hard and HealthBench evaluation scripts used the flag <code>--trust-remote-code</code> when loading the model. This could allow intricate reward hacks, because the agent could write arbitrary code into the submitted model, which would then be executed during the final evaluation.</p>
+                <p>We have not seen any exploit of this. We removed the flag so that future agents can't exploit it.</p>
+                <div class="release-change">
+                    <strong>What changed</strong>
+                    <ul>
+                        <li>The Arena Hard and HealthBench evaluation scripts no longer use <code>--trust-remote-code</code>.</li>
+                        <li>Scores did not change, because no agent had exploited the flag.</li>
+                    </ul>
+                </div>
+            </section>
+
             <section id="seeds" class="release-section article-copy">
                 <h2>Averaging evaluations over seeds</h2>
-                <p>Until now, each final model was evaluated once. A single evaluation is noisy, especially on benchmarks with few samples, such as AIME (30 problems). In PTB v1.2, the model is evaluated with five seeds, and its score is the mean over them.</p>
-                <p>Some benchmarks do not need all five:</p>
+                <p>Until now, each final model was evaluated once. A single evaluation is noisy, especially on benchmarks with few samples, such as AIME (30 problems). In PTB v1.2, the model is evaluated with several seeds, and its score is the mean over them.</p>
+                <p>The number of seeds depends on the benchmark:</p>
                 <div class="release-table-wrap">
                     <table class="release-table">
                         <thead>
                             <tr><th>Benchmark</th><th>Seeds</th><th>Why</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td>GPQA Main</td><td>5</td><td>The seed also shuffles the answer choices.</td></tr>
-                            <tr><td>AIME 2025, GSM8K, HumanEval</td><td>5, or 1 if greedy</td></tr>
+                            <tr><td>AIME 2025</td><td>5</td><td>Has only 30 samples.</td></tr>
+                            <tr><td>GSM8K, GPQA Main, HumanEval</td><td>3</td><td>Have at least 164 samples.</td></tr>
                             <tr><td>Arena Hard Writing, HealthBench</td><td>1</td><td>LLM judged</td></tr>
                         </tbody>
                     </table>
