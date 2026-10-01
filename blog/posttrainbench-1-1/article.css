@@ -170,7 +170,7 @@
     margin-top: 1.45rem;
     color: var(--text-secondary);
     font-family: var(--font-mono);
-    font-size: 0.63rem;
+    font-size: 0.75rem;
 }
 
 .release-meta span + span::before {
@@ -285,6 +285,12 @@
 
 .release-toc a:active {
     transform: translateX(2px);
+}
+
+/* Section being read (set by blog/toc.js). */
+.release-toc a[aria-current="location"] {
+    color: var(--accent-text);
+    font-weight: 600;
 }
 
 @media (hover: hover) and (pointer: fine) {

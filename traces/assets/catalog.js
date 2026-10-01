@@ -87,6 +87,13 @@
     return map[String(value).toLowerCase()] || value;
   }
 
+  // Benchmarks no longer on the current leaderboard. Their traces stay
+  // browsable, labelled so readers don't mistake them for current tasks.
+  const BENCHMARK_NOTES = { bfcl: 'dropped in v1.2' };
+  function benchmarkNote(value) {
+    return BENCHMARK_NOTES[String(value || '').toLowerCase()] || '';
+  }
+
   function prettyTrainedModel(name) {
     if (!name) return '';
     let value = name.replace(/^[^_]+_/, '');
@@ -240,6 +247,7 @@
     readState,
     writeState,
     prettyBenchmark,
+    benchmarkNote,
     prettyTrainedModel,
     prettyAgent,
     prettyAgentForRun,

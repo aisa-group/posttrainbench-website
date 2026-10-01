@@ -15,6 +15,11 @@ const modelDisplayNames = {
 // Agents to show in main chart (others appear in table only)
 const chartAgentKeys = [
     "human",
+    "fable-5.1",
+    "opus-5.5-max",
+    "gpt-6-astra",
+    "glm-5.3-flash",
+    "glm-5.3",
     "locus",
     "fable-5",
     "gpt-5.6-sol",
@@ -37,8 +42,30 @@ const chartAgentKeys = [
     "base-model"
 ];
 
+// Keep the denser historical plots intact while giving the v1.2 overview
+// enough room for its new frontier entries. These agents remain available in
+// the full leaderboard table and the efficiency views.
+const chartAgentKeysByVersion = {
+    "v1.2": chartAgentKeys.filter(key => ![
+        "gpt-5.4-high",
+        "gpt-5.5-xhigh",
+        "glm-5.3-flash",
+        "opus-4.7",
+        "opus-4.8"
+    ].includes(key))
+};
+
+function getChartAgentKeys(version) {
+    return chartAgentKeysByVersion[version] || chartAgentKeys;
+}
+
 // Agents to show in time spent chart
 const timeChartAgentKeys = [
+    "fable-5.1",
+    "opus-5.5-max",
+    "gpt-6-astra",
+    "glm-5.3-flash",
+    "glm-5.3",
     "locus",
     "fable-5",
     "gpt-5.6-sol",
@@ -77,6 +104,11 @@ const timeChartAgentKeys = [
 // All agents (for table) - order determines display order before sorting by score
 const allAgentKeys = [
     "human",
+    "fable-5.1",
+    "opus-5.5-max",
+    "gpt-6-astra",
+    "glm-5.3-flash",
+    "glm-5.3",
     "locus",
     "fable-5",
     "gpt-5.6-sol",
@@ -128,7 +160,7 @@ const agentInfo = {
         scaffold: "Intology · Opus 5",
         chartSourceLabel: "Intology",
         isExternal: true,
-        verificationNote: "Run by Intology and reviewed for v1.1 compliance by PostTrainBench."
+        verificationNote: "Run by Intology and reviewed by PostTrainBench."
     },
     "gpt-5.2": { name: "GPT-5.2", description: "GPT-5.2 agent", scaffold: "Codex CLI" },
     "gpt-5.1-codex-max": { name: "GPT 5.1 Codex Max", description: "GPT 5.1 Codex Max agent", scaffold: "Codex CLI" },
@@ -149,6 +181,8 @@ const agentInfo = {
     "minimax-m2.5": { name: "MiniMax M2.5", description: "MiniMax M2.5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "glm-5": { name: "GLM 5", description: "GLM 5 agent", isOpenCode: true, scaffold: "OpenCode" },
     "glm-5.2": { name: "GLM 5.2", description: "GLM 5.2 agent", scaffold: "Claude Code", reasoningEffort: "Max" },
+    "glm-5.3": { name: "GLM 5.3", description: "GLM 5.3 agent with a 1M context window", scaffold: "Claude Code", reasoningEffort: "Max" },
+    "glm-5.3-flash": { name: "GLM 5.3 Flash", description: "GLM 5.3 Flash agent", scaffold: "Claude Code", reasoningEffort: "Max" },
     "opus-4.6": { name: "Opus 4.6", description: "Claude Opus 4.6 agent", scaffold: "Claude Code" },
     "opus-4.6-1m": { name: "Opus 4.6 (1M)", description: "Claude Opus 4.6 with 1M context window", scaffold: "Claude Code" },
     "opus-4.7": { name: "Opus 4.7", description: "Claude Opus 4.7 extra-high reasoning agent", scaffold: "Claude Code", reasoningEffort: "xHigh" },
@@ -161,21 +195,38 @@ const agentInfo = {
     "gpt-5.5-xhigh": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent", scaffold: "Codex CLI", reasoningEffort: "xHigh" },
     "gpt-5.5-xhigh-reprompted": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent (reprompted)", scaffold: "Codex CLI", reasoningEffort: "xHigh, Reprompted" },
     "gpt-5.6-sol": { name: "GPT 5.6 (Sol)", description: "GPT 5.6 Sol max reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Max" },
+    "gpt-6-astra": { name: "GPT 6 (Astra)", description: "GPT 6 Astra max reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Max" },
     "opus-5": { name: "Opus 5", description: "Claude Opus 5 agent", scaffold: "Claude Code" },
+    "opus-5.5-max": { name: "Opus 5.5", description: "Claude Opus 5.5 with a 1M context window, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max" },
     "grok-4.5-high": { name: "Grok 4.5", description: "Grok 4.5 high reasoning agent", scaffold: "Cursor CLI", reasoningEffort: "High" },
     "qwen3-max": { name: "Qwen3 Max", description: "Qwen3 Max agent", isOpenCode: true, scaffold: "Claude Code" },
-    "fable-5": { name: "Fable 5", description: "Claude Fable 5 with 1M context, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max", footnoteMarker: "‡" }
+    "fable-5": {
+        name: "Fable 5",
+        description: "Claude Fable 5 with 1M context, max reasoning agent",
+        scaffold: "Claude Code",
+        reasoningEffort: "Max",
+        provenanceLabel: "mixed GPQA",
+        provenanceNote: "Fable 5 GPQA Main cells use Opus 4.8 Max fallback scores."
+    },
+    "fable-5.1": {
+        name: "Fable 5.1",
+        description: "Claude Fable 5.1 with a 1M context window, max reasoning agent",
+        scaffold: "Claude Code",
+        reasoningEffort: "Max",
+        provenanceLabel: "mixed GPQA",
+        provenanceNote: "Five Fable 5.1 GPQA Main cells fell back to Opus 5."
+    }
 };
 
 // Benchmark metadata (weights are loaded from scores.json)
 const benchmarkInfo = {
-    aime2025: { title: "AIME 2025", version: "", difficulty: "hard", category: "Mathematics", description: "American Invitational Mathematics Examination - tests advanced mathematical problem-solving and reasoning capabilities." },
-    arenahardwriting: { title: "Arena Hard", version: "Writing", difficulty: "medium", category: "Writing", description: "Arena Hard Writing benchmark - evaluates writing quality and instruction following." },
-    bfcl: { title: "BFCL", version: "", difficulty: "medium", category: "Function Calling", description: "Berkeley Function Calling Leaderboard - evaluates function calling and tool use capabilities." },
-    gpqamain: { title: "GPQA", version: "Main", difficulty: "hard", category: "Knowledge", description: "Graduate-level Google-Proof Q&A - tests expert-level knowledge across science domains." },
-    gsm8k: { title: "GSM8K", version: "", difficulty: "medium", category: "Mathematics", description: "Grade School Math 8K - evaluates mathematical reasoning and multi-step problem solving." },
-    healthbench: { title: "HealthBench", version: "", difficulty: "hard", category: "Healthcare", description: "Health and medical knowledge benchmark - tests understanding of healthcare and medical concepts." },
-    humaneval: { title: "HumanEval", version: "", difficulty: "medium", category: "Coding", description: "Evaluates code generation capabilities through hand-written programming problems." }
+    aime2025: { title: "AIME 2025", version: "", difficulty: "hard", category: "Mathematics", description: "Competition math problems with integer answers." },
+    arenahardwriting: { title: "Arena Hard", columnTitle: "Arena Hard", version: "Writing", difficulty: "medium", category: "Writing", description: "Open-ended writing prompts, judged by an LLM against a baseline." },
+    bfcl: { title: "BFCL", version: "", difficulty: "medium", category: "Function Calling", description: "Choosing and formatting the right function calls." },
+    gpqamain: { title: "GPQA", columnTitle: "GPQA Main", version: "Main", difficulty: "hard", category: "Knowledge", description: "Graduate-level science questions that resist web search." },
+    gsm8k: { title: "GSM8K", version: "", difficulty: "medium", category: "Mathematics", description: "Multi-step grade-school math word problems." },
+    healthbench: { title: "HealthBench", version: "", difficulty: "hard", category: "Healthcare", description: "Medical conversations graded against physician-written rubrics." },
+    humaneval: { title: "HumanEval", version: "", difficulty: "medium", category: "Coding", description: "Python functions from docstrings, checked by unit tests." }
 };
 
 // Training setup information

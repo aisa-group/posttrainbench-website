@@ -6,6 +6,7 @@ const CATALOG = window.PTB_Catalog;
 const {
   prettyAgentForRun,
   prettyBenchmark,
+  benchmarkNote,
   prettyTrainedModel,
 } = CATALOG;
 // Base URL for the JSON data — local "./data/" by default, can be set to
@@ -14,7 +15,6 @@ const {
 const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './data/';
 
 const els = {
-  topbarMeta: document.getElementById('topbar-meta'),
   tabNav: document.getElementById('tab-nav'),
   layout: document.getElementById('run-layout'),
   backLink: document.getElementById('back-link'),
@@ -94,7 +94,6 @@ async function load() {
       throw new Error('The trace data has an invalid format.');
     }
     computeTraceStart();
-    renderTopbar();
     renderSummary();
     setupReturnContext();
     renderTrace();
@@ -225,13 +224,6 @@ function whenChartReady(fn, deadline = Date.now() + CHART_LOAD_TIMEOUT_MS) {
 
 // ---------- Topbar / left-rail summary -----------------------------------
 
-function renderTopbar() {
-  // Topbar-meta was previously showing "claude_code · built ...". The
-  // build timestamp and trace format aren't useful at-a-glance — they
-  // already live in the summary card and the URL — so the topbar stays
-  // clean and reserves the right-hand space for the theme toggle.
-  els.topbarMeta.textContent = '';
-}
 
 function renderSummary() {
   const m = RECORD.meta;
@@ -246,7 +238,10 @@ function renderSummary() {
   }) || '-';
   els.summaryTitle.textContent = agentName;
   const subBits = [];
-  if (m.benchmark) subBits.push(prettyBenchmark(m.benchmark));
+  if (m.benchmark) {
+    const note = benchmarkNote(m.benchmark);
+    subBits.push(note ? `${prettyBenchmark(m.benchmark)} (${note})` : prettyBenchmark(m.benchmark));
+  }
   if (m.trained_model) subBits.push(prettyTrainedModel(m.trained_model));
   if (m.seed) subBits.push('seed ' + m.seed);
   els.summarySub.textContent = subBits.join(' · ');
@@ -1320,7 +1315,7 @@ function renderJudgeVerdicts() {
     const tip = ver === 'v1.0'
       ? 'Judged under the v1.0 setting (pre-revamp). Check the home page for details on the new v1.1.'
       : 'Judged under the new v1.1 setting. Check the home page for details.';
-    head = `<a class="verdict-version ${verCls}" href="../" data-tip="${escapeHtml(tip)}">judged: ${ver}</a>`;
+    head = `<a class="verdict-version ${verCls}" href="../" data-tip="${escapeHtml(tip)}">judged: <span class="verdict-version-number">${escapeHtml(ver)}</span></a>`;
   }
   els.judgeVerdicts.innerHTML = `${head}<div class="verdict-list">${verdicts.join('')}</div>`;
 }
@@ -1565,7 +1560,7 @@ function setupTabs() {
 
 function scrollSectionBelowTabs(element) {
   if (!element) return;
-  const topbarHeight = document.querySelector('.topbar')?.offsetHeight || 48;
+  const topbarHeight = document.querySelector('.navbar')?.offsetHeight || 69;
   const tabHeight = els.tabNav.offsetHeight || 44;
   const top = element.getBoundingClientRect().top + window.scrollY - topbarHeight - tabHeight - 8;
   window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });

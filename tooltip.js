@@ -7,21 +7,27 @@
 (function () {
   let pop = null;
   let currentTrigger = null;
+  let lastHideAt = -Infinity;
+  const instantWindow = 600;
 
   function ensurePop() {
     if (pop) return pop;
     pop = document.createElement('div');
     pop.className = 'tt-pop';
+    pop.id = 'site-tooltip';
     pop.setAttribute('role', 'tooltip');
     document.body.appendChild(pop);
     return pop;
   }
 
-  function show(trigger) {
+  function show(trigger, input = 'pointer') {
     const text = trigger.getAttribute('data-tip');
     if (!text) return;
     const el = ensurePop();
     el.textContent = text;
+    el.classList.toggle('tt-instant', input === 'pointer' && performance.now() - lastHideAt < instantWindow);
+    el.classList.toggle('tt-keyboard', input === 'keyboard');
+    trigger.setAttribute('aria-describedby', el.id);
     position(trigger);
     // Positioning also sets the transform origin at the arrow before the
     // entrance starts, so the tooltip feels attached to its trigger.
@@ -72,6 +78,10 @@
 
   function hide() {
     if (pop) pop.classList.remove('tt-show');
+    if (currentTrigger && pop && currentTrigger.getAttribute('aria-describedby') === pop.id) {
+      currentTrigger.removeAttribute('aria-describedby');
+    }
+    lastHideAt = performance.now();
     currentTrigger = null;
   }
 
@@ -80,7 +90,7 @@
     if (!trigger) return;
     if (trigger !== currentTrigger) {
       currentTrigger = trigger;
-      show(trigger);
+      show(trigger, 'pointer');
     }
   });
 
@@ -90,6 +100,18 @@
     // Don't hide if the cursor just moved between two descendants of
     // the same trigger.
     if (e.relatedTarget && trigger.contains(e.relatedTarget)) return;
+    if (trigger === currentTrigger && trigger !== document.activeElement) hide();
+  });
+
+  document.addEventListener('focusin', (e) => {
+    const trigger = e.target.closest('[data-tip]');
+    if (!trigger) return;
+    currentTrigger = trigger;
+    show(trigger, 'keyboard');
+  });
+
+  document.addEventListener('focusout', (e) => {
+    const trigger = e.target.closest('[data-tip]');
     if (trigger === currentTrigger) hide();
   });
 

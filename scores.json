@@ -1,4 +1,14 @@
 {
+  "resultsVersion": "v1.1",
+  "benchmarkKeys": [
+    "aime2025",
+    "arenahardwriting",
+    "bfcl",
+    "gpqamain",
+    "gsm8k",
+    "healthbench",
+    "humaneval"
+  ],
   "benchmarkWeights": {
     "aime2025": 0.226536549919078,
     "arenahardwriting": 0.0903518275042778,

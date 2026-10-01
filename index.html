@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" data-current-results-version="v1.2">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,9 +20,11 @@
             } catch (e) {}
             try {
                 var version = new URLSearchParams(window.location.search).get('version');
-                root.setAttribute('data-results-version', version === 'v1' ? 'v1' : 'v1.1');
+                var currentVersion = root.getAttribute('data-current-results-version') || 'v1.1';
+                var knownVersions = ['v1.2', 'v1.1', 'v1'];
+                root.setAttribute('data-results-version', knownVersions.indexOf(version) >= 0 ? version : currentVersion);
             } catch (e) {
-                root.setAttribute('data-results-version', 'v1.1');
+                root.setAttribute('data-results-version', root.getAttribute('data-current-results-version') || 'v1.1');
             }
             root.classList.add('leaderboard-loading');
             setTimeout(function () { root.classList.remove('leaderboard-loading'); }, 3000);
@@ -88,20 +90,39 @@
 
     <section class="hero">
         <div class="container">
-            <a class="hero-release" href="/blog/epoch-ai-review-response/" data-goatcounter-click="review-response-opened/hero"
-                data-goatcounter-title="Epoch AI review response">
-                <span class="hero-release-version">New · Verified by Epoch AI</span>
-                <span class="hero-release-copy">Read our response</span>
+            <a class="hero-release" href="/blog/posttrainbench-1-2/" data-goatcounter-click="release-details-opened/hero-v1.2"
+                data-goatcounter-title="PostTrainBench v1.2 release">
+                <span class="hero-release-version">New · <span class="hero-release-number">v1.2</span></span>
+                <span class="hero-release-copy">Read what changed</span>
                 <span class="hero-release-arrow" aria-hidden="true">→</span>
             </a>
             <h1 class="hero-title">
                 <span class="hero-title-name"><span class="title-main">PostTrain</span><span class="title-accent">Bench</span></span>
                 <a class="hero-version-link" href="/blog/posttrainbench-1-1/" data-goatcounter-click="release-details-opened/title"
-                    data-goatcounter-title="PostTrainBench v1.1 title link">v1.1</a>
+                    data-goatcounter-title="PostTrainBench v1.1 title link" aria-label="PostTrainBench v1.1">
+                    <span class="hero-version-odometer" id="hero-version-odometer" aria-hidden="true">
+                        <span class="hero-version-prefix">v</span>
+                        <span class="hero-version-digit-window">
+                            <span class="hero-version-digit-reel" id="hero-version-major" data-digit="1" style="transform: translate3d(0, -10%, 0)">
+                                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+                                <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                            </span>
+                        </span>
+                        <span class="hero-version-fraction is-visible" id="hero-version-fraction">
+                            <span class="hero-version-decimal">.</span>
+                            <span class="hero-version-digit-window">
+                                <span class="hero-version-digit-reel" id="hero-version-minor" data-digit="2" style="transform: translate3d(0, -20%, 0)">
+                                    <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+                                    <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                                </span>
+                            </span>
+                        </span>
+                    </span>
+                </a>
             </h1>
             <p class="hero-subtitle">Measuring how well AI agents can post-train language models</p>
             <div class="hero-description">
-                <p>Can AI agents improve performance of base LLMs? We give each agent 4 small target LLMs, an H100 GPU, and 10 hours to post-train them.</p>
+                <p>Can AI agents improve performance of base LLMs? We give each agent four small base LLMs, one H100 GPU, and 10 hours to post-train them.</p>
             </div>
             <div class="hero-buttons">
                 <a href="https://arxiv.org/abs/2603.08640" target="_blank" class="btn btn-primary"
@@ -133,28 +154,25 @@
     <section id="leaderboard" class="leaderboard">
         <div class="container">
             <h2 class="section-title">Leaderboard</h2>
-            <p class="section-description">Average performance across four base models and seven weighted benchmarks.</p>
+            <p class="section-description" id="leaderboard-description">Average performance across four base models and seven weighted benchmarks.</p>
             <div class="results-version-control">
                 <span class="results-version-label" id="results-version-label">Results version</span>
-                <div class="results-version-toggle" role="group" aria-labelledby="results-version-label">
-                    <button class="results-version-option is-active" type="button" data-results-version="v1.1" aria-pressed="true">
-                        <span>v1.1</span><small>Current</small>
-                    </button>
-                    <button class="results-version-option" type="button" data-results-version="v1" aria-pressed="false">
-                        <span>v1</span><small>Original</small>
-                    </button>
+                <div class="results-version-toggle" id="results-version-toggle" role="radiogroup" aria-labelledby="results-version-label" style="--count: 3; --index: 0">
+                    <button class="results-version-option is-active" type="button" role="radio" aria-checked="true" data-results-version="v1.2">v1.2</button>
+                    <button class="results-version-option" type="button" role="radio" aria-checked="false" tabindex="-1" data-results-version="v1.1">v1.1</button>
+                    <button class="results-version-option" type="button" role="radio" aria-checked="false" tabindex="-1" data-results-version="v1">v1</button>
                 </div>
             </div>
             <div class="leaderboard-chart">
                 <div class="leaderboard-chart-wrapper">
                     <canvas id="performanceChart"></canvas>
                 </div>
-                <div class="main-chart-key" aria-label="Chart key">
-                    <span class="main-chart-key-item main-chart-key-external">
+                <div class="main-chart-key" aria-label="Chart key" hidden>
+                    <span class="main-chart-key-item main-chart-key-external" hidden>
                         <span class="main-chart-key-swatch main-chart-key-swatch-external" aria-hidden="true"></span>
                         <span>External submission</span>
                     </span>
-                    <span class="main-chart-key-item main-chart-key-reprompted">
+                    <span class="main-chart-key-item main-chart-key-reprompted" hidden>
                         <span class="main-chart-key-swatch" aria-hidden="true"></span>
                         <span>Reprompted</span>
                     </span>
@@ -164,22 +182,29 @@
                     <span id="mobile-chart-references">Full ranking below</span>
                 </p>
             </div>
-            <p class="results-status" id="results-status"><span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.</p>
+            <p class="results-status" id="results-status" hidden></p>
             <div class="leaderboard-meta">
                 <details class="methodology-notes compact-disclosure">
                     <summary>Methodology &amp; caveats</summary>
                     <div class="methodology-content">
-                        <p><sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and seven benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). Each run asks a CLI agent to maximize one base model on one benchmark.</p>
+                        <p id="benchmark-methodology-note"><sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and seven benchmarks (AIME 2025, Arena Hard, BFCL, GPQA Main, GSM8K, HealthBench, HumanEval). Each run asks a CLI agent to maximize one base model on one benchmark.</p>
                         <p><sup>2</sup> “Official Instruct Models” are the official post-trained versions of each base model: <a href="https://huggingface.co/Qwen/Qwen3-1.7B" target="_blank" rel="noopener noreferrer">Qwen3-1.7B</a>, <a href="https://huggingface.co/Qwen/Qwen3-4B" target="_blank" rel="noopener noreferrer">Qwen3-4B</a>, <a href="https://huggingface.co/HuggingFaceTB/SmolLM3-3B" target="_blank" rel="noopener noreferrer">SmolLM3-3B</a>, and <a href="https://huggingface.co/google/gemma-3-4b-it" target="_blank" rel="noopener noreferrer">Gemma-3-4B-IT</a>. Their training usually exceeds the ten-hour, one-GPU constraint, so they are not directly comparable.</p>
                         <p><strong>Reprompted</strong> means the agent was manually asked to continue whenever it stopped before the time budget expired.</p>
                         <p><strong>Contamination boundary.</strong> Agents may match a benchmark's general style, format, domain, or difficulty, but may not derive training data from specific test items, even without verbatim overlap. Agents receive the same n-gram decontamination tool used during review. Affected runs require a compliant rerun; unavailable legacy results are omitted.</p>
-                        <p><strong>External result.</strong> Locus was run by <a href="https://www.intology.ai/" target="_blank" rel="noopener noreferrer">Intology</a> and reviewed for v1.1 compliance by the PostTrainBench team. The submission includes three score seeds and a mean runtime of 9h 38m 12s across 84 runs.</p>
-                        <p id="fable-methodology-note"><sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.</p>
+                        <p><strong>External result.</strong> Locus was run by <a href="https://www.intology.ai/" target="_blank" rel="noopener noreferrer">Intology</a> and reviewed for compliance by the PostTrainBench team. Scores average three seeds; mean runtime is 9h 38m across 84 runs.</p>
+                        <p id="fable-methodology-note"><strong>Fable 5.1 GPQA fallback.</strong> Five underlying Fable 5.1 GPQA Main cells fell back to Opus 5. The aggregate GPQA Main values therefore include both Fable 5.1 and Opus 5 results.</p>
                     </div>
                 </details>
                 <details class="changelog compact-disclosure">
-                <summary>Changelog <span class="disclosure-meta">Updated Sep 17</span></summary>
+                <summary>Changelog <span class="disclosure-meta">Updated Sep 30</span></summary>
                 <div class="changelog-content">
+                    <div class="changelog-entry">
+                        <div class="changelog-date">Sep 30, 2026</div>
+                        <ul class="changelog-list">
+                            <li>Released <a href="/blog/posttrainbench-1-2/">PostTrainBench v1.2</a>: dropped BFCL (six reweighted benchmarks), fixed HumanEval scoring, averaged final evaluations over up to five seeds, and contamination verdicts now take the majority of three judge runs.</li>
+                            <li>Added <strong>Fable 5.1</strong>, <strong>Opus 5.5</strong>, <strong>GPT 6 (Astra)</strong>, <strong>GLM 5.3</strong>, and <strong>GLM 5.3 Flash</strong>.</li>
+                        </ul>
+                    </div>
                     <div class="changelog-entry">
                         <div class="changelog-date">Sep 17, 2026</div>
                         <ul class="changelog-list">
@@ -205,7 +230,7 @@
                             <li>Released <a href="/blog/posttrainbench-1-1/">PostTrainBench v1.1</a> with independent contamination, API-usage, and PostTrainBench-lookup judges plus programmatic model-identity checks.</li>
                             <li>Made the test-item contamination boundary explicit and gave agents the same n-gram decontamination tool used during review.</li>
                             <li>Affected runs require compliant reruns; unavailable legacy results are omitted from the leaderboard.</li>
-                            <li>External-model distillation is now disallowed. Flagged runs receive the base-model score.</li>
+                            <li>Distillation through hosted model APIs is now disallowed. Flagged runs receive the base-model score.</li>
                             <li>A <strong>GPT-5.6 (Sol)</strong> run was flagged for consulting published PostTrainBench traces.</li>
                             <li>Updated <strong>Fable 5</strong> to two runs. Its GPQA scores fall back to Opus 4.8 (Max).</li>
                             <li>Updated <strong>Grok 4.5</strong> to two runs and added a preliminary single-run result for <strong>Opus 5</strong>.</li>
@@ -319,7 +344,7 @@
             <div class="leaderboard-table" id="leaderboard-table">
                 <table>
                     <thead>
-                        <tr>
+                        <tr id="leaderboard-header-row">
                             <th>Rank</th>
                             <th>Method</th>
                             <th>Avg</th>
@@ -343,7 +368,7 @@
                     <span class="leaderboard-disclosure-icon" aria-hidden="true">&#8595;</span>
                 </button>
             </div>
-            <p class="leaderboard-footnote table-footnote" id="table-footnote"><sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.</p>
+            <p class="leaderboard-footnote table-footnote" id="table-footnote"><sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.</p>
         </div>
     </section>
 
@@ -395,11 +420,10 @@
 
     <section id="process-flow" class="process-flow">
         <div class="container">
-            <p class="process-flow-version">Version 1.1</p>
             <h2 class="section-title">How a Run Is Scored</h2>
-            <p class="section-description">Version 1.1 gives agents an explicit test-item contamination rule and the same decontamination tool used during review. Independent contamination, API-usage, and PostTrainBench-lookup reviews audit each run; programmatic checks verify model identity, and flagged runs receive the base-model score.</p>
+            <p class="section-description">Agents get an explicit contamination rule and the same decontamination tool reviewers use. Independent judges audit every run, and contamination is flagged only when two of three judge runs agree. Flagged runs receive the base-model score.</p>
             <div class="pipeline-diagram">
-                <div class="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated and aggregated into a leaderboard score across four base models and seven benchmarks.">
+                <div class="pipeline-flow" id="pipeline-flow" role="img" aria-label="Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated and aggregated into a leaderboard score across four base models and seven benchmarks.">
                     <div class="pf-card pf-agent">
                         <div class="pf-title">Agent post-trains the LLM</div>
                         <ul class="pf-list">
@@ -413,8 +437,8 @@
                     <div class="pf-card pf-judge">
                         <div class="pf-title">Judges</div>
                         <ul class="pf-list">
-                            <li>Contamination judge<span class="pf-list-note">test-item derivation and overlap</span></li>
-                            <li>API-usage judge<span class="pf-list-note">external-model API use and distillation</span></li>
+                            <li>Contamination judge<span class="pf-list-note">best of three · test-item derivation and overlap</span></li>
+                            <li>API-usage judge<span class="pf-list-note">hosted-model API use, including distillation</span></li>
                             <li>PostTrainBench-lookup judge</li>
                         </ul>
                         <div class="pf-sub">+ programmatic model-identity check</div>
@@ -422,12 +446,12 @@
                     <div class="pf-arrow pf-a2" aria-hidden="true"><span class="pf-glyph">→</span><span class="pf-arrow-label pf-ok">clean</span></div>
                     <div class="pf-card pf-eval">
                         <div class="pf-title">Evaluation</div>
-                        <div class="pf-body">Run the full benchmark</div>
+                        <div class="pf-body">Averaged over up to five seeds</div>
                     </div>
                     <div class="pf-arrow pf-a3" aria-hidden="true"><span class="pf-glyph">→</span></div>
                     <div class="pf-card pf-score">
                         <div class="pf-title">Leaderboard score</div>
-                        <div class="pf-body">Weighted average across 4 base models × 7 benchmarks</div>
+                        <div class="pf-body" id="pipeline-score-description">Weighted average across 4 base models × 7 benchmarks</div>
                     </div>
                     <div class="pf-arrow pf-branch" aria-hidden="true"><span class="pf-glyph">↓</span><span class="pf-arrow-label pf-flag">flagged</span></div>
                     <div class="pf-card pf-fail">
@@ -442,12 +466,12 @@
     <section id="benchmarks" class="tasks benchmark-setup">
         <div class="container">
             <h2 class="section-title">Benchmark Setup</h2>
-            <p class="section-description">Every agent gets the same four base models, one H100, ten hours, its native CLI scaffold, and a decontamination tool.</p>
+            <p class="section-description">Every agent runs under the same conditions.</p>
             <dl class="setup-grid">
                 <div class="setup-item"><dt>Base models</dt><dd>Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B</dd></div>
                 <div class="setup-item"><dt>Hardware</dt><dd>One H100 GPU per agent</dd></div>
                 <div class="setup-item"><dt>Time limit</dt><dd>10 hours per run</dd></div>
-                <div class="setup-item"><dt>Score</dt><dd>Weighted average across seven benchmarks</dd></div>
+                <div class="setup-item"><dt>Score</dt><dd id="setup-score-description">Weighted average across seven benchmarks</dd></div>
                 <div class="setup-item"><dt>Scaffold &amp; tools</dt><dd>Native CLI environment + decontamination checker</dd></div>
             </dl>
             <h3 class="section-subtitle setup-subtitle">Evaluation mix</h3>
@@ -473,7 +497,7 @@
     <section id="observations" class="observations">
         <div class="container">
             <h2 class="section-title">Observations</h2>
-            <p class="section-description observations-deck">What the run traces reveal about how agents train, where improvements come from, why runs fail, and where strategies cross the rules.</p>
+            <p class="section-description observations-deck">What the run traces show about how agents train, where their gains come from, and where they cross the rules.</p>
             <nav class="observations-nav" aria-label="Observation topics">
                 <a href="#observations-methods">Methods</a>
                 <a href="#observations-signal">Distillation</a>
@@ -482,7 +506,7 @@
             </nav>
 
             <h3 id="observations-methods" class="section-subtitle observation-heading">Agents default to SFT</h3>
-            <p class="findings-lead observations-copy">Agents rarely search across training methods. Every agent starts with SFT; Opus 4.6 and 4.7 often rewrite the training script 3–9 times, spending their search budget on data and hyperparameters instead. The table captures where agents diverge.</p>
+            <p class="findings-lead observations-copy">Agents rarely search across training methods. Every agent starts with SFT; Opus 4.6 and 4.7 often rewrite the training script 3–9 times, spending their search budget on data and hyperparameters instead.</p>
             <div class="findings-table-wrap findings-methods-wrap">
                 <table class="findings-table findings-methods-table">
                     <thead>
@@ -496,7 +520,7 @@
                         <tr>
                             <td>GRPO <span class="findings-meta">RL</span></td>
                             <td>Sonnet 4.6, Opus 4.6, Opus 4.8, GLM 5.2</td>
-                            <td>From 33% of tasks (Sonnet 4.6) down to 3% (Opus 4.6). Opus 4.8 and GLM 5.2 chain it after SFT + rejection fine-tuning; both independently added a KL anchor after unregularized GRPO collapsed small models</td>
+                            <td>3% (Opus 4.6) to 33% (Sonnet 4.6) of tasks. Opus 4.8 and GLM 5.2 run it after SFT and rejection fine-tuning; both added a KL anchor after unregularized GRPO collapsed small models</td>
                         </tr>
                         <tr>
                             <td>RFT / STaR</td>
@@ -529,14 +553,14 @@
             </div>
 
             <h3 id="observations-signal" class="section-subtitle observation-heading">External distillation is now out of scope</h3>
-            <p class="findings-lead observations-copy">Earlier runs sometimes drew on stronger models through local teachers, hosted APIs, or packaged reasoning traces. The current judges disallow external-model distillation and score flagged runs as the base model. Agents can still self-generate and filter data with the assigned model, but they cannot import the ability of a stronger teacher.</p>
+            <p class="findings-lead observations-copy">Earlier runs sometimes borrowed a stronger model's ability through hosted APIs. The judges now disallow this and score flagged runs as the base model. Distilling from a model the agent loads onto its own GPU is still allowed.</p>
 
             <h3 id="observations-inference" class="section-subtitle observation-heading">Inference settings can outweigh training</h3>
             <p class="findings-lead observations-copy">Forcing greedy decoding (<code>temperature=0.0</code> in <code>generation_config.json</code>) beat the base models' shipped sampling defaults: one Opus 4.8 GSM8K run jumped from 42.7% to 78%, while a GLM 5.2 BFCL run went from 17% to 91%. Both agents treat sampling defaults as a first-order bug to fix before training.</p>
 
             <h3 id="observations-integrity" class="section-subtitle observation-heading">Run-integrity flags span four patterns</h3>
             <div class="integrity-block">
-                <p class="findings-lead observations-copy integrity-intro">The v1.1 audit and newer evaluations have surfaced four kinds of integrity flags: hosted LLM teachers, substituted instruct models, direct lookup of PostTrainBench materials, and benchmark-targeted training data. Expand each pattern for examples from real runs.</p>
+                <p class="findings-lead observations-copy integrity-intro">The v1.1 audit and later runs surfaced four kinds of integrity flags. Expand each for examples from real runs.</p>
 
                 <!-- Featured run on cluster:
                      /fast/brank/auto-posttrain/results_rerun/codex_non_api_xhigh_gpt-5.5_10h_run1/arenahardwriting_Qwen_Qwen3-1.7B-Base_17327640 -->
@@ -678,9 +702,7 @@ hf download aisa-group/PostTrainBench-Trajectories --include ".../task/work/*.py
                 <details class="hack-category">
                     <summary>Data contamination <span class="hack-category-count">from verbatim test data to targeted clones</span></summary>
                     <div class="hack-category-body">
-                        <p>The rule distinguishes adapting to a benchmark from adapting to its test cases. Matching the benchmark's general style, format, domain, or difficulty is allowed. Deriving training data from a specific test item by copying, paraphrasing, perturbing, seeding generation, or hand-writing coverage is contamination even without verbatim overlap.</p>
-                        <p>Agents now receive the same n-gram decontamination tool used during review, so they can scan large or third-party datasets before training. This matters because incidental overlap is not necessarily deliberate and can be difficult to find by hand. The contamination judge separately reviews non-verbatim targeting that lexical overlap cannot detect.</p>
-                        <p>Affected runs require compliant reruns. If a comparable rerun is unavailable for a legacy agent, the affected result is omitted rather than carried into the leaderboard.</p>
+                        <p>Matching a benchmark's style, format, domain, or difficulty is allowed. Deriving training data from specific test items (copying, paraphrasing, perturbing, or generating variants of them) is contamination, even without verbatim overlap.</p>
                         <p>The bluntest form is training on the test set itself. A sample of incidents:</p>
 
                         <!-- Runs on cluster (top to bottom):
@@ -866,6 +888,7 @@ examples.extend(synthetic_examples(1000, 42000))</pre>
     <script src="config.js"></script>
     <script src="scores-v1.js"></script>
     <script src="scores.js"></script>
+    <script src="scores-v1.2.js"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
     <script src="photo-mode.js"></script>

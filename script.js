@@ -4,6 +4,22 @@ if (typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
 }
 
+// Scatter hover target: always exactly one agent — the nearest dot within its
+// hit radius. (Chart.js's default 'point' mode returns every overlapping dot.)
+if (typeof Chart !== 'undefined') {
+    Chart.Interaction.modes.paretoTarget = function (chart, event) {
+        const position = Chart.helpers.getRelativePosition(event, chart);
+        const elements = chart.getDatasetMeta(0).data;
+        let target = null;
+        elements.forEach((element, index) => {
+            const distance = Math.hypot(position.x - element.x, position.y - element.y);
+            const reach = element.options.radius + element.options.hitRadius;
+            if (distance <= reach && (!target || distance < target.distance)) target = { index, distance };
+        });
+        return target ? [{ element: elements[target.index], datasetIndex: 0, index: target.index }] : [];
+    };
+}
+
 // Global chart instances
 let performanceChart = null;
 let paretoChart = null;
@@ -15,18 +31,28 @@ let isThemeTransitioning = false;
 let activeThemeTransition = null;
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 let resultsVersionContentAnimations = [];
+let heroVersionInitialized = false;
+let heroVersionLoadTimer = null;
 
 const resultsVersionCopy = {
+    'v1.2': {
+        // Fable's GPQA caveat lives on its "mixed GPQA" pill and in the
+        // methodology notes; no separate status line under the chart.
+        status: '',
+        methodology: '<strong>Fable 5.1 GPQA fallback.</strong> Five underlying Fable 5.1 GPQA Main cells fell back to Opus 5. The aggregate GPQA Main values therefore include both Fable 5.1 and Opus 5 results.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.',
+        efficiencyNote: ''
+    },
     'v1.1': {
-        status: '<span aria-hidden="true">‡</span> Fable 5 uses Opus 4.8 (Max) scores for GPQA after Fable refused that benchmark.',
-        methodology: '<sup>‡</sup> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.',
-        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Fable 5 GPQA cells use Opus 4.8 Max scores; see Methodology &amp; caveats.',
+        status: '',
+        methodology: '<strong>Fable 5 GPQA fallback.</strong> Fable 5 is aggregated over two seeds. Because Fable refused GPQA, its GPQA cells use Opus 4.8 (Max) scores; all other cells are Fable results.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.',
         efficiencyNote: ''
     },
     'v1': {
-        status: '<span aria-hidden="true">‡</span> Archived v1 results use the original single-judge pipeline. Fable 5 results are preliminary.',
-        methodology: '<sup>‡</sup> Fable 5 results come from its initial limited-availability period, when rate limits and refusals caused several SmolLM3-3B runs to fail. Those cells use Opus 4.8 (Max) results.',
-        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown. &nbsp;&nbsp; <sup>‡</sup> Preliminary Fable 5 cell; see Methodology &amp; caveats.',
+        status: 'Archived v1 results use the original single-judge pipeline. Fable 5 results are preliminary.',
+        methodology: '<strong>Preliminary Fable 5 results.</strong> These results come from its initial limited-availability period, when rate limits and refusals caused several SmolLM3-3B runs to fail. Those cells use Opus 4.8 (Max) results.',
+        tableFootnote: '<sup>*</sup> Model not submitted; base-model score shown. &nbsp;&nbsp; <sup>†</sup> Evaluation error; base-model score shown.',
         efficiencyNote: 'Fable 5 runtime is from its preliminary v1 run.'
     }
 };
@@ -36,20 +62,168 @@ function trackGoatCounterEvent(path, title) {
     window.goatcounter.count({ path, title, event: true });
 }
 
+// Where the hero version badge leads for each results version.
+const heroVersionLinks = {
+    'v1.2': '/blog/posttrainbench-1-2/',
+    'v1.1': '/blog/posttrainbench-1-1/',
+    'v1': '#leaderboard'
+};
+
+// How long the previous version stays readable before the intro tick.
+const HERO_VERSION_HOLD_MS = 200;
+const HERO_VERSION_TICK_MS = 400;
+const HERO_VERSION_ROLL_MS = 260;
+
+function getReelTransform(position) {
+    // Reels hold ten digits, so each digit is 10% of the reel's own height.
+    return `translate3d(0, ${-position * 10}%, 0)`;
+}
+
+// Roll one digit reel from wherever it currently is (including mid-roll) to
+// `digit`. The intro is a single deliberate step that travels a hair past the
+// new digit and settles back, like a counter wheel dropping into its detent;
+// everything else is a short direct roll.
+function rollHeroVersionReel(reel, digit, { animate, intro }) {
+    const storedDigit = Number(reel.dataset.digit);
+    const fromDigit = Number.isFinite(storedDigit) ? storedDigit : digit;
+    const isRunning = reel.getAnimations().some(a => a.playState === 'running');
+    const fromTransform = isRunning ? getComputedStyle(reel).transform : getReelTransform(fromDigit);
+    reel.getAnimations().forEach(a => a.cancel());
+    reel.dataset.digit = String(digit);
+    reel.style.transform = getReelTransform(digit);
+    if (!animate || (fromDigit === digit && !isRunning)) return;
+
+    if (intro) {
+        const overshoot = digit > fromDigit ? digit + 0.07 : digit - 0.07;
+        reel.animate([
+            { transform: fromTransform, easing: 'cubic-bezier(0.6, 0, 0.3, 1)' },
+            { transform: getReelTransform(overshoot), offset: 0.78, easing: 'cubic-bezier(0.3, 0, 0.3, 1)' },
+            { transform: getReelTransform(digit) }
+        ], { duration: HERO_VERSION_TICK_MS });
+    } else {
+        reel.animate(
+            [{ transform: fromTransform }, { transform: getReelTransform(digit) }],
+            { duration: HERO_VERSION_ROLL_MS, easing: 'cubic-bezier(0.77, 0, 0.175, 1)' }
+        );
+    }
+}
+
+function setHeroVersion(version, { animate = true, intro = false } = {}) {
+    const odometer = document.getElementById('hero-version-odometer');
+    const majorReel = document.getElementById('hero-version-major');
+    const minorReel = document.getElementById('hero-version-minor');
+    const fraction = document.getElementById('hero-version-fraction');
+    const link = document.querySelector('.hero-version-link');
+    const match = /^v(\d)(?:\.(\d))?$/.exec(version);
+    if (!odometer || !majorReel || !minorReel || !fraction || !link || !match) return;
+
+    if (heroVersionLoadTimer !== null) {
+        clearTimeout(heroVersionLoadTimer);
+        heroVersionLoadTimer = null;
+    }
+
+    const shouldAnimate = animate && !reducedMotionQuery.matches;
+    fraction.classList.toggle('is-animated', shouldAnimate);
+    const major = Number(match[1]);
+    const minor = match[2] === undefined ? null : Number(match[2]);
+    rollHeroVersionReel(majorReel, major, { animate: shouldAnimate, intro });
+    if (minor !== null) rollHeroVersionReel(minorReel, minor, { animate: shouldAnimate, intro });
+    fraction.classList.toggle('is-visible', minor !== null);
+
+    link.setAttribute('aria-label', `PostTrainBench ${version}`);
+    link.setAttribute('data-goatcounter-title', `PostTrainBench ${version} title link`);
+    link.setAttribute('href', heroVersionLinks[version] || '#leaderboard');
+}
+
+// On every load of the current results, show the previous version first and
+// tick up to the current one, so visitors see what just changed. The tick
+// waits until the badge is actually on screen: after a deep link (#benchmarks)
+// or a restored scroll position it plays when the reader scrolls back up.
+// It is skipped only where it would be misleading or unwanted: an explicit
+// ?version= or reduced motion.
+function initializeHeroVersion(version) {
+    if (heroVersionInitialized) return;
+    heroVersionInitialized = true;
+
+    const versions = getAvailableResultsVersions();
+    const previousVersion = versions[versions.indexOf(version) + 1];
+    const link = document.querySelector('.hero-version-link');
+    const shouldIntro = version === CURRENT_RESULTS_VERSION
+        && previousVersion
+        && link
+        && !reducedMotionQuery.matches;
+
+    if (!shouldIntro) {
+        setHeroVersion(version, { animate: false });
+        return;
+    }
+
+    setHeroVersion(previousVersion, { animate: false });
+    // Start the hold once the badge's font is in and the badge is fully in
+    // view below the sticky navbar, so the reader gets the full beat on the
+    // previous version before it ticks.
+    const fontReady = document.fonts?.load
+        ? Promise.race([
+            document.fonts.load("600 16px 'JetBrains Mono'"),
+            new Promise(resolve => setTimeout(resolve, 300))
+        ]).catch(() => {})
+        : Promise.resolve();
+    const navbarHeight = () => document.querySelector('.navbar')?.offsetHeight || 0;
+    const badgeOnScreen = () => {
+        const rect = link.getBoundingClientRect();
+        return rect.top >= navbarHeight() && rect.bottom <= window.innerHeight;
+    };
+    const waitForBadge = () => {
+        // The reader switched versions meanwhile; the badge already shows it.
+        if (activeResultsVersion !== version) return;
+        if (!('IntersectionObserver' in window)) {
+            startHold();
+            return;
+        }
+        const badgeObserver = new IntersectionObserver((entries) => {
+            if (!entries.some(entry => entry.isIntersecting)) return;
+            badgeObserver.disconnect();
+            startHold();
+        }, { threshold: 1, rootMargin: `-${navbarHeight()}px 0px 0px 0px` });
+        badgeObserver.observe(link);
+    };
+    const startHold = () => {
+        if (activeResultsVersion !== version) return;
+        heroVersionLoadTimer = setTimeout(() => {
+            heroVersionLoadTimer = null;
+            if (activeResultsVersion !== version) return;
+            // Confirm before ticking: the observer's first report can predate a
+            // deep link's jump, and the reader may have scrolled away meanwhile.
+            if (!badgeOnScreen()) {
+                waitForBadge();
+                return;
+            }
+            setHeroVersion(version, { intro: true });
+        }, HERO_VERSION_HOLD_MS);
+    };
+    fontReady.then(waitForBadge);
+}
+
 function updateResultsVersionUI({ instant = false } = {}) {
     const version = normalizeResultsVersion(activeResultsVersion);
-    const toggle = document.querySelector('.results-version-toggle');
-    if (instant && toggle) {
-        toggle.classList.add('is-instant');
-        requestAnimationFrame(() => requestAnimationFrame(() => toggle.classList.remove('is-instant')));
+    renderResultsVersionOptions();
+    const toggle = document.getElementById('results-version-toggle');
+    if (toggle) {
+        const options = [...toggle.querySelectorAll('[data-results-version]')];
+        options.forEach((option) => {
+            const isActive = option.dataset.resultsVersion === version;
+            option.classList.toggle('is-active', isActive);
+            option.setAttribute('aria-checked', String(isActive));
+            option.tabIndex = isActive ? 0 : -1;
+        });
+        // The sliding highlight is positioned purely from --index in CSS.
+        toggle.classList.toggle('is-instant', instant);
+        toggle.style.setProperty('--index', String(Math.max(0, options.findIndex(o => o.dataset.resultsVersion === version))));
+        if (instant) {
+            toggle.getBoundingClientRect();
+            toggle.classList.remove('is-instant');
+        }
     }
-    toggle?.classList.toggle('is-v1', version === ARCHIVED_RESULTS_VERSION);
-
-    document.querySelectorAll('[data-results-version]').forEach((button) => {
-        const isActive = button.dataset.resultsVersion === version;
-        button.classList.toggle('is-active', isActive);
-        button.setAttribute('aria-pressed', String(isActive));
-    });
 
     document.documentElement.setAttribute('data-results-version', version);
     const copy = resultsVersionCopy[version];
@@ -57,10 +231,85 @@ function updateResultsVersionUI({ instant = false } = {}) {
     const methodology = document.getElementById('fable-methodology-note');
     const tableFootnote = document.getElementById('table-footnote');
     const efficiencyNote = document.getElementById('efficiency-version-note');
-    if (status) status.innerHTML = copy.status;
-    if (methodology) methodology.innerHTML = copy.methodology;
-    if (tableFootnote) tableFootnote.innerHTML = copy.tableFootnote;
-    if (efficiencyNote) efficiencyNote.textContent = copy.efficiencyNote;
+    if (status) {
+        status.innerHTML = copy?.status || '';
+        status.hidden = !copy?.status;
+    }
+    if (methodology) {
+        methodology.innerHTML = copy?.methodology || '';
+        methodology.hidden = !copy?.methodology;
+    }
+    if (tableFootnote) tableFootnote.innerHTML = copy?.tableFootnote || '';
+    if (efficiencyNote) efficiencyNote.textContent = copy?.efficiencyNote || '';
+
+    updateBenchmarkVersionUI();
+}
+
+function renderResultsVersionOptions() {
+    const toggle = document.getElementById('results-version-toggle');
+    if (!toggle) return;
+
+    const versions = getAvailableResultsVersions();
+    const signature = versions.join(',');
+    if (toggle.dataset.versionSignature === signature) return;
+
+    toggle.dataset.versionSignature = signature;
+    toggle.style.setProperty('--count', String(versions.length));
+    toggle.innerHTML = versions.map((version) => {
+        const isActive = version === activeResultsVersion;
+        return `<button class="results-version-option${isActive ? ' is-active' : ''}" type="button" role="radio" aria-checked="${String(isActive)}" tabindex="${isActive ? 0 : -1}" data-results-version="${version}">${version}</button>`;
+    }).join('');
+}
+
+function getBenchmarkDisplayTitle(key) {
+    const info = benchmarkInfo[key];
+    if (!info) return key;
+    return info.version ? `${info.title} ${info.version}` : info.title;
+}
+
+function getBenchmarkColumnTitle(key) {
+    return benchmarkInfo[key]?.columnTitle || benchmarkInfo[key]?.title || key;
+}
+
+function formatCountWord(count) {
+    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+    return words[count] || String(count);
+}
+
+function updateBenchmarkVersionUI() {
+    const count = activeBenchmarkKeys.length;
+    if (!count) return;
+
+    const countWord = formatCountWord(count);
+    const benchmarkNames = activeBenchmarkKeys.map(getBenchmarkDisplayTitle);
+    const leaderboardDescription = document.getElementById('leaderboard-description');
+    const methodology = document.getElementById('benchmark-methodology-note');
+    const pipeline = document.getElementById('pipeline-flow');
+    const pipelineScore = document.getElementById('pipeline-score-description');
+    const setupScore = document.getElementById('setup-score-description');
+
+    if (leaderboardDescription) {
+        leaderboardDescription.textContent = `Average performance across four base models and ${countWord} weighted benchmarks.`;
+    }
+    if (methodology) {
+        methodology.innerHTML = `<sup>1</sup> The weighted average covers four post-trained LLMs (Qwen 3 1.7B, Qwen 3 4B, SmolLM3-3B, Gemma 3 4B) and ${countWord} benchmarks (${benchmarkNames.join(', ')}). Each run asks a CLI agent to maximize one base model on one benchmark.`;
+    }
+    if (pipeline) {
+        pipeline.setAttribute('aria-label', `Pipeline: the agent post-trains the base LLM and produces final_model; the judges audit the run; flagged runs are scored as the base LLM; clean runs are evaluated and aggregated into a leaderboard score across four base models and ${countWord} benchmarks.`);
+    }
+    if (pipelineScore) pipelineScore.textContent = `Weighted average across 4 base models × ${count} benchmarks`;
+    if (setupScore) setupScore.textContent = `Weighted average across ${countWord} benchmarks`;
+
+    const header = document.getElementById('leaderboard-header-row');
+    if (header) {
+        header.closest('table')?.style.setProperty('--benchmark-count', String(count));
+        header.innerHTML = `
+            <th>Rank</th>
+            <th>Method</th>
+            <th>Avg</th>
+            ${activeBenchmarkKeys.map(key => `<th class="benchmark-col">${getBenchmarkColumnTitle(key)}</th>`).join('')}
+        `;
+    }
 }
 
 function updateResultsVersionURL(version) {
@@ -73,25 +322,27 @@ function updateResultsVersionURL(version) {
     window.history.pushState({ ...window.history.state, resultsVersion: version }, '', url);
 }
 
-function animateResultsVersionContent(version) {
+// Data swapped in place (results version, base model): the regions that
+// changed briefly settle in from a light fade. No movement: the content stays
+// where it is, and the control that was used already shows the direction.
+function settleChangedContent(elements) {
     if (reducedMotionQuery.matches || typeof Element.prototype.animate !== 'function') return;
 
     resultsVersionContentAnimations.forEach(animation => animation.cancel());
-    resultsVersionContentAnimations = [
+    resultsVersionContentAnimations = elements.filter(Boolean).map((element) => element.animate(
+        [{ opacity: 0.72 }, { opacity: 1 }],
+        { duration: 180, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }
+    ));
+}
+
+function animateResultsVersionContent() {
+    settleChangedContent([
+        document.querySelector('#leaderboard .leaderboard-chart'),
         document.querySelector('#leaderboard .results-status'),
         document.querySelector('#leaderboard .leaderboard-table'),
         document.querySelector('#time-spent .efficiency-grid'),
         document.querySelector('#time-spent .efficiency-note')
-    ].filter(Boolean).map((element) => element.animate(
-        [
-            { opacity: 0.72, transform: `translateY(${version === ARCHIVED_RESULTS_VERSION ? 3 : -3}px)` },
-            { opacity: 1, transform: 'translateY(0)' }
-        ],
-        {
-            duration: 180,
-            easing: 'cubic-bezier(0.23, 1, 0.32, 1)'
-        }
-    ));
+    ]);
 }
 
 function renderResultsVersion(version, { updateURL = true, animate = true, track = true } = {}) {
@@ -103,7 +354,10 @@ function renderResultsVersion(version, { updateURL = true, animate = true, track
     if (!applyResultsVersion(normalizedVersion)) return false;
 
     updateResultsVersionUI({ instant: !animate });
+    setHeroVersion(normalizedVersion, { animate });
     populateLeaderboard(currentSelectedModel);
+    populateTasks();
+    populateStatistics();
 
     if (performanceChart) {
         performanceChart.destroy();
@@ -121,7 +375,7 @@ function renderResultsVersion(version, { updateURL = true, animate = true, track
             `Results version: ${normalizedVersion}`
         );
     }
-    if (animate) animateResultsVersionContent(normalizedVersion);
+    if (animate) animateResultsVersionContent();
     return true;
 }
 
@@ -142,11 +396,45 @@ function setMobileNavOpen(isOpen, { instant = false } = {}) {
     navLinks.classList.toggle('active', isOpen);
     hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
     hamburgerBtn.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+    mobileNavOpenScrollY = isOpen ? window.scrollY : null;
 }
+
+// Scrolling the page means the reader has moved on: close the menu instead of
+// leaving it over the content. A small threshold ignores incidental drags.
+let mobileNavOpenScrollY = null;
+window.addEventListener('scroll', () => {
+    if (mobileNavOpenScrollY === null) return;
+    if (Math.abs(window.scrollY - mobileNavOpenScrollY) > 12) setMobileNavOpen(false);
+}, { passive: true });
 
 hamburgerBtn.addEventListener('click', (event) => {
     setMobileNavOpen(!navLinks.classList.contains('active'), { instant: event.detail === 0 });
 });
+
+// Wayfinding: mark the nav link for the section being read. Sections without
+// a link of their own count toward the link they belong with.
+const navSectionGroups = { leaderboard: ['time-spent'], team: ['citation'] };
+const navSectionLinks = [...navLinks.querySelectorAll('a[href^="#"]')].flatMap((link) => {
+    const id = link.getAttribute('href').slice(1);
+    return [id, ...(navSectionGroups[id] || [])]
+        .map(sectionId => ({ link, section: document.getElementById(sectionId) }))
+        .filter(({ section }) => section);
+});
+if (navSectionLinks.length && 'IntersectionObserver' in window) {
+    const sectionsInBand = new Set();
+    // A thin band a third of the way down the viewport: the section crossing it
+    // is the one being read.
+    const sectionSpy = new IntersectionObserver((entries) => {
+        entries.forEach(entry => (entry.isIntersecting ? sectionsInBand.add(entry.target) : sectionsInBand.delete(entry.target)));
+        const current = navSectionLinks.find(({ section }) => sectionsInBand.has(section))?.link;
+        navSectionLinks.forEach(({ link }) => {
+            link.classList.toggle('is-current', link === current);
+            if (link === current) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+        });
+    }, { rootMargin: '-33% 0px -62% 0px' });
+    navSectionLinks.forEach(({ section }) => sectionSpy.observe(section));
+}
 
 // Close menu when clicking a link
 navLinks.querySelectorAll('a').forEach(link => {
@@ -170,7 +458,9 @@ document.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('resize', () => {
-    if (window.innerWidth > 768 && navLinks.classList.contains('active')) {
+    // The hamburger layout applies up to 950px (see styles.css); close the menu
+    // once the full nav bar takes over.
+    if (window.innerWidth > 950 && navLinks.classList.contains('active')) {
         setMobileNavOpen(false, { instant: true });
     }
 });
@@ -254,6 +544,10 @@ function getChartAgentMeta(entry) {
 
 function getAgentStatusNote(agentKey) {
     return agentInfo[agentKey]?.statusNote || '';
+}
+
+function getAgentProvenanceNote(agentKey) {
+    return agentInfo[agentKey]?.provenanceNote || '';
 }
 
 function getChartModelFamily(agentKey) {
@@ -396,7 +690,7 @@ function formatBenchmarkValue(score, showMarkers = false, showStd = false) {
     const std = getBenchmarkStd(score);
     const sourceLabel = getBenchmarkSourceLabel(score);
 
-    let valueStr = `${value.toFixed(2)}%`;
+    let valueStr = `${value.toFixed(1)}%`;
 
     if (showMarkers) {
         const fallbackType = getFallbackType(score);
@@ -440,6 +734,14 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
         ? data
         : data.filter(entry => entry.isBaseline || previewEntries.has(entry));
     const canToggleLeaderboard = rankedData.length > LEADERBOARD_PREVIEW_LIMIT;
+
+    // The * / † footnote only explains markers that are actually on screen
+    // (they appear in the per-model view, for cells that fell back).
+    const tableFootnote = document.getElementById('table-footnote');
+    if (tableFootnote) {
+        tableFootnote.hidden = !(showMarkers && visibleData.some(entry =>
+            activeBenchmarkKeys.some(key => ['not_stored', 'error'].includes(getFallbackType(entry.benchmarkScores[key])))));
+    }
     const disclosure = document.getElementById('leaderboard-disclosure');
     const disclosureButton = document.getElementById('leaderboard-disclosure-button');
     const disclosureLabel = document.getElementById('leaderboard-disclosure-label');
@@ -454,17 +756,15 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
             : `Show all ${rankedData.length} agents`;
     }
 
-    // Collect all ranked-agent values for each column to find min/max.
+    // Collect all ranked-agent values for each active benchmark column. The
+    // benchmark list belongs to the selected results version (v1/v1.1/v1.2),
+    // so versions can add or remove tasks without leaving empty table cells.
     const columns = {
-        average: heatmapData.map(e => parseFloat(e.averageScore)),
-        aime2025: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.aime2025)),
-        arenahardwriting: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.arenahardwriting)),
-        bfcl: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.bfcl)),
-        gpqamain: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.gpqamain)),
-        gsm8k: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.gsm8k)),
-        healthbench: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.healthbench)),
-        humaneval: heatmapData.map(e => getBenchmarkValue(e.benchmarkScores.humaneval))
+        average: heatmapData.map(e => parseFloat(e.averageScore))
     };
+    activeBenchmarkKeys.forEach((key) => {
+        columns[key] = heatmapData.map(entry => getBenchmarkValue(entry.benchmarkScores[key]));
+    });
 
     // Find min and max for each column
     const ranges = {};
@@ -494,22 +794,17 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
 
         // Create cells with heatmap colors normalized per column
         const avgValue = parseFloat(entry.averageScore);
-        const aimeValue = getBenchmarkValue(entry.benchmarkScores.aime2025);
-        const arenaValue = getBenchmarkValue(entry.benchmarkScores.arenahardwriting);
-        const bfclValue = getBenchmarkValue(entry.benchmarkScores.bfcl);
-        const gpqaValue = getBenchmarkValue(entry.benchmarkScores.gpqamain);
-        const gsmValue = getBenchmarkValue(entry.benchmarkScores.gsm8k);
-        const healthValue = getBenchmarkValue(entry.benchmarkScores.healthbench);
-        const humanValue = getBenchmarkValue(entry.benchmarkScores.humaneval);
-
         const avgColor = getHeatmapColor(normalize(avgValue, 'average'), 'summary');
-        const aimeColor = getHeatmapColor(normalize(aimeValue, 'aime2025'));
-        const arenaColor = getHeatmapColor(normalize(arenaValue, 'arenahardwriting'));
-        const bfclColor = getHeatmapColor(normalize(bfclValue, 'bfcl'));
-        const gpqaColor = getHeatmapColor(normalize(gpqaValue, 'gpqamain'));
-        const gsmColor = getHeatmapColor(normalize(gsmValue, 'gsm8k'));
-        const healthColor = getHeatmapColor(normalize(healthValue, 'healthbench'));
-        const humanColor = getHeatmapColor(normalize(humanValue, 'humaneval'));
+        const benchmarkCells = activeBenchmarkKeys.map((key) => {
+            const score = entry.benchmarkScores[key];
+            const value = getBenchmarkValue(score);
+            return {
+                key,
+                label: getBenchmarkDisplayTitle(key),
+                score,
+                color: getHeatmapColor(normalize(value, key))
+            };
+        });
 
         // Format std display (only show if available)
         const stdDisplay = formatStdDisplay(entry.stdDev);
@@ -527,28 +822,29 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
         const displayAgentNameHtml = statusNote
             ? `<span class="agent-name-status" data-tip="${statusNote}">${displayAgent}<span class="agent-status-dot" aria-hidden="true"></span></span>${markerHtml}`
             : `${displayAgent}${markerHtml}`;
-        const displayAgentHtml = entry.isExternal
-            ? `<span class="agent-title-line">${displayAgentNameHtml}<span class="external-result-badge" data-tip="${entry.verificationNote}">External</span></span>`
-            : displayAgentNameHtml;
-        let agentNameHtml = displayAgentHtml;
+        const externalLabel = entry.isExternal
+            ? `<span class="external-result-label" tabindex="0" data-tip="${entry.verificationNote}">External</span>`
+            : '';
+        const provenanceLabel = agentInfo[entry.agentKey]?.provenanceLabel
+            ? `<span class="mixed-source-label" tabindex="0" data-tip="${getAgentProvenanceNote(entry.agentKey)}">${agentInfo[entry.agentKey].provenanceLabel}</span>`
+            : '';
+        let agentNameHtml = displayAgentNameHtml;
         if (entry.scaffold) {
             const effortTag = entry.reasoningEffort ? entry.reasoningEffort.split(', ').map(t => `<span class="effort-tag">${t}</span>`).join('') : '';
-            agentNameHtml = `${displayAgentHtml}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}</span>`;
+            agentNameHtml = `${displayAgentNameHtml}<span class="scaffold-label"><span class="scaffold-name">${entry.scaffold}</span>${effortTag}${provenanceLabel}${externalLabel}</span>`;
         } else if (entry.agent === 'Official Instruct Models') {
-            agentNameHtml = `${displayAgentHtml}<span class="scaffold-label reference-context">Reference · outside 10h budget</span>`;
+            agentNameHtml = `${displayAgentNameHtml}<span class="scaffold-label reference-context">Reference · outside 10h budget</span>`;
+        } else if (externalLabel) {
+            agentNameHtml = `${displayAgentNameHtml}<span class="scaffold-label">${externalLabel}</span>`;
         }
 
         row.innerHTML = `
             <td><span class="rank-badge ${rankClass}">${rankDisplay}</span></td>
             <td class="method-cell"><strong>${agentNameHtml}</strong><span class="row-details-indicator"></span></td>
-            <td style="background-color: ${avgColor}"><strong>${entry.averageScore}%</strong>${stdDisplay}</td>
-            <td class="benchmark-col" style="background-color: ${aimeColor}">${formatBenchmarkValue(entry.benchmarkScores.aime2025, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${arenaColor}">${formatBenchmarkValue(entry.benchmarkScores.arenahardwriting, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${bfclColor}">${formatBenchmarkValue(entry.benchmarkScores.bfcl, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${gpqaColor}">${formatBenchmarkValue(entry.benchmarkScores.gpqamain, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${gsmColor}">${formatBenchmarkValue(entry.benchmarkScores.gsm8k, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${healthColor}">${formatBenchmarkValue(entry.benchmarkScores.healthbench, showMarkers, showStd)}</td>
-            <td class="benchmark-col" style="background-color: ${humanColor}">${formatBenchmarkValue(entry.benchmarkScores.humaneval, showMarkers, showStd)}</td>
+            <td style="background-color: ${avgColor}"><strong>${avgValue.toFixed(1)}%</strong>${stdDisplay}</td>
+            ${benchmarkCells.map(({ score, color }) => `
+                <td class="benchmark-col" style="background-color: ${color}">${formatBenchmarkValue(score, showMarkers, showStd)}</td>
+            `).join('')}
         `;
 
         tbody.appendChild(row);
@@ -569,15 +865,6 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
             );
         }
 
-        const detailScores = [
-            ['AIME 2025', entry.benchmarkScores.aime2025, aimeColor],
-            ['Arena Hard', entry.benchmarkScores.arenahardwriting, arenaColor],
-            ['BFCL', entry.benchmarkScores.bfcl, bfclColor],
-            ['GPQA Main', entry.benchmarkScores.gpqamain, gpqaColor],
-            ['GSM8K', entry.benchmarkScores.gsm8k, gsmColor],
-            ['HealthBench', entry.benchmarkScores.healthbench, healthColor],
-            ['HumanEval', entry.benchmarkScores.humaneval, humanColor]
-        ];
         const detailRow = document.createElement('tr');
         detailRow.className = `benchmark-detail-row${entry.isBaseline ? ' reference-detail-row' : ''}`;
         detailRow.hidden = true;
@@ -585,7 +872,7 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
             <td colspan="3">
                 <div class="benchmark-detail-panel">
                     <div class="benchmark-detail-grid">
-                        ${detailScores.map(([label, score, color]) => `
+                        ${benchmarkCells.map(({ label, score, color }) => `
                             <div class="benchmark-detail-item" style="background-color: ${color}">
                                 <span class="benchmark-detail-label">${label}</span>
                                 <strong>${formatBenchmarkValue(score, showMarkers, showStd)}</strong>
@@ -604,6 +891,7 @@ function populateLeaderboard(modelName = "average", { animateReveal = false } = 
 function populateTasks() {
     const tbody = document.getElementById('benchmark-table-body');
     if (!tbody) return;
+    tbody.innerHTML = '';
 
     taskData.forEach(task => {
         const tr = document.createElement('tr');
@@ -692,8 +980,73 @@ function chartTooltipOptions(style, isMobile, overrides = {}) {
             family: "'JetBrains Mono', monospace",
             size: isMobile ? 10 : 12
         },
+        footerColor: style.getPropertyValue('--text-secondary').trim(),
+        footerFont: {
+            family: "'JetBrains Mono', monospace",
+            size: isMobile ? 9 : 10,
+            weight: 400
+        },
+        footerMarginTop: 6,
         animation: { duration: 150, easing: 'easeOutQuart' }
     }, overrides);
+}
+
+// Hover feedback for every chart: quick enough to track the pointer as it
+// sweeps across bars or dots (Chart.js defaults to a sluggish 400ms).
+const CHART_HOVER_TRANSITIONS = {
+    active: { animation: { duration: 120, easing: 'easeOutCubic' } }
+};
+
+// Deferred entrances: a chart is drawn at its pre-entrance state (bars at
+// zero, dots hidden) so its frame — axes, gridlines, names — is on screen
+// immediately, and the build plays later via chart.$playEntrance().
+// While it waits, pointer events are ignored so hidden marks can't hover.
+function holdChartEntrance(chart, play) {
+    chart.$playEntrance = () => {
+        delete chart.$playEntrance;
+        play();
+    };
+}
+
+if (typeof Chart !== 'undefined') {
+    Chart.register({
+        id: 'pendingEntrance',
+        beforeEvent(chart) {
+            if (chart.$playEntrance) return false;
+        }
+    });
+}
+
+// Shared tooltip content, so every chart describes an agent the same way:
+//   title   "Opus 4.8 · Max"
+//   body    "Score    31.8% ± 3.6" / "Runtime  8h 50m ± 20m" (whichever apply)
+//   footer  one muted caveat line, if the entry has one
+function formatChartTooltipTitle(entry) {
+    const { name } = getChartAgentMeta(entry);
+    return entry.reasoningEffort ? `${name} · ${entry.reasoningEffort}` : name;
+}
+
+function formatScoreTooltipLine(score, std) {
+    return `Score    ${Number(score).toFixed(1)}%${std ? ` ± ${Number(std).toFixed(1)}` : ''}`;
+}
+
+function formatRuntimeTooltipLine(time, stdTime) {
+    return `Runtime  ${formatRuntimeDuration(time)}${stdTime ? ` ± ${formatRuntimeDuration(stdTime)}` : ''}`;
+}
+
+function formatChartTooltipNote(entry) {
+    const note = getAgentStatusNote(entry.agentKey)
+        || getAgentProvenanceNote(entry.agentKey)
+        || entry.verificationNote
+        || '';
+    // Canvas tooltips don't wrap; break long notes so the box stays compact.
+    const lines = [];
+    note.split(' ').forEach((word) => {
+        const last = lines[lines.length - 1];
+        if (last && `${last} ${word}`.length <= 34) lines[lines.length - 1] = `${last} ${word}`;
+        else lines.push(word);
+    });
+    return lines.filter(Boolean);
 }
 
 // Create Simple Performance Chart (average view)
@@ -747,9 +1100,22 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         ].filter(Boolean)
         : [...data].reverse();
 
+    const chartKey = document.querySelector('.main-chart-key');
+    const externalKey = chartKey?.querySelector('.main-chart-key-external');
+    const repromptedKey = chartKey?.querySelector('.main-chart-key-reprompted');
+    const hasExternalResults = plottedData.some(entry => entry.isExternal);
+    const hasRepromptedResults = plottedData.some(entry => entry.reasoningEffort?.includes('Reprompted'));
+    if (externalKey) externalKey.hidden = !hasExternalResults;
+    if (repromptedKey) repromptedKey.hidden = !hasRepromptedResults;
+    if (chartKey) chartKey.hidden = !hasExternalResults && !hasRepromptedResults;
+
     const effortLabels = plottedData.map(d => getChartAgentMeta(d).effort);
     const sourceLabels = plottedData.map(d => d.chartSourceLabel || '');
-    const secondaryLabels = plottedData.map((_, index) => sourceLabels[index] || effortLabels[index]);
+    // Desktop shows the base-model bar as "Base / Models" with a muted
+    // "baseline" line, the same short-name + secondary pattern as the agents,
+    // so its label stays within its slot instead of crowding its neighbour.
+    const secondaryLabels = plottedData.map((d, index) => sourceLabels[index] || effortLabels[index]
+        || (!isMobile && d.agent === 'Base Models' ? 'baseline' : ''));
     const secondaryLabelColors = plottedData.map((_, index) => (
         sourceLabels[index] ? externalLabelColor : effortColor
     ));
@@ -768,7 +1134,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         }
         // Desktop: split long names into two lines
         if (d.agent === 'Base Models') {
-            return ['Base Models', '(baseline)'];
+            return ['Base', 'Models'];
         }
         if (d.agent === 'Official Instruct Models') {
             return ['Official', 'Instruct', 'Models²'];
@@ -983,6 +1349,37 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     };
 
     const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning;
+    const playsEntrance = !reduceMotion && (motion === 'initial' || motion === 'deferred');
+    // 'deferred': draw bars at zero now, build when revealed (see holdChartEntrance).
+    const entrancePending = motion === 'deferred' && !reduceMotion;
+    // Value labels stay out of the build and fade in once the bars have landed,
+    // so no number ever sits on a bar that hasn't grown yet.
+    const LABEL_FADE_MS = 150;
+    let labelAlpha = playsEntrance ? 0 : 1;
+    const revealLabels = () => {
+        if (labelAlpha > 0) return;
+        const chart = performanceChart;
+        const start = performance.now();
+        const step = () => {
+            if (performanceChart !== chart) return;
+            labelAlpha = Math.max(0.01, Math.min(1, (performance.now() - start) / LABEL_FADE_MS));
+            chart.update('none');
+            if (labelAlpha < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    };
+    const BAR_BUILD_MS = 300;
+    const BAR_STAGGER_MS = 20;
+    const entranceAnimation = {
+        duration: BAR_BUILD_MS,
+        easing: 'easeOutQuint', // matches the site's --ease-out curve
+        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * BAR_STAGGER_MS : 0,
+    };
+    // The quint tail spends its last ~80ms moving under a pixel, so start the
+    // label fade as the last bar visually lands rather than when Chart.js
+    // reports the animation finished.
+    const scheduleLabelReveal = () => setTimeout(revealLabels,
+        (plottedData.length - 1) * BAR_STAGGER_MS + BAR_BUILD_MS * 0.73);
     const chartScales = isMobile ? {
         x: {
             beginAtZero: true,
@@ -1069,15 +1466,12 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
             indexAxis: isMobile ? 'y' : 'x',
             responsive: true,
             maintainAspectRatio: !isMobile,
-            animation: (reduceMotion || motion === 'none')
+            animation: (reduceMotion || motion === 'none' || motion === 'deferred')
                 ? { duration: 0 }
                 : motion === 'initial'
-                    ? {
-                        duration: 300,
-                        easing: 'easeOutQuart',
-                        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 20 : 0,
-                    }
+                    ? entranceAnimation
                     : { duration: 190, easing: 'easeOutCubic' },
+            transitions: CHART_HOVER_TRANSITIONS,
             // Tooltip only while actually over a bar — intersect: false would
             // keep a tooltip active anywhere in the plot area, which reads as
             // "stuck" when sweeping across empty space.
@@ -1097,25 +1491,20 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                     callbacks: {
                         title: function(items) {
                             if (!items.length) return '';
-                            return getChartAgentMeta(plottedData[items[0].dataIndex]).name;
+                            return formatChartTooltipTitle(plottedData[items[0].dataIndex]);
                         },
                         label: function(context) {
-                            const std = errorBars[context.dataIndex];
-                            const stdText = std ? ` ± ${std}%` : '';
                             const value = isMobile ? context.parsed.x : context.parsed.y;
-                            const lines = [`Average score: ${value.toFixed(1)}%${stdText}`];
-                            const effort = getChartAgentMeta(plottedData[context.dataIndex]).effort;
-                            if (effort) lines.push(`Effort: ${effort}`);
-                            return lines;
+                            return formatScoreTooltipLine(value, errorBars[context.dataIndex]);
                         },
-                        afterLabel: function(context) {
-                            const entry = plottedData[context.dataIndex];
-                            return getAgentStatusNote(entry.agentKey) || entry.verificationNote || null;
+                        footer: function(items) {
+                            return items.length ? formatChartTooltipNote(plottedData[items[0].dataIndex]) : [];
                         }
                     }
                 }),
                 datalabels: {
-                    display: true,
+                    display: () => labelAlpha > 0,
+                    opacity: () => labelAlpha,
                     color: function(context) {
                         const value = Number(context.dataset.data[context.dataIndex]);
                         return isMobile && value < 12 ? textPrimary : '#ffffff';
@@ -1126,7 +1515,16 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
                         if (isMobile && value < 12) return 'end';
                         return isMobile ? 'start' : 'end';
                     },
-                    offset: 4,
+                    // Phone bars are horizontal with the value inside the bar's
+                    // end, where the error bar's lower whisker also sits; move
+                    // the value clear of the whisker.
+                    offset: function(context) {
+                        const std = errorBars[context.dataIndex];
+                        const value = Number(context.dataset.data[context.dataIndex]);
+                        if (!isMobile || !std || value < 12) return 4;
+                        const scale = context.chart.scales.x;
+                        return Math.abs(scale.getPixelForValue(std) - scale.getPixelForValue(0)) + 5;
+                    },
                     // Size each label from the rendered bar width. Compact
                     // desktop bars reserve a stronger inset so values never
                     // appear pressed against their edges.
@@ -1154,6 +1552,19 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
             scales: chartScales
         }
     });
+
+    if (entrancePending) {
+        const chart = performanceChart;
+        chart.reset();
+        chart.draw();
+        holdChartEntrance(chart, () => {
+            chart.options.animation = entranceAnimation;
+            chart.update();
+            scheduleLabelReveal();
+        });
+    } else if (playsEntrance) {
+        scheduleLabelReveal();
+    }
 }
 
 // Create Performance vs. Time scatter with Pareto frontier.
@@ -1197,6 +1608,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
             const labelMeta = getChartAgentMeta(d);
             const modelFamily = getChartModelFamily(d.agentKey);
             return {
+                entry: d,
                 x: t.hours,
                 y: parseFloat(d.averageScore),
                 label: labelMeta.name,
@@ -1246,6 +1658,32 @@ function createParetoChart({ motion = 'initial' } = {}) {
 
     const pointRadius = isMobile ? 4 : 5.5;
 
+    // Entrance: each dot grows in place (fastest agent first, left to right)
+    // and its label fades in with it; the frontier fades in alongside. Nothing
+    // travels, so labels never float over empty space waiting for their dot.
+    const DOT_REVEAL_MS = 240;
+    const DOT_STAGGER_MS = 28;
+    const LINE_REVEAL_DELAY_MS = 120;
+    const LINE_REVEAL_MS = 320;
+    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
+    // 'deferred' holds the dots hidden until $playEntrance (revealStart stays null).
+    let entranceActive = !reduceMotion && (motion === 'initial' || motion === 'deferred');
+    let revealStart = null;
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+    const revealProgress = (delay, duration) => {
+        if (!entranceActive) return 1;
+        if (revealStart === null) return 0;
+        const t = (performance.now() - revealStart - delay) / duration;
+        return easeOutCubic(Math.min(1, Math.max(0, t)));
+    };
+    const dotReveal = index => revealProgress(index * DOT_STAGGER_MS, DOT_REVEAL_MS);
+    const withAlpha = (color, alpha) => {
+        const match = /^#([0-9a-f]{6})$/i.exec(color);
+        if (!match) return color;
+        const n = parseInt(match[1], 16);
+        return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+    };
+
     // Direct labels with greedy collision avoidance: frontier points get
     // priority (and primary ink); a label that can't find a clear spot is
     // dropped — the tooltip still identifies its point.
@@ -1259,10 +1697,11 @@ function createParetoChart({ motion = 'initial' } = {}) {
             const effortFont = `600 ${effortFontSize}px 'JetBrains Mono', monospace`;
             c.save();
 
-            const pts = points.map(p => ({
+            const pts = points.map((p, index) => ({
                 px: scales.x.getPixelForValue(p.x),
                 py: scales.y.getPixelForValue(p.y),
-                p: p
+                p: p,
+                index
             }));
 
             // Points themselves are obstacles for label placement.
@@ -1274,7 +1713,8 @@ function createParetoChart({ motion = 'initial' } = {}) {
             const ordered = [...pts].sort((a, b) =>
                 (frontierKeys.has(b.p.agentKey) ? 1 : 0) - (frontierKeys.has(a.p.agentKey) ? 1 : 0));
 
-            ordered.forEach(({ px, py, p }) => {
+            ordered.forEach(({ px, py, p, index }) => {
+                const alpha = dotReveal(index);
                 if (isMobile && !frontierKeys.has(p.agentKey)) return;
                 c.font = nameFont;
                 const nameWidth = c.measureText(p.label).width;
@@ -1318,6 +1758,7 @@ function createParetoChart({ motion = 'initial' } = {}) {
                     c.lineWidth = 3;
                     c.lineJoin = 'round';
                     c.font = nameFont;
+                    c.globalAlpha = alpha;
                     c.strokeText(p.label, textX, rect.top);
                     c.fillStyle = p.familyColor;
                     c.fillText(p.label, textX, rect.top);
@@ -1325,11 +1766,11 @@ function createParetoChart({ motion = 'initial' } = {}) {
                         const effortY = rect.top + fontSize + 2;
                         c.font = effortFont;
                         c.strokeText(p.reasoningLabel, textX, effortY);
-                        c.globalAlpha = 0.82;
+                        c.globalAlpha = 0.82 * alpha;
                         c.fillStyle = p.familyColor;
                         c.fillText(p.reasoningLabel, textX, effortY);
-                        c.globalAlpha = 1;
                     }
+                    c.globalAlpha = 1;
                     placed.push(rect);
                     break;
                 }
@@ -1359,23 +1800,13 @@ function createParetoChart({ motion = 'initial' } = {}) {
             c.font = "600 10px 'JetBrains Mono', monospace";
             c.textAlign = 'center';
             c.textBaseline = 'bottom';
-            c.fillText('10h budget', xPos, chartArea.top - 4);
+            // Keep the label inside the canvas: on phones the budget line sits
+            // close to the right edge and a centred label would be clipped.
+            const labelHalf = c.measureText('10h budget').width / 2;
+            c.fillText('10h budget', Math.min(xPos, chart.width - labelHalf - 2), chartArea.top - 4);
             c.restore();
         }
     };
-
-    const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
-    const buildAnimation = reduceMotion
-        ? { duration: 0 }
-        : motion === 'initial'
-            ? {
-                duration: 450,
-                easing: 'easeOutCubic',
-                // Points pop in fastest-agent-first (data is sorted by time).
-                delay: (c) => (c.type === 'data' && c.mode === 'default' && c.datasetIndex === 0)
-                    ? c.dataIndex * 40 : 0,
-            }
-            : { duration: 190, easing: 'easeOutCubic' };
 
     paretoChart = new Chart(ctx, {
         type: 'scatter',
@@ -1387,26 +1818,24 @@ function createParetoChart({ motion = 'initial' } = {}) {
                     backgroundColor: points.map(p => p.familyColor),
                     borderColor: bgPrimary,
                     borderWidth: 2,
-                    pointRadius: pointRadius,
+                    pointRadius: (context) => pointRadius * dotReveal(context.dataIndex),
                     pointHoverRadius: pointRadius + 2,
                     pointHoverBorderWidth: 2,
-                    // Small forgiveness margin around the 11px dot — enough to
-                    // not demand pixel aim, small enough that the tooltip never
-                    // fires while visibly off the point.
+                    // Small forgiveness margin around the 11px dot. Where dots
+                    // sit close together, paretoTarget picks the nearest one.
                     pointHitRadius: 4
                 },
                 {
                     label: 'Pareto frontier',
                     type: 'line',
                     data: frontierLine,
-                    borderColor: textSecondary,
+                    borderColor: () => withAlpha(textSecondary, revealProgress(LINE_REVEAL_DELAY_MS, LINE_REVEAL_MS)),
                     borderWidth: 1.5,
                     borderDash: [6, 4],
                     pointRadius: 0,
                     pointHitRadius: 0,
                     fill: false,
-                    tension: 0,
-                    animation: false
+                    tension: 0
                 }
             ]
         },
@@ -1414,27 +1843,24 @@ function createParetoChart({ motion = 'initial' } = {}) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: buildAnimation,
+            // Positions never tween; the entrance is driven below.
+            animation: { duration: 0 },
+            transitions: CHART_HOVER_TRANSITIONS,
+            interaction: { mode: 'paretoTarget', intersect: true },
             layout: {
                 padding: { top: isMobile ? 14 : 18 }
             },
             plugins: {
                 legend: { display: false },
                 tooltip: chartTooltipOptions(style, isMobile, {
+                    filter: (item) => item.datasetIndex === 0,
                     callbacks: {
-                        title: (items) => items[0].raw.label,
-                        label: (item) => {
-                            const p = item.raw;
-                            const lines = [
-                                `Avg score: ${p.y.toFixed(1)}%${p.stdDev ? ` ± ${p.stdDev.toFixed(1)}%` : ''}`,
-                                `Runtime: ${formatRuntimeDuration(p.time)}${p.stdTime ? ` ± ${formatRuntimeDuration(p.stdTime)}` : ''}`
-                            ];
-                            if (p.reasoningEffort) lines.push(`Effort: ${p.reasoningEffort}`);
-                            if (p.scaffold) lines.push(`Scaffold: ${p.scaffold}`);
-                            if (p.verificationNote) lines.push(p.verificationNote);
-                            if (p.statusNote) lines.push(p.statusNote);
-                            return lines;
-                        }
+                        title: (items) => items.length ? formatChartTooltipTitle(items[0].raw.entry) : '',
+                        label: (item) => [
+                            formatScoreTooltipLine(item.raw.y, item.raw.stdDev),
+                            formatRuntimeTooltipLine(item.raw.time, item.raw.stdTime)
+                        ],
+                        footer: (items) => items.length ? formatChartTooltipNote(items[0].raw.entry) : []
                     }
                 }),
                 datalabels: { display: false }
@@ -1493,6 +1919,26 @@ function createParetoChart({ motion = 'initial' } = {}) {
             }
         }
     });
+
+    if (entranceActive) {
+        const chart = paretoChart;
+        const revealEnd = Math.max(
+            (points.length - 1) * DOT_STAGGER_MS + DOT_REVEAL_MS,
+            LINE_REVEAL_DELAY_MS + LINE_REVEAL_MS
+        );
+        const playEntrance = () => {
+            revealStart = performance.now();
+            const step = () => {
+                if (paretoChart !== chart) return; // rebuilt or destroyed mid-entrance
+                if (performance.now() - revealStart >= revealEnd) entranceActive = false;
+                chart.update('none');
+                if (entranceActive) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+        };
+        if (motion === 'deferred') holdChartEntrance(chart, playEntrance);
+        else playEntrance();
+    }
 }
 
 // Create Time Spent Chart
@@ -1646,15 +2092,18 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
     })();
 
     const reduceMotion = reducedMotionQuery.matches || isThemeTransitioning || motion === 'none';
-    const buildAnimation = reduceMotion
+    // Same build as the main leaderboard chart: cascade the horizontal bars in
+    // from the top, on first reveal only.
+    const entranceAnimation = {
+        duration: 300,
+        easing: 'easeOutQuint', // matches the site's --ease-out curve
+        delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 20 : 0,
+    };
+    const holdEntrance = motion === 'deferred' && !reduceMotion;
+    const buildAnimation = (reduceMotion || holdEntrance)
         ? { duration: 0 }
         : motion === 'initial'
-            ? {
-                duration: 450,
-                easing: 'easeOutCubic',
-                // Cascade the horizontal bars in from the top on first load only.
-                delay: (c) => (c.type === 'data' && c.mode === 'default') ? c.dataIndex * 22 : 0,
-            }
+            ? entranceAnimation
             : { duration: 190, easing: 'easeOutCubic' };
 
     const timeErrorBarPlugin = {
@@ -1799,6 +2248,9 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
         if (d.reasoningEffort && d.reasoningEffort.includes('Reprompted')) return createTimeStripePattern(chartBar);
         return chartBar;
     });
+    // Each bar is outlined in its own colour; striped (reprompted) bars keep
+    // the solid accent outline that gives the stripes their shape.
+    const timeBarBorders = sortedData.map(d => (d.isExternal ? chartBarExternal : chartBar));
 
     // On phones, a subtle ten-hour track makes each row read as one compact
     // budget meter instead of a label floating above an unrelated bar.
@@ -1845,7 +2297,10 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
             c.font = "600 10px 'JetBrains Mono', monospace";
             c.textAlign = 'center';
             c.textBaseline = 'bottom';
-            c.fillText('10h budget', xPos, chartArea.top - 4);
+            // Keep the label inside the canvas: on phones the budget line sits
+            // close to the right edge and a centred label would be clipped.
+            const labelHalf = c.measureText('10h budget').width / 2;
+            c.fillText('10h budget', Math.min(xPos, chart.width - labelHalf - 2), chartArea.top - 4);
             c.restore();
         }
     };
@@ -1858,7 +2313,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                 label: 'Average runtime',
                 data: sortedData.map(d => d.hours),
                 backgroundColor: timeBarColors,
-                borderColor: chartBar,
+                borderColor: timeBarBorders,
                 borderWidth: isMobile ? 0 : 2,
                 borderRadius: isMobile ? 2 : 4,
                 barPercentage: isMobile ? 0.28 : 0.64,
@@ -1872,6 +2327,7 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
             responsive: true,
             maintainAspectRatio: false,
             animation: buildAnimation,
+            transitions: CHART_HOVER_TRANSITIONS,
             // Tooltip only while actually over a bar (see main chart note).
             interaction: {
                 mode: 'index',
@@ -1897,26 +2353,14 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
                         // built-in ticks are transparent and sometimes hold the
                         // scaffold name instead), so build the title from data.
                         title: function(items) {
-                            const d = sortedData[items[0].dataIndex];
-                            return getChartAgentMeta(d).name;
+                            return formatChartTooltipTitle(sortedData[items[0].dataIndex]);
                         },
                         label: function(context) {
                             const dataItem = sortedData[context.dataIndex];
-                            const lines = [`Average runtime: ${formatRuntimeDuration(dataItem.time)}`];
-                            if (dataItem.stdHours) lines.push(`Variation: ±${formatRuntimeDuration(dataItem.stdTime)}`);
-                            if (dataItem.n) lines.push(`Runs: ${dataItem.n}`);
-                            return lines;
+                            return formatRuntimeTooltipLine(dataItem.time, dataItem.stdHours ? dataItem.stdTime : null);
                         },
-                        afterLabel: function(context) {
-                            const dataItem = sortedData[context.dataIndex];
-                            const labelMeta = getChartAgentMeta(dataItem);
-                            const scaffold = agentInfo[dataItem.agentKey]?.scaffold;
-                            return [
-                                labelMeta.effort ? `Effort: ${labelMeta.effort}` : null,
-                                scaffold ? `Scaffold: ${scaffold}` : null,
-                                dataItem.verificationNote || null,
-                                getAgentStatusNote(dataItem.agentKey) || null
-                            ].filter(Boolean);
+                        footer: function(items) {
+                            return items.length ? formatChartTooltipNote(sortedData[items[0].dataIndex]) : [];
                         }
                     }
                 }),
@@ -1987,6 +2431,16 @@ function createTimeSpentChart({ motion = 'initial' } = {}) {
     if (!isMobile && !useExpandedScope && timeSpentChart.chartArea) {
         budgetMainRowPitch = timeSpentChart.chartArea.height / sortedData.length;
         budgetChartChromeHeight = mainDesktopHeight - timeSpentChart.chartArea.height;
+    }
+
+    if (holdEntrance) {
+        const chart = timeSpentChart;
+        chart.reset();
+        chart.draw();
+        holdChartEntrance(chart, () => {
+            chart.options.animation = entranceAnimation;
+            chart.update();
+        });
     }
 }
 
@@ -2080,7 +2534,15 @@ function selectModelOption(option, returnFocus = true, { motion = 'interaction',
         populateLeaderboard(selectedValue);
         if (performanceChart) {
             performanceChart.destroy();
-            createSimpleChart(selectedValue, { motion });
+            // Rebuild at rest rather than regrowing every bar from zero: the
+            // ranking reorders per model, so the change reads as a quick settle.
+            createSimpleChart(selectedValue, { motion: 'none' });
+        }
+        if (motion !== 'none') {
+            settleChangedContent([
+                document.querySelector('#leaderboard .leaderboard-chart'),
+                document.querySelector('#leaderboard .leaderboard-table')
+            ]);
         }
     }
 
@@ -2201,14 +2663,12 @@ function setLeaderboardRowExpanded(row, shouldExpand) {
     const panel = detailRow?.querySelector('.benchmark-detail-panel');
     if (!detailRow?.classList.contains('benchmark-detail-row') || !panel) return;
 
+    // The panel's height opens and closes with its contents, so the rows below
+    // move with it instead of jumping. Always start from what is on screen, so
+    // a quick second tap reverses mid-way rather than restarting.
     const wasHidden = detailRow.hidden;
-    const presentation = wasHidden ? null : getComputedStyle(panel);
-    const currentOpacity = wasHidden
-        ? 0
-        : Number.parseFloat(presentation.opacity || '1');
-    const currentTransform = wasHidden || presentation.transform === 'none'
-        ? (shouldExpand ? 'translateY(-4px)' : 'none')
-        : presentation.transform;
+    const fromHeight = wasHidden ? 0 : panel.getBoundingClientRect().height;
+    const fromOpacity = wasHidden ? 0 : Number.parseFloat(getComputedStyle(panel).opacity || '1');
     detailRow._detailAnimation?.cancel();
     detailRow._detailAnimation = null;
 
@@ -2217,21 +2677,16 @@ function setLeaderboardRowExpanded(row, shouldExpand) {
 
     if (reducedMotionQuery.matches || typeof panel.animate !== 'function') {
         if (!shouldExpand) detailRow.hidden = true;
-        panel.style.opacity = '';
-        panel.style.transform = '';
     } else {
+        const toHeight = shouldExpand ? panel.scrollHeight : 0;
         const animation = panel.animate([
-            {
-                opacity: currentOpacity,
-                transform: currentTransform
-            },
-            {
-                opacity: shouldExpand ? 1 : 0,
-                transform: shouldExpand ? 'none' : 'translateY(-3px)'
-            }
+            { height: `${fromHeight}px`, opacity: fromOpacity },
+            { height: `${toHeight}px`, opacity: shouldExpand ? 1 : 0 }
         ], {
-            duration: shouldExpand ? 180 : 140,
-            easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+            // Drawer curve: a gentler start than the site's sharp ease-out, so
+            // a 250px height change doesn't cover most of the distance in one frame.
+            duration: shouldExpand ? 260 : 220,
+            easing: 'cubic-bezier(0.32, 0.72, 0, 1)',
             fill: 'both'
         });
         detailRow._detailAnimation = animation;
@@ -2239,8 +2694,6 @@ function setLeaderboardRowExpanded(row, shouldExpand) {
             if (detailRow._detailAnimation !== animation) return;
             detailRow._detailAnimation = null;
             if (!shouldExpand) detailRow.hidden = true;
-            panel.style.opacity = '';
-            panel.style.transform = '';
             animation.cancel();
         };
     }
@@ -2268,19 +2721,32 @@ if (leaderboardBody) {
 const logo = document.querySelector('.logo');
 const heroSection = document.querySelector('.hero');
 
+const navbar = document.querySelector('.navbar');
+const heroTitle = heroSection?.querySelector('.hero-title');
+let navbarLogoFrame = null;
+
+// Scroll-linked handoff: as the hero title slides up under the navbar, the
+// navbar logo fades in (and settles up a few px) in step with the scroll, so
+// one title visibly takes over from the other. Narrow layouts always show it.
 function handleNavbarLogoVisibility() {
-    if (!heroSection || !logo) return;
-    const heroBottom = heroSection.getBoundingClientRect().bottom;
-    if (heroBottom > 0 && window.innerWidth > 950) {
-        logo.style.opacity = '0';
-        logo.style.visibility = 'hidden';
-    } else {
-        logo.style.opacity = '1';
-        logo.style.visibility = 'visible';
+    navbarLogoFrame = null;
+    if (!logo) return;
+    let progress = 1;
+    if (window.innerWidth > 950 && navbar && heroTitle) {
+        const title = heroTitle.getBoundingClientRect();
+        const navBottom = navbar.getBoundingClientRect().bottom;
+        progress = Math.min(1, Math.max(0, (navBottom - title.top) / title.height));
     }
+    logo.style.opacity = String(progress);
+    logo.style.visibility = progress > 0 ? 'visible' : 'hidden';
+    logo.style.transform = progress < 1 && !reducedMotionQuery.matches
+        ? `translateY(${((1 - progress) * 6).toFixed(2)}px)`
+        : '';
 }
 
-window.addEventListener('scroll', handleNavbarLogoVisibility);
+window.addEventListener('scroll', () => {
+    if (navbarLogoFrame === null) navbarLogoFrame = requestAnimationFrame(handleNavbarLogoVisibility);
+}, { passive: true });
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2301,6 +2767,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.documentElement.classList.remove('leaderboard-loading');
     }
     updateResultsVersionUI({ instant: true });
+    initializeHeroVersion(activeResultsVersion);
 
     // Wait specifically for the chart face instead of every page font. This
     // avoids a blank chart card on slow connections while still preventing its
@@ -2314,36 +2781,69 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) { /* render anyway */ }
     }
 
-    // The leaderboard chart is explanatory motion, so reveal it once when the
-    // chart is actually in view. Rebuilds caused by resizing, theme changes, or
-    // keyboard filtering remain instant elsewhere in this file.
-    const performanceChartPanel = document.getElementById('performanceChart')?.closest('.leaderboard-chart');
-    const renderInitialPerformanceChart = () => {
-        if (!performanceChart) createSimpleChart(currentSelectedModel);
+    // Chart entrances are explanatory motion, so each plays once, when it can
+    // actually be watched: once its plot's baseline (where bars grow from) is
+    // on screen. Until then the chart shows its frame with bars at zero / dots
+    // hidden, so the card never looks empty and nothing redraws on reveal.
+    // Rebuilds caused by resizing, theme changes, or filtering stay instant.
+    const canReveal = 'IntersectionObserver' in window && !reducedMotionQuery.matches;
+    const playWhenBaselineVisible = (canvas, getChart) => {
+        if (!canvas) return;
+        const observer = new IntersectionObserver((entries) => {
+            const entry = entries[entries.length - 1];
+            const chart = getChart();
+            if (!chart?.$playEntrance) {
+                // Rebuilt at rest in the meantime (resize, theme, version): nothing to play.
+                if (chart) observer.disconnect();
+                return;
+            }
+            if (!entry.isIntersecting || !chart.chartArea) return;
+            const viewportBottom = entry.rootBounds ? entry.rootBounds.bottom : window.innerHeight;
+            if (entry.boundingClientRect.top + chart.chartArea.bottom > viewportBottom) return;
+            observer.disconnect();
+            chart.$playEntrance();
+        }, { threshold: Array.from({ length: 21 }, (_, i) => i / 20) });
+        observer.observe(canvas);
     };
 
-    if (performanceChartPanel && 'IntersectionObserver' in window && !reducedMotionQuery.matches) {
-        const chartObserver = new IntersectionObserver((entries) => {
-            if (!entries.some(entry => entry.isIntersecting)) return;
-            chartObserver.disconnect();
-            renderInitialPerformanceChart();
-        }, { threshold: 0.12 });
-        chartObserver.observe(performanceChartPanel);
-    } else {
-        renderInitialPerformanceChart();
+    const entranceMotion = canReveal ? 'deferred' : 'initial';
+    if (!performanceChart) createSimpleChart(currentSelectedModel, { motion: entranceMotion });
+    createParetoChart({ motion: entranceMotion });
+    createTimeSpentChart({ motion: entranceMotion });
+    if (canReveal) {
+        playWhenBaselineVisible(document.getElementById('performanceChart'), () => performanceChart);
+        playWhenBaselineVisible(document.getElementById('paretoChart'), () => paretoChart);
+        playWhenBaselineVisible(document.getElementById('timeSpentChart'), () => timeSpentChart);
     }
-    createParetoChart();
-    createTimeSpentChart();
     handleNavbarLogoVisibility(); // Set initial state based on scroll position
 
-    document.querySelectorAll('[data-results-version]').forEach((versionButton) => {
-        versionButton.addEventListener('click', (event) => {
-            const shouldAnimate = event.detail !== 0 && !reducedMotionQuery.matches;
-            renderResultsVersion(versionButton.dataset.resultsVersion, {
-                animate: shouldAnimate
+    // Results version: a segmented radio group. Clicking animates the
+    // highlight; arrow keys move and select instantly, like native radios.
+    const resultsToggle = document.getElementById('results-version-toggle');
+    if (resultsToggle) {
+        resultsToggle.addEventListener('click', (event) => {
+            const option = event.target.closest('[data-results-version]');
+            if (!option) return;
+            renderResultsVersion(option.dataset.resultsVersion, {
+                animate: event.detail !== 0 && !reducedMotionQuery.matches
             });
         });
-    });
+
+        resultsToggle.addEventListener('keydown', (event) => {
+            const options = [...resultsToggle.querySelectorAll('[data-results-version]')];
+            const index = options.indexOf(event.target.closest('[data-results-version]'));
+            if (index < 0) return;
+            let next = null;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % options.length;
+            else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index - 1 + options.length) % options.length;
+            else if (event.key === 'Home') next = 0;
+            else if (event.key === 'End') next = options.length - 1;
+            if (next === null) return;
+            event.preventDefault();
+            options[next].focus();
+            renderResultsVersion(options[next].dataset.resultsVersion, { animate: false });
+        });
+    }
 
     window.addEventListener('popstate', () => {
         renderResultsVersion(getInitialResultsVersion(), {
@@ -2493,6 +2993,8 @@ if (typeof loadScoresDataSync === 'function' && loadScoresDataSync()) {
     populateTasks();
     populateStatistics();
     updateResultsVersionUI({ instant: true });
+    // Set the hero badge to its intro starting value before first paint.
+    initializeHeroVersion(activeResultsVersion);
     document.documentElement.classList.remove('leaderboard-loading');
     window.__ptbDataReady = true;
 }

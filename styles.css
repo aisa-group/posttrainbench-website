@@ -41,17 +41,22 @@
 
     /* Shape & elevation tokens */
     --radius-sm: 0.25rem;
+    /* Rendered height of .navbar at every width (incl. its 1px border). */
+    --navbar-height: 69px;
     --radius-md: 0.375rem;
     --radius-lg: 0.5rem;
+    /* Elevation + focus tokens, shared with the trace viewer's stylesheet
+       (ptb-traces-pipeline/public/assets/styles.css); keep the two in sync. */
     --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 14%, transparent);
     --shadow-panel: 0 10px 28px rgba(20, 16, 11, 0.32);
 
     /* Chart bar colors - darker/more muted in dark mode */
     --chart-bar: #95593f;
     --chart-bar-baseline-1: #6b655a;
     --chart-bar-baseline-2: #4a463c;
-    --chart-bar-external: #9b807b;
-    --chart-bar-external-border: #b79a94;
+    --chart-bar-external: #7a6763;
+    --chart-bar-external-border: #8d7874;
     --external-result-accent: #a88c86;
     --external-result-text: #d2b8b3;
     --chart-family-anthropic: #c17d5a;
@@ -78,6 +83,9 @@
 
 [data-theme="light"] {
     /* Light Theme Colors - Warm Cream */
+    /* The dark-mode panel shadow reads heavy on cream; keep it soft here,
+       closer to the site's flat, bordered surfaces. */
+    --shadow-panel: 0 8px 20px rgba(45, 42, 35, 0.12);
     --bg-primary: #faf8f3;
     --bg-secondary: #f3f0e8;
     --bg-tertiary: #e8e4d9;
@@ -87,7 +95,7 @@
     --accent-primary: #a66b4f;
     --accent-secondary: #8d5d45;
     --accent-text: #895940;
-    --accent-fill: #a66b4f;
+    --accent-fill: #9c6247;
     --accent-fill-hover: #8d5d45;
     --accent-on-fill: #faf8f3;
     --selection-bg: rgba(166, 107, 79, 0.28);
@@ -210,7 +218,8 @@ body {
     opacity: 0;
     text-decoration: none;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    /* No transition: opacity is driven 1:1 by scroll in script.js, and a
+       transition would make it lag behind the page. */
 }
 
 .logo-accent {
@@ -228,6 +237,12 @@ body {
     text-decoration: none;
     font-size: 0.875rem;
     transition: color 120ms var(--ease-out);
+}
+
+/* The section currently being read (set by the scroll spy in script.js). */
+.nav-links a.is-current,
+.nav-links a[aria-current="page"] {
+    color: var(--text-primary);
 }
 
 .nav-github {
@@ -297,13 +312,14 @@ body {
 }
 
 .theme-toggle {
+    /* Same quiet icon-button treatment as .nav-github beside it. */
     background: none;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
+    border: 0;
+    color: var(--text-secondary);
     padding: 0.5rem;
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: background-color 120ms var(--ease-out), transform 140ms var(--ease-out);
+    transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out), transform 140ms var(--ease-out);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -311,6 +327,7 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
     .theme-toggle:hover {
+        color: var(--text-primary);
         background-color: var(--bg-tertiary);
     }
 }
@@ -362,6 +379,11 @@ body {
     white-space: nowrap;
 }
 
+/* Version numbers stay lowercase ("v1.2") inside the uppercase label. */
+.hero-release-number {
+    text-transform: none;
+}
+
 .hero-release-copy {
     font-family: var(--font-sans);
 }
@@ -401,17 +423,81 @@ body {
 }
 
 .hero-version-link {
+    display: inline-flex;
+    align-items: center;
     padding: 0.18rem 0.34rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--accent-text);
-    font-size: 0.82rem;
+    font-size: 1.05rem;
     font-weight: 600;
     letter-spacing: 0;
     line-height: 1;
     text-decoration: none;
     transform: translateY(-0.15em);
     transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+
+.hero-version-odometer {
+    display: inline-flex;
+    align-items: center;
+    height: 1em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.hero-version-prefix,
+.hero-version-decimal {
+    display: block;
+    height: 1em;
+}
+
+/* Each digit window is a little taller than the text and fades at its top and
+   bottom, so digits roll over a drum instead of being sliced by the clip.
+   Reels are positioned in percent of their own height (10% per digit), which
+   keeps script.js independent of the window size. */
+.hero-version-digit-window {
+    display: block;
+    width: 0.62em;
+    height: 1.3em;
+    margin: -0.15em 0;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 78%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 78%, transparent 100%);
+}
+
+.hero-version-digit-reel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.hero-version-digit-reel > span {
+    display: block;
+    flex: 0 0 1.3em;
+    width: 100%;
+    height: 1.3em;
+    line-height: 1.3em;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.hero-version-fraction {
+    display: inline-flex;
+    align-items: center;
+    max-width: 0;
+    height: 1em;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.hero-version-fraction.is-visible {
+    max-width: 1.15em;
+    opacity: 1;
+}
+
+.hero-version-fraction.is-animated {
+    transition: max-width 240ms cubic-bezier(0.77, 0, 0.175, 1), opacity 160ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -777,38 +863,35 @@ section {
     font-weight: 500;
 }
 
+/* Segmented control, same family as the budget chart's Main/All toggle.
+   Options share one width so the highlight is placed from --index alone. */
 .results-version-toggle {
+    --pad: 0.15rem;
+    --gap: 0.1rem;
     position: relative;
     display: inline-flex;
-    flex: none;
-    gap: 0.1rem;
-    padding: 0.15rem;
-    overflow: hidden;
-    isolation: isolate;
+    gap: var(--gap);
+    padding: var(--pad);
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
+    isolation: isolate;
 }
 
 .results-version-toggle::before {
     position: absolute;
     z-index: 0;
-    top: 0.15rem;
-    bottom: 0.15rem;
-    left: 0.15rem;
-    width: calc((100% - 0.4rem) / 2);
+    top: var(--pad);
+    bottom: var(--pad);
+    left: var(--pad);
+    width: calc((100% - 2 * var(--pad) - (var(--count) - 1) * var(--gap)) / var(--count));
     background: var(--bg-primary);
     border-radius: calc(var(--radius-md) - 2px);
     box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent);
     content: '';
     pointer-events: none;
-    transform: translateX(0);
+    transform: translateX(calc(var(--index) * (100% + var(--gap))));
     transition: transform 180ms var(--ease-out);
-    will-change: transform;
-}
-
-.results-version-toggle.is-v1::before {
-    transform: translateX(calc(100% + 0.1rem));
 }
 
 .results-version-toggle.is-instant::before {
@@ -818,27 +901,20 @@ section {
 .results-version-option {
     position: relative;
     z-index: 1;
-    display: inline-flex;
-    min-width: 5.6rem;
-    align-items: baseline;
-    justify-content: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.55rem;
+    flex: 1 1 0;
+    min-width: 3.1rem;
+    padding: 0.36rem 0.7rem;
     background: transparent;
     color: var(--text-secondary);
     border: 0;
     border-radius: calc(var(--radius-md) - 2px);
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 550;
+    letter-spacing: 0.01em;
     line-height: 1.35;
     cursor: pointer;
     transition: color 120ms var(--ease-out), transform 120ms var(--ease-out);
-}
-
-.results-version-option small {
-    font-size: 0.58rem;
-    font-weight: 500;
-    opacity: 0.72;
 }
 
 .results-version-option.is-active {
@@ -846,12 +922,12 @@ section {
 }
 
 .results-version-option:active {
-    transform: scale(0.97);
+    transform: scale(0.96);
 }
 
 .results-version-option:focus-visible {
     outline: 2px solid var(--accent-primary);
-    outline-offset: -2px;
+    outline-offset: 1px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -903,7 +979,7 @@ section {
 .chart-view-select:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(193, 125, 90, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .leaderboard-chart {
@@ -935,25 +1011,14 @@ section {
     line-height: 1.4;
 }
 
-html[data-results-version="v1.1"] .reprompted-chart-key {
-    display: none;
-}
-
 .main-chart-key-item {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
 }
 
-.main-chart-key-external {
-    display: none;
-}
-
-html[data-results-version="v1.1"] .main-chart-key-external {
-    display: inline-flex;
-}
-
-html[data-results-version="v1.1"] .main-chart-key-reprompted {
+.main-chart-key[hidden],
+.main-chart-key-item[hidden] {
     display: none;
 }
 
@@ -1161,7 +1226,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
 .dropdown-selected:focus-visible {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 14%, transparent);
+    box-shadow: var(--focus-ring);
 }
 
 .dropdown-option:focus-visible {
@@ -1231,7 +1296,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
 }
 
 /* Keep the score area on a regular matrix. Rank and Method retain their
-   reading widths; Avg stays distinct; all seven benchmark columns share the
+   reading widths; Avg stays distinct; all active benchmark columns share the
    remaining space equally. Below the mobile breakpoint the compact disclosure
    layout provides its own column geometry. */
 @media (min-width: 769px) {
@@ -1253,7 +1318,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     }
 
     .leaderboard-table th:nth-child(n + 4) {
-        width: 9.321%;
+        width: calc(65.25% / var(--benchmark-count, 7));
     }
 
     .leaderboard-table .benchmark-col {
@@ -1272,7 +1337,8 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
 
     .leaderboard-table th {
         position: sticky;
-        top: 4.45rem;
+        /* Flush under the sticky navbar; any gap lets rows show through. */
+        top: var(--navbar-height);
         z-index: 3;
         background-color: var(--bg-tertiary);
     }
@@ -1378,43 +1444,71 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     margin-top: 0.15rem;
 }
 
-.agent-title-line {
+.external-result-label {
     display: inline-flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.38rem;
-}
-
-.external-result-badge {
-    display: inline-flex;
-    align-items: center;
-    min-height: 1rem;
-    padding: 0.05rem 0.34rem;
-    border: 1px solid color-mix(in srgb, var(--external-result-accent) 72%, var(--border-color));
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--external-result-accent) 8%, transparent);
+    gap: 0.32rem;
     color: var(--external-result-text);
-    font-size: 0.48rem;
-    font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: 0.055em;
-    text-transform: uppercase;
+    font-size: 0.61rem;
+    font-weight: 500;
     white-space: nowrap;
     cursor: help;
+}
+
+.external-result-label::before {
+    width: 0.36rem;
+    height: 0.36rem;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    content: '';
+    opacity: 0.75;
+}
+
+.external-result-label:focus-visible {
+    outline: 1px solid var(--external-result-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.mixed-source-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    color: color-mix(in srgb, var(--text-secondary) 78%, transparent);
+    font-size: 0.6rem;
+    font-weight: 450;
+    white-space: nowrap;
+    cursor: help;
+}
+
+.mixed-source-label::before {
+    width: 0.4rem;
+    height: 0.4rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 72%, transparent);
+    border-radius: 50%;
+    background: linear-gradient(to right, var(--accent-primary) 50%, transparent 50%);
+    content: '';
+}
+
+.mixed-source-label:focus-visible {
+    outline: 1px solid var(--accent-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 .effort-tag {
     display: inline-flex;
     align-items: baseline;
     gap: 0.4rem;
-    color: var(--accent-text);
-    font-size: 0.65rem;
-    font-weight: 500;
+    color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+    font-size: 0.6rem;
+    font-weight: 400;
 }
 
 .effort-tag::before {
     content: '\00b7';
-    color: var(--text-secondary);
+    color: color-mix(in srgb, var(--text-secondary) 58%, transparent);
 }
 
 .agent-name-status {
@@ -1446,7 +1540,7 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
     padding: 0.5rem 0.7rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-panel);
+    box-shadow: var(--shadow-popover);
     max-width: 280px;
     width: max-content;
     z-index: 9999;
@@ -1466,6 +1560,15 @@ html.leaderboard-loading #leaderboard .leaderboard-chart:has(#paretoChart) {
 .tt-pop.tt-show {
     opacity: 1;
     transform: none;
+    transition-delay: 80ms;
+}
+.tt-pop.tt-show.tt-instant {
+    transition-delay: 0ms;
+}
+.tt-pop.tt-keyboard {
+    transform: none;
+    transition-delay: 0ms;
+    transition-duration: 0ms;
 }
 .tt-pop::before {
     content: '';
@@ -1563,15 +1666,10 @@ tbody tr:last-child td {
 }
 
 /* Benchmark table — column-specific tuning on top of .findings-table */
+/* Benchmark variant ("Writing", "Main") reads as part of the name, just quieter. */
 .task-version {
-    font-size: 0.65rem;
-    font-weight: 600;
-    padding: 0.1rem 0.35rem;
-    background-color: var(--accent-fill);
-    color: var(--accent-on-fill);
-    border-radius: var(--radius-sm);
-    text-transform: uppercase;
-    vertical-align: middle;
+    font-weight: 400;
+    color: var(--text-secondary);
 }
 
 .benchmarks-table td:nth-child(1) {
@@ -1815,8 +1913,9 @@ tbody tr:last-child td {
     font-size: 0.875rem;
     color: var(--text-primary);
     margin: 0;
-    overflow-x: auto;
-    white-space: pre;
+    /* Wrap long fields (the author list) instead of clipping them at the card edge. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
     line-height: 1.6;
 }
 
@@ -1928,6 +2027,20 @@ tbody tr:last-child td {
 @media (max-width: 950px) {
     .hamburger {
         display: flex;
+        align-items: center;
+    }
+
+    /* 44×44 touch targets for the bar's icon buttons; the icons don't change. */
+    .hamburger,
+    .nav-github,
+    .theme-toggle {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Trim the bar's padding so the taller targets keep it at 69px. */
+    .navbar {
+        padding: 0.75rem 0;
     }
 
     .nav-links {
@@ -1939,7 +2052,9 @@ tbody tr:last-child td {
         border-bottom: 1px solid var(--border-color);
         flex-direction: column;
         align-items: stretch;
-        padding: 0.65rem 1rem 0.8rem;
+        /* Link text starts at the logo's edge: container padding + 44px button
+           (+ the gap, which matches each link's own inline padding). */
+        padding: 0.65rem 1rem 0.8rem calc(1.5rem + 44px);
         gap: 0.1rem;
         display: flex;
         visibility: hidden;
@@ -1964,7 +2079,7 @@ tbody tr:last-child td {
         padding: 0.6rem 0.75rem;
         border: 0;
         border-radius: var(--radius-sm);
-        text-align: center;
+        text-align: left;
         transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out);
     }
 
@@ -2069,7 +2184,7 @@ tbody tr:last-child td {
         border-bottom: 1px solid var(--border-color);
         flex-direction: column;
         align-items: stretch;
-        padding: 0.65rem 1rem 0.8rem;
+        padding: 0.65rem 1rem 0.8rem calc(1rem + 44px);
         gap: 0.1rem;
         display: flex;
         visibility: hidden;
@@ -2094,7 +2209,7 @@ tbody tr:last-child td {
         padding: 0.6rem 0.75rem;
         border: 0;
         border-radius: var(--radius-sm);
-        text-align: center;
+        text-align: left;
         transition: color 120ms var(--ease-out), background-color 120ms var(--ease-out);
     }
 
@@ -2298,7 +2413,9 @@ tbody tr:last-child td {
         font-variant-numeric: tabular-nums;
     }
 
-    .benchmark-detail-item:last-child {
+    /* An odd tile out spans the row; with an even count (six benchmarks
+       since v1.2) every row is a pair and nothing is left half-empty. */
+    .benchmark-detail-item:last-child:nth-child(odd) {
         grid-column: 1 / -1;
     }
 
@@ -2329,7 +2446,7 @@ tbody tr:last-child td {
         display: none;
     }
 
-    .leaderboard-table.has-expanded-row ~ .table-footnote {
+    .leaderboard-table.has-expanded-row ~ .table-footnote:not([hidden]) {
         display: block;
         font-size: 0.7rem;
         line-height: 1.5;
@@ -2506,7 +2623,7 @@ tbody tr:last-child td {
 
     .hero-version-link {
         padding: 0.16rem 0.28rem;
-        font-size: 0.66rem;
+        font-size: 0.8rem;
     }
 
     .hero-subtitle {
@@ -2566,8 +2683,6 @@ tbody tr:last-child td {
     .citation-text {
         padding: 1rem;
         font-size: 0.72rem;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
     }
 
     .citation-toolbar {
@@ -2902,17 +3017,6 @@ tbody tr:last-child td {
 .process-flow {
     background-color: var(--bg-secondary);
     padding: 4rem 0;
-}
-
-.process-flow-version {
-    margin: 0 auto 0.55rem;
-    color: var(--accent-text);
-    font-size: 0.67rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    line-height: 1.4;
-    text-align: center;
-    text-transform: uppercase;
 }
 
 .pipeline-diagram {
@@ -4299,6 +4403,7 @@ html[data-photo-clean] .ptb-photo-caption {
     .hamburger-line,
     .dropdown-selected::after,
     .time-scope-toggle::before,
+    .results-version-toggle::before,
     .leaderboard-disclosure-icon {
         transition-duration: 0ms;
     }

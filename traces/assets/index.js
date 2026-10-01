@@ -8,6 +8,7 @@ const {
   prettyAgent,
   prettyAgentForRun,
   prettyBenchmark,
+  benchmarkNote,
   prettyTrainedModel,
 } = CATALOG;
 
@@ -236,7 +237,14 @@ function renderMatrix() {
     } else {
       rh.textContent = benchmarkLabel;
     }
-    rh.title = benchmarkLabel;
+    const note = benchmarkNote(b);
+    if (note) {
+      const noteEl = document.createElement('span');
+      noteEl.className = 'bench-note';
+      noteEl.textContent = note;
+      rh.appendChild(noteEl);
+    }
+    rh.title = note ? `${benchmarkLabel} (${note})` : benchmarkLabel;
     grid.appendChild(rh);
 
     const max = rowMax.get(b) || 0;
@@ -352,11 +360,17 @@ function uniqValuesOrdered(rows, key, orderList) {
   });
 }
 
+function benchNoteHtml(benchmark) {
+  const note = benchmarkNote(benchmark);
+  return note ? ` <span class="bench-note">${escapeHtml(note)}</span>` : '';
+}
+
 // ---------- Filter dropdowns -------------------------------------------
 
 function populateFilters() {
   for (const b of (DATA.benchmarks || [])) {
-    addOpt(els.benchFilter, b, prettyBenchmark(b));
+    const note = benchmarkNote(b);
+    addOpt(els.benchFilter, b, note ? `${prettyBenchmark(b)} (${note})` : prettyBenchmark(b));
   }
   const agents = [...new Set(DATA.runs.map(r => r.agent_model).filter(Boolean))]
     .sort((a, b) => prettyAgent(a).localeCompare(prettyAgent(b), undefined, {
@@ -493,9 +507,16 @@ function buildGroupDisclosure(group, mode, accMax, initiallyOpen) {
 
   details.addEventListener('toggle', () => {
     if (details.open) {
+      // Opening one group closes the others. When a closing group sits above
+      // this one, everything below it moves up by its height; scroll by the
+      // same amount so the header the reader just clicked stays put.
+      const head = details.querySelector('.exp-head');
+      const headTopBefore = head.getBoundingClientRect().top;
       els.runs.querySelectorAll('.exp-group[open]').forEach(other => {
         if (other !== details) other.open = false;
       });
+      const shift = head.getBoundingClientRect().top - headTopBefore;
+      if (shift !== 0) window.scrollBy(0, shift);
       OPEN_GROUP_KEY = group.key;
       materialize();
     } else if (OPEN_GROUP_KEY === group.key) {
@@ -537,11 +558,11 @@ function buildGroupHeader(g, mode) {
   let title = '';
   if (mode === 'task-model') {
     const [b, m] = g.key.split('|');
-    title = `<span class="exp-name">${escapeHtml(prettyBenchmark(b))}</span>
+    title = `<span class="exp-name">${escapeHtml(prettyBenchmark(b))}</span>${benchNoteHtml(b)}
              <span class="exp-name-sep">·</span>
              <span class="exp-name exp-name-model">${escapeHtml(prettyTrainedModel(m))}</span>`;
   } else if (mode === 'task') {
-    title = `<span class="exp-name">${escapeHtml(prettyBenchmark(g.key))}</span>`;
+    title = `<span class="exp-name">${escapeHtml(prettyBenchmark(g.key))}</span>${benchNoteHtml(g.key)}`;
   } else {
     title = `<span class="exp-name">${escapeHtml(g.key)}</span>`;
   }
