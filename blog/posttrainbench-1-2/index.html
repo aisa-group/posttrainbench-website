@@ -88,9 +88,9 @@
                     <a href="#humaneval">HumanEval fix</a>
                     <a href="#seeds">Multi-seed evaluation</a>
                     <a href="#judging">Majority vote judging</a>
+                    <a href="#results">Results</a>
                     <!-- HARBOR: remove this link if Harbor does not ship with v1.2 -->
                     <a href="#harbor">Run it yourself</a>
-                    <a href="#results">Results</a>
                 </nav>
 
                 <div class="release-body">
@@ -173,18 +173,6 @@
                 <p>The <a href="/traces/">trace viewer</a> shows the majority verdict for each run.</p>
             </section>
 
-            <!-- HARBOR: remove this section if Harbor does not ship with v1.2.
-                 The adapter is in aisa-group/PostTrainBench#8 (open at the time of writing). -->
-            <section id="harbor" class="release-section article-copy">
-                <h2>Run PostTrainBench yourself</h2>
-                <p>Until now, running PostTrainBench was pretty hard, unless someone had an HTCondor cluster setup. Version 1.2 adds a <a href="https://github.com/aisa-group/PostTrainBench/tree/add_harbor_support/src/harbor_adapter#posttrainbench-harbor-adapter" target="_blank" rel="noopener noreferrer">Harbor adapter</a> that allows anyone to run the benchmark on cloud GPUs through <a href="https://harborframework.com" target="_blank" rel="noopener noreferrer">Harbor</a> and Modal with exactly the same settings. To get started:</p>
-                <pre class="release-code"><code>git clone https://github.com/aisa-group/PostTrainBench.git
-cd PostTrainBench/src/harbor_adapter
-bash run_modal_task.sh --benchmark all --base-model all \
-    --agent claude-code --model anthropic/claude-opus-4-8 --job-name sweep1</code></pre>
-                <p>For more details, look at the Harbor adapter README. We will also publish PostTrainBench to the Harbor hub soon, so it can be run directly from Harbor.</p>
-            </section>
-
             <section id="new-agents" class="release-section article-copy">
                 <h2>New agents</h2>
                 <p>We've added five new frontier agents to v1.2: Fable 5.1, Opus 5.5 and GPT-6 (Astra), GLM 5.3 and GLM 5.3 Flash, all at max reasoning. Fable 5.1 leads at 44.7%, followed by Opus 5.5 at 43.7% and GPT-6 (Astra) at 42.0%.</p>
@@ -204,6 +192,18 @@ bash run_modal_task.sh --benchmark all --base-model all \
                     <div id="leaderboard-change"></div>
                     <p class="comparison-note">Aggregate benchmark performance. Differences include removing BFCL and reweighting, HumanEval rescoring, and majority vote judging.</p>
                 </figure>
+            </section>
+
+            <!-- HARBOR: remove this section if Harbor does not ship with v1.2.
+                 The adapter is in aisa-group/PostTrainBench#8 (open at the time of writing). -->
+            <section id="harbor" class="release-section article-copy">
+                <h2>Run PostTrainBench yourself</h2>
+                <p>Until now, running PostTrainBench was pretty hard, unless someone had an HTCondor cluster setup. Version 1.2 adds a <a href="https://github.com/aisa-group/PostTrainBench/tree/add_harbor_support/src/harbor_adapter#posttrainbench-harbor-adapter" target="_blank" rel="noopener noreferrer">Harbor adapter</a> that allows anyone to run the benchmark on cloud GPUs through <a href="https://harborframework.com" target="_blank" rel="noopener noreferrer">Harbor</a> and Modal with exactly the same settings. To get started:</p>
+                <pre class="release-code"><code>git clone https://github.com/aisa-group/PostTrainBench.git
+cd PostTrainBench/src/harbor_adapter
+bash run_modal_task.sh --benchmark all --base-model all \
+    --agent claude-code --model anthropic/claude-opus-4-8 --job-name sweep1</code></pre>
+                <p>For more details, look at the Harbor adapter README. We will also publish PostTrainBench to the Harbor hub soon, so it can be run directly from Harbor.</p>
             </section>
                 </div>
             </div>
