@@ -1,0 +1,196 @@
+/* v1.2 post additions on top of ../posttrainbench-1-1/article.css. */
+
+.release-table-wrap {
+    margin: 2rem 0;
+    overflow-x: auto;
+}
+
+/* styles.css sizes every table for the leaderboard (min-width: 1000px,
+   no wrapping); these article tables fit the text column instead. */
+.release-table {
+    width: 100%;
+    min-width: 0;
+    border-collapse: collapse;
+    background: none;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.release-table thead {
+    background: none;
+}
+
+.release-table th,
+.release-table td {
+    padding: 0.6rem 0.9rem 0.6rem 0;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+    vertical-align: top;
+    white-space: normal;
+}
+
+.release-table tbody tr:hover td {
+    background: none;
+}
+
+.release-table th {
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.release-table td:not(:first-child):not(:last-child),
+.release-table th:not(:first-child):not(:last-child) {
+    white-space: nowrap;
+}
+
+.release-table td + td {
+    font-variant-numeric: tabular-nums;
+}
+
+.release-table-removed td {
+    color: var(--text-secondary);
+}
+
+.release-table-removed td:first-child {
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+}
+
+.release-code {
+    margin: 2rem 0;
+    padding: 1.1rem 1.25rem;
+    overflow-x: auto;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+.release-page .release-code code {
+    padding: 0;
+    background: none;
+    font-size: inherit;
+}
+
+/* ---------- Leaderboard change chart ---------- */
+
+/* Rank chart: two ordered lists joined by one curve per returning agent. */
+.rank-head,
+.rank-change {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(2.5rem, 12%, 6rem) minmax(0, 1fr);
+}
+
+.rank-head {
+    margin-bottom: 0.4rem;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.rank-head span:first-child {
+    text-align: right;
+}
+
+.rank-column {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rank-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 28px;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    transition: opacity 120ms var(--ease-out);
+}
+
+.rank-column-before .rank-row {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.rank-number {
+    flex: none;
+    width: 1.4rem;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.rank-column-before .rank-number {
+    text-align: right;
+}
+
+.rank-name {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+
+.rank-score {
+    flex: none;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.rank-links {
+    width: 100%;
+    overflow: visible;
+}
+
+.rank-link {
+    fill: none;
+    stroke: var(--border-color);
+    stroke-width: 1.5;
+    transition: stroke 120ms var(--ease-out), opacity 120ms var(--ease-out);
+}
+
+.rank-link.is-up {
+    stroke: var(--accent-primary);
+}
+
+.rank-link.is-down {
+    stroke: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+}
+
+.rank-change.has-active .rank-row:not(.is-active),
+.rank-change.has-active .rank-link:not(.is-active) {
+    opacity: 0.3;
+}
+
+.rank-change .rank-link.is-active {
+    stroke-width: 2.5;
+}
+
+.rank-note {
+    margin: 1rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+    .rank-row {
+        gap: 0.35rem;
+        font-size: 0.6rem;
+    }
+
+    .rank-number {
+        width: 1.1rem;
+    }
+}
