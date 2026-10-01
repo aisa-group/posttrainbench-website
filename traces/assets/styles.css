@@ -323,12 +323,21 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   .navbar .logo { font-size: 16px; }
   .navbar .logo-sub { font-size: 12.8px; }
   .nav-right { gap: 8px; }
-  .hamburger { display: flex; align-items: center; }
   /* 44×44 touch targets; the icons don't change. */
   .hamburger,
   .nav-github,
   .theme-toggle { min-width: 44px; min-height: 44px; }
+  /* The viewer only links Leaderboard and Blog, so they stay inline on
+     tablets; tall enough to tap comfortably. */
+  .nav-links { gap: 20px; margin-right: 4px; }
+  /* 22.4px line + 2 × 10.8px = 44px, the same height as the icon buttons. */
+  .nav-links a { display: inline-block; padding: 10.8px 0; }
+}
+/* Phones: the two links move into the hamburger menu. */
+@media (max-width: 600px) {
+  .hamburger { display: flex; align-items: center; }
   .nav-links {
+    margin-right: 0;
     position: absolute;
     top: 100%;
     left: 0;

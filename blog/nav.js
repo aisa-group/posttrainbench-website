@@ -57,10 +57,11 @@
         }
     }, { passive: true });
 
-    // The hamburger layout applies up to 950px; close the menu once the full
-    // nav bar takes over.
+    // Close the menu once the full nav bar takes over. Checking the button's
+    // visibility (not a fixed width) lets each page set its own breakpoint:
+    // 950px on the site and blog, 600px in the trace viewer.
     window.addEventListener('resize', function () {
-        if (window.innerWidth > 950 && navLinks.classList.contains('active')) {
+        if (navLinks.classList.contains('active') && getComputedStyle(hamburgerBtn).display === 'none') {
             setMobileNavOpen(false, true);
         }
     });
