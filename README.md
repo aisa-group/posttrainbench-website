@@ -1,201 +1,83 @@
 # PostTrainBench Website
 
-
-## Local dev
-
+Static site for [posttrainbench.com](https://posttrainbench.com): the leaderboard, the blog and the
+trace viewer. There is no build step; GitHub Pages serves the repo as-is (custom domain in `CNAME`).
 
 ```bash
-# Start local server
-python3 -m http.server 8000
-
-# Open in browser
-open http://localhost:8000
+python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
+## Layout
 
-## Project Structure
+| Path | What it is |
+|------|------------|
+| `index.html`, `script.js`, `styles.css` | The main page: leaderboard, charts, scoring, setup, observations |
+| `config.js` | Agent display names and metadata, and which agents appear in each chart |
+| `data.js` | Loads a score bundle and computes the leaderboard from it |
+| `scores-v1.2.{js,json}` | **Current** results (v1.2), generated from `data/v1.2/` |
+| `scores.{js,json}` | v1.1 results, generated from `data/` |
+| `scores-v1.js` | Archived v1 results, frozen; never regenerated |
+| `generate_data.py` | Builds the score bundles from the CSVs in `data/` |
+| `blog/` | Blog index and posts |
+| `traces/` | Trace viewer (see below) |
+| `tooltip.js`, `photo-mode.js` | Leaderboard tooltips; a hidden screenshot mode (type `photo` or add `?photo`) |
+| `paper-plots/` | Figures and tables for the paper; not used by the site |
 
-```
-post-train-bench-website/
-├── index.html              # Main HTML page
-├── styles.css              # Styling 
-├── config.js               # Static configuration (agent names, display settings)
-├── data.js                 # Data loading logic and computations
-├── script.js               # UI logic 
-├── scores.json             # Generated benchmark data (from CSVs)
-├── generate_data.py        # Script to generate scores.json from CSVs
-├── data/                   # Source CSV data files
-│   ├── factors.json               # Benchmark weights
-│   ├── aggregated_baseline.csv    # Base model & instruction-tuned scores
-│   ├── aggregated_avg_*.csv       # Agent average scores
-│   ├── aggregated_std_*.csv       # Agent standard deviations
-│   ├── aggregated_opencode_*.csv  # OpenCode agent raw data
-│   ├── final_opencode_*.csv       # OpenCode agent final values
-│   ├── time_aggregated.csv        # Time data with std (multiple runs)
-│   └── aggregated_time_overview.csv  # Time data (single run)
-└── README.md
-```
+The page shows v1.2 by default (`data-current-results-version` on `<html>` in `index.html`);
+`?version=v1.1` or `?version=v1` shows an older leaderboard.
 
-## Updating Data
+## Updating results
 
-When you have new benchmark results:
+1. Put the aggregation outputs in `data/v1.2/`:
+   - `aggregated_avg_<Agent>.csv` and `aggregated_std_<Agent>.csv`, one row per base model,
+     scores in 0–1:
+     ```csv
+     model,aime2025,arenahardwriting,gpqamain,gsm8k,healthbench,humaneval
+     Qwen3-1.7B-Base,0.022,0.004,0.174,0.509,0.093,0.327
+     ```
+   - `single_metrics_aggregated.csv` (`agent,avg,std,n`): the overall score shown on the leaderboard
+   - `time_aggregated.csv` (`agent,avg_time,std_time,n`) and `aggregated_time_overview.csv` for runtimes
 
-1. **Update CSV files** in `data/`
-
-   The judge pipeline emits `time_aggregated.csv` and `time_overview.csv`.
-   Keep the first filename and store the second as
-   `data/aggregated_time_overview.csv` to match the site generator.
-
-2. **Regenerate the current v1.1 bundle:**
+   Baselines (`data/aggregated_baseline*.csv`) are shared across versions. Benchmark weights are
+   in `data/factors-v1.2.json`.
+2. Regenerate the bundle:
    ```bash
-   python3 generate_data.py --version v1.1
+   python3 generate_data.py --version v1.2
    ```
+   This writes `scores-v1.2.json` and `scores-v1.2.js`. It stops with an error if a published agent
+   is missing scores, standard deviations, an overall score or a runtime.
+3. Commit the CSVs and both generated files. Never edit the generated files by hand.
 
-### Preparing v1.2 results
+## Adding an agent
 
-v1.2 omits BFCL and uses the six normalized weights in
-`data/factors-v1.2.json`. Keep its inputs separate from the published v1.1
-files by placing them under `data/v1.2/`, then run:
+1. **`generate_data.py`**: map the agent's names to a key (e.g. `opus-5.5-max`):
+   - `CSV_TO_AGENT` and `STD_CSV_TO_AGENT`: its `aggregated_avg_*` / `aggregated_std_*` filenames
+   - `AGGREGATED_NAME_TO_KEY`: its name in `single_metrics_aggregated.csv`
+   - `TIME_AGGREGATED_TO_KEY`: its name in `time_aggregated.csv`
+   - `V12_AGENT_KEYS`: add the key to publish it
+   - Single-run agents use `SINGLE_RUN_FINAL_TO_KEY` and `TIME_OVERVIEW_TO_KEY` instead.
+   - If some of its cells are fallbacks from another agent, add a `CELL_PROVENANCE` entry so the
+     leaderboard labels them.
+2. **`config.js`**:
+   - `agentInfo`: display name, description, scaffold, optional `reasoningEffort`, and flags such as
+     `isExternal` or `provenanceLabel`
+   - `allAgentKeys`: table order before sorting
+   - `chartAgentKeys` (and `chartAgentKeysByVersion` to hide it from one version's chart):
+     include it in the main chart
+   - `timeChartAgentKeys`: include it in the budget chart
+3. Regenerate the bundle (above).
 
-```bash
-python3 generate_data.py --version v1.2
-```
+## Blog
 
-This emits `scores-v1.2.json` and `scores-v1.2.js`; it does not overwrite the
-v1.1 `scores.json`/`scores.js` bundle. The published roster is explicit in
-`V12_AGENT_KEYS`; new agents also need filename/name mappings in
-`generate_data.py` and display metadata in `config.js`.
+Each post is a folder, `blog/<slug>/index.html`, listed by hand in `blog/index.html`.
+Posts share `blog/posttrainbench-1-1/article.css` (plus an optional `article.css` of their own),
+`blog/nav.js` (mobile menu), `blog/toc.js` (highlights the current section in the contents list)
+and the theme toggle from `traces/assets/theme.js`. Copy an existing post to start a new one.
 
+## Trace viewer
 
-### CSV File Formats
-
-**Baseline data** (`aggregated_baseline.csv`):
-```csv
-model,aime2025,arenahardwriting,bfcl,gpqamain,gsm8k,healthbench,humaneval
-Qwen3-1.7B,0.266,0.5,0.94,0.354,0.884,0.449,0.689
-Qwen3-1.7B-Base,0.0,0.009,0.0,0.140,0.126,0.075,0.079
-...
-```
-
-**Agent scores** (`aggregated_avg_*.csv`):
-```csv
-model,aime2025,arenahardwriting,bfcl,gpqamain,gsm8k,healthbench,humaneval
-Qwen3-1.7B-Base,0.022,0.004,0.293,0.174,0.509,0.093,0.327
-...
-```
-
-For v1.2, omit the `bfcl` column:
-
-```csv
-model,aime2025,arenahardwriting,gpqamain,gsm8k,healthbench,humaneval
-Qwen3-1.7B-Base,0.022,0.004,0.174,0.509,0.093,0.327
-...
-```
-
-**Per-model standard deviations** (`aggregated_std_*.csv`):
-- Same format as agent scores, values are standard deviations per benchmark
-- Used for model-specific view in the table dropdown
-
-**Pre-calculated aggregated scores** (`single_metrics_aggregated.csv`):
-```csv
-agent,avg,std,n
-GPT-5.2,0.2148,0.0253,3
-Opus-4.5,0.1711,0.0458,3
-...
-```
-- `avg`: Overall average score across all models (0-1 scale)
-- `std`: Standard deviation of the average score
-- `n`: Number of runs
-- Used for main chart error bars and table display
-
-**OpenCode agents** - Two files per agent:
-- `aggregated_opencode_*.csv` - Raw data with "not stored" or "ERR" for missing/failed
-- `final_opencode_*.csv` - Final values with base model fallbacks filled in
-
-**Benchmark weights** (`factors.json`):
-```json
-{
-    "aime2025": 0.2265,
-    "arenahardwriting": 0.0903,
-    ...
-}
-```
-
-## Adding a New Agent
-
-### 1. Add CSV files
-
-Place the agent's CSV files in `data/`:
-- For proprietary agents: `aggregated_avg_AgentName.csv` and `aggregated_std_AgentName.csv`
-- For OpenCode agents: `aggregated_opencode_*.csv` and `final_opencode_*.csv`
-
-### 2. Update generate_data.py
-
-Add the CSV filename mapping:
-
-```python
-# For proprietary agents with std data
-CSV_TO_AGENT = {
-    ...
-    "aggregated_avg_NewAgent.csv": "new-agent",
-}
-
-STD_CSV_TO_AGENT = {
-    ...
-    "aggregated_std_NewAgent.csv": "new-agent",
-}
-
-# For OpenCode agents
-OPENCODE_CSV_TO_AGENT = {
-    ...
-    "opencode_new-agent_10h": "new-agent-opencode",
-}
-```
-
-### 3. Update config.js
-
-Add agent configuration:
-
-```javascript
-// Add to allAgentKeys array
-const allAgentKeys = [
-    ...
-    "new-agent",
-];
-
-// Add to chartAgentKeys if it should appear in the main chart
-const chartAgentKeys = [
-    ...
-    "new-agent",  // Only add if you want it in the chart
-];
-
-// Add agent info
-const agentInfo = {
-    ...
-    "new-agent": {
-        name: "New Agent",
-        description: "Description here",
-        scaffold: "scaffold name",  // CLI tool name (e.g., "codex cli", "opencode")
-        // Optional flags:
-        // isBaseline: true,  // For baseline models
-        // isOpenCode: true,  // For OpenCode variants
-    },
-};
-```
-
-### 4. Regenerate data
-
-```bash
-python3 generate_data.py --version v1.1
-```
-## Development
-
-### File Responsibilities
-
-| File | Purpose |
-|------|---------|
-| `config.js` | Static config that rarely changes |
-| `data.js` | Data loading and computation functions |
-| `scores*.json` / `scores*.js` | Generated, versioned benchmark data (don't edit manually) |
-| `script.js` | UI rendering and interactions |
-| `generate_data.py` | Converts CSVs to scores.json |
+`traces/` is the viewer's code only. Run data is loaded from the Hugging Face dataset
+[`aisa-group/PostTrainBench-Trajectories`](https://huggingface.co/datasets/aisa-group/PostTrainBench-Trajectories),
+set in `traces/config.js`. Both are produced by the separate `ptb-traces-pipeline` repo, whose
+`deploy.sh` uploads the data and copies the viewer code here. Data-only updates need no change to
+this repo.
