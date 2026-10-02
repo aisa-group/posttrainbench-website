@@ -1035,3 +1035,22 @@
         backdrop-filter: none;
     }
 }
+
+/* Note under the byline pointing to a newer release. */
+.release-update {
+    margin-top: 0.9rem;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.release-update a {
+    color: var(--accent-text);
+    text-underline-offset: 0.2em;
+}
+
+/* The closing section can hold only the action links. */
+.release-actions-closing:first-child {
+    margin-top: 0;
+}
