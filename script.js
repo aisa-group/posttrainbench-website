@@ -1613,7 +1613,6 @@ function createParetoChart({ motion = 'initial' } = {}) {
                 y: parseFloat(d.averageScore),
                 label: labelMeta.name,
                 reasoningEffort: labelMeta.effort,
-                reasoningLabel: labelMeta.effortLabel,
                 agentKey: d.agentKey,
                 scaffold: d.scaffold,
                 time: t.time,
@@ -1631,6 +1630,17 @@ function createParetoChart({ motion = 'initial' } = {}) {
         .sort((a, b) => a.x - b.x);
 
     if (points.length === 0) return;
+
+    // Labels show names only, so agents sharing a name keep just what tells
+    // them apart: the effort level (Opus 4.8 High / Max) or the reprompt.
+    const isReprompted = p => /Reprompted/.test(p.entry.reasoningEffort || '');
+    points.forEach(p => {
+        const group = points.filter(q => q.label === p.label);
+        const parts = [p.label];
+        if (new Set(group.map(q => q.reasoningEffort)).size > 1 && p.reasoningEffort) parts.push(p.reasoningEffort);
+        if (new Set(group.map(isReprompted)).size > 1 && isReprompted(p)) parts.push('Reprompted');
+        p.chartLabel = parts.join(' ');
+    });
 
     if (!isMobile) {
         wrapper.style.height = `${Math.max(480, points.length * 40)}px`;
@@ -1692,9 +1702,8 @@ function createParetoChart({ motion = 'initial' } = {}) {
         afterDatasetsDraw(chart) {
             const { ctx: c, chartArea, scales } = chart;
             const fontSize = isMobile ? 10 : Math.max(9, fontSizes.axisTicks - 1);
-            const effortFontSize = Math.max(8, fontSize - 2);
+            // Names only: the effort level is in each point's tooltip.
             const nameFont = `500 ${fontSize}px 'JetBrains Mono', monospace`;
-            const effortFont = `600 ${effortFontSize}px 'JetBrains Mono', monospace`;
             c.save();
 
             const pts = points.map((p, index) => ({
@@ -1710,18 +1719,120 @@ function createParetoChart({ motion = 'initial' } = {}) {
                 top: py - pointRadius - 2, bottom: py + pointRadius + 2
             }));
 
+            // Frontier points label first, then higher scores, so in a crowded
+            // cluster the top agents keep their names and lower ones drop.
             const ordered = [...pts].sort((a, b) =>
-                (frontierKeys.has(b.p.agentKey) ? 1 : 0) - (frontierKeys.has(a.p.agentKey) ? 1 : 0));
+                (frontierKeys.has(b.p.agentKey) ? 1 : 0) - (frontierKeys.has(a.p.agentKey) ? 1 : 0)
+                || b.p.y - a.p.y);
 
-            ordered.forEach(({ px, py, p, index }) => {
-                const alpha = dotReveal(index);
-                if (isMobile && !frontierKeys.has(p.agentKey)) return;
+            const leaders = [];
+            const hitsPlaced = rect => placed.some(o =>
+                !(rect.right < o.left - 3 || rect.left > o.right + 3 ||
+                  rect.bottom < o.top - 3 || rect.top > o.bottom + 3));
+            const inChart = rect => rect.left >= chartArea.left && rect.right <= chartArea.right &&
+                rect.top >= chartArea.top && rect.bottom <= chartArea.bottom;
+            const distToRect = (rect, x, y) => Math.hypot(
+                Math.max(rect.left - x, 0, x - rect.right),
+                Math.max(rect.top - y, 0, y - rect.bottom));
+            // Liang-Barsky: does segment (x1,y1)-(x2,y2) pass through rect?
+            const segmentHitsRect = (x1, y1, x2, y2, r) => {
+                let t0 = 0, t1 = 1;
+                const dx = x2 - x1, dy = y2 - y1;
+                for (const [q, d] of [[x1 - r.left, -dx], [r.right - x1, dx], [y1 - r.top, -dy], [r.bottom - y1, dy]]) {
+                    if (d === 0) { if (q < 0) return false; continue; }
+                    const t = q / d;
+                    if (d < 0) { if (t > t1) return false; if (t > t0) t0 = t; }
+                    else { if (t < t0) return false; if (t < t1) t1 = t; }
+                }
+                return true;
+            };
+            const segmentsCross = (a, b) => {
+                const side = (p1, p2, p3) => Math.sign((p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x));
+                return side(a.from, a.to, b.from) !== side(a.from, a.to, b.to) &&
+                    side(b.from, b.to, a.from) !== side(b.from, b.to, a.to);
+            };
+            const measure = p => {
                 c.font = nameFont;
-                const nameWidth = c.measureText(p.label).width;
-                c.font = effortFont;
-                const effortWidth = p.reasoningLabel ? c.measureText(p.reasoningLabel).width : 0;
-                const w = Math.max(nameWidth, effortWidth);
-                const h = fontSize + (p.reasoningLabel ? effortFontSize + 2 : 0);
+                return { w: c.measureText(p.chartLabel).width, h: fontSize };
+            };
+            const drawLabel = ({ p, index }, rect, align, leader) => {
+                const alpha = dotReveal(index);
+                if (leader) {
+                    c.strokeStyle = p.familyColor;
+                    c.globalAlpha = 0.55 * alpha;
+                    c.lineWidth = 1;
+                    c.beginPath();
+                    c.moveTo(leader.from.x, leader.from.y);
+                    c.lineTo(leader.to.x, leader.to.y);
+                    c.stroke();
+                }
+                c.textAlign = align;
+                c.textBaseline = 'top';
+                const textX = align === 'left' ? rect.left
+                    : align === 'center' ? (rect.left + rect.right) / 2 : rect.right;
+                // Surface-colored halo keeps labels readable where they
+                // cross gridlines or the dashed frontier/budget lines.
+                c.strokeStyle = bgPrimary;
+                c.lineWidth = 3;
+                c.lineJoin = 'round';
+                c.font = nameFont;
+                c.globalAlpha = alpha;
+                c.strokeText(p.chartLabel, textX, rect.top);
+                c.fillStyle = p.familyColor;
+                c.fillText(p.chartLabel, textX, rect.top);
+                c.globalAlpha = 1;
+                placed.push(rect);
+            };
+
+            // Fallback for a dot boxed in by neighbours: a label in nearby
+            // open space, tied to the dot by a thin leader line that crosses
+            // no other dot, label or leader.
+            const placeWithLeader = pt => {
+                const { px, py, index } = pt;
+                const { w, h } = measure(pt.p);
+                const spots = [];
+                // Beside the dot (left/right) or above/below it, within a
+                // short reach so the leader stays a tick, not a wire.
+                for (let dx = -(w + 70); dx <= 70; dx += 4) {
+                    for (let dy = -(h + 60); dy <= 60; dy += 4) {
+                        const rect = { left: px + dx, right: px + dx + w, top: py + dy, bottom: py + dy + h };
+                        const cost = distToRect(rect, px, py);
+                        if (cost < pointRadius + 14 || cost > 64) continue;
+                        spots.push({ rect, cost });
+                    }
+                }
+                spots.sort((a, b) => a.cost - b.cost);
+                const roomy = rect => ({ left: rect.left - 3, right: rect.right + 3, top: rect.top - 3, bottom: rect.bottom + 3 });
+                for (const { rect } of spots) {
+                    if (!inChart(rect) || hitsPlaced(roomy(rect))) continue;
+                    // Keep clear of other dots so the label isn't read as theirs.
+                    if (pts.some(o => o.index !== index && distToRect(rect, o.px, o.py) < pointRadius + 10)) continue;
+                    // Aim at the nearest point on the label's box.
+                    const toX = Math.min(Math.max(px, rect.left - 2), rect.right + 2);
+                    const toY = Math.min(Math.max(py, rect.top - 1), rect.bottom + 1);
+                    const len = Math.hypot(toX - px, toY - py);
+                    const start = (pointRadius + 2) / len;
+                    const leader = {
+                        from: { x: px + (toX - px) * start, y: py + (toY - py) * start },
+                        to: { x: toX, y: toY }
+                    };
+                    const blocked = placed.some((o, i) => i !== index &&
+                        segmentHitsRect(leader.from.x, leader.from.y, leader.to.x, leader.to.y, o))
+                        || leaders.some(l => segmentsCross(l, leader))
+                        || leaders.some(l => segmentHitsRect(l.from.x, l.from.y, l.to.x, l.to.y, rect));
+                    if (blocked) continue;
+                    leaders.push(leader);
+                    drawLabel(pt, rect, rect.right <= px ? 'right' : rect.left >= px ? 'left' : 'center', leader);
+                    return;
+                }
+            };
+
+            // Each label goes right beside its dot, and nearest to it, so it
+            // can't read as a neighbour's name; failing that, a leader line.
+            ordered.forEach(pt => {
+                const { px, py, p, index } = pt;
+                if (isMobile && !frontierKeys.has(p.agentKey)) return;
+                const { w, h } = measure(p);
                 // Must clear the point's own obstacle rect (radius + 2px pad +
                 // 3px separation margin), or every candidate self-collides.
                 const gap = pointRadius + 8;
@@ -1736,44 +1847,24 @@ function createParetoChart({ motion = 'initial' } = {}) {
                     { x: px + diag, y: py + diag, align: 'left', baseline: 'top' },
                     { x: px - diag, y: py + diag, align: 'right', baseline: 'top' }
                 ];
+                // Near the right edge (where the long runs crowd), try the
+                // open side first so labels leave room for the cluster.
+                if (px > chartArea.left + chartArea.width * 0.75) {
+                    candidates.sort((a, b) => (a.align === 'right' ? 0 : 1) - (b.align === 'right' ? 0 : 1));
+                }
                 for (const cand of candidates) {
                     const left = cand.align === 'left' ? cand.x
                         : cand.align === 'center' ? cand.x - w / 2 : cand.x - w;
                     const top = cand.baseline === 'top' ? cand.y
                         : cand.baseline === 'middle' ? cand.y - h / 2 : cand.y - h;
                     const rect = { left: left, right: left + w, top: top, bottom: top + h };
-                    if (rect.left < chartArea.left || rect.right > chartArea.right ||
-                        rect.top < chartArea.top || rect.bottom > chartArea.bottom) continue;
-                    const collides = placed.some(o =>
-                        !(rect.right < o.left - 3 || rect.left > o.right + 3 ||
-                          rect.bottom < o.top - 3 || rect.top > o.bottom + 3));
-                    if (collides) continue;
-                    c.textAlign = cand.align;
-                    c.textBaseline = 'top';
-                    const textX = cand.align === 'left' ? rect.left
-                        : cand.align === 'center' ? rect.left + w / 2 : rect.right;
-                    // Surface-colored halo keeps labels readable where they
-                    // cross gridlines or the dashed frontier/budget lines.
-                    c.strokeStyle = bgPrimary;
-                    c.lineWidth = 3;
-                    c.lineJoin = 'round';
-                    c.font = nameFont;
-                    c.globalAlpha = alpha;
-                    c.strokeText(p.label, textX, rect.top);
-                    c.fillStyle = p.familyColor;
-                    c.fillText(p.label, textX, rect.top);
-                    if (p.reasoningLabel) {
-                        const effortY = rect.top + fontSize + 2;
-                        c.font = effortFont;
-                        c.strokeText(p.reasoningLabel, textX, effortY);
-                        c.globalAlpha = 0.82 * alpha;
-                        c.fillStyle = p.familyColor;
-                        c.fillText(p.reasoningLabel, textX, effortY);
-                    }
-                    c.globalAlpha = 1;
-                    placed.push(rect);
-                    break;
+                    if (!inChart(rect) || hitsPlaced(rect)) continue;
+                    const ownDist = distToRect(rect, px, py);
+                    if (pts.some(o => o.index !== index && distToRect(rect, o.px, o.py) < ownDist)) continue;
+                    drawLabel(pt, rect, cand.align, null);
+                    return;
                 }
+                if (!isMobile) placeWithLeader(pt);
             });
             c.restore();
         }
