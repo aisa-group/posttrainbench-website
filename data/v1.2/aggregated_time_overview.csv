@@ -68,6 +68,8 @@ codex_non_api_max_gpt-5.6-sol_10h_run2,7:21:46,73.6%
 codex_non_api_max_gpt-6-astra_10h_run1,9:51:01,98.5%
 codex_non_api_max_gpt-6-astra_10h_run2,9:48:22,98.1%
 codex_non_api_max_gpt-6-sol_10h_gpt6sol,9:26:19,94.4%
+codex_non_api_max_gpt-6.1-sol_10h_run1,9:52:58,98.8%
+codex_non_api_max_gpt-6.1-sol_10h_run2,9:52:46,98.8%
 codex_non_api_max_personal_gpt-6-sol_10h_gpt6sol,7:16:22,72.7%
 codex_non_api_xhigh_gpt-5.3-codex_10h_run1,1:36:43,16.1%
 codex_non_api_xhigh_gpt-5.5_10h_run1,6:32:26,65.4%
@@ -95,7 +97,6 @@ glmx_glm-5.3_1m__10h_run2,9:24:20,94.1%
 kimi_claude_k3-0715_1m__10h_run1,8:36:25,86.1%
 kimi_claude_k3-0715_1m__10h_run2,8:47:50,88.0%
 kimi_claude_k3-0715_1m__10h_run3,8:28:02,84.7%
-kimi_claude_kismet-0715_10h_older_runs,8:40:10,86.7%
 opencode_anthropic_claude-opus-4-5_10h,7:57:11,79.5%
 opencode_opencode_gemini-3-pro_10h,6:17:11,62.9%
 opencode_opencode_gemini-3.1-pro_10h_run1,4:45:44,47.6%
