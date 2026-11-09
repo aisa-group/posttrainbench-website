@@ -19,6 +19,8 @@ const chartAgentKeys = [
     "opus-5.5-max",
     "gpt-6-astra",
     "gpt-6.1-sol",
+    "gemini-4-argon",
+    "muse-wonder-xhigh",
     "glm-5.3-flash",
     "glm-5.3",
     "locus",
@@ -53,7 +55,8 @@ const chartAgentKeysByVersion = {
         "glm-5.3-flash",
         "glm-5.2",
         "opus-4.7",
-        "opus-4.8"
+        "opus-4.8",
+        "fable-5"
     ].includes(key))
 };
 
@@ -67,6 +70,8 @@ const timeChartAgentKeys = [
     "opus-5.5-max",
     "gpt-6-astra",
     "gpt-6.1-sol",
+    "gemini-4-argon",
+    "muse-wonder-xhigh",
     "glm-5.3-flash",
     "glm-5.3",
     "locus",
@@ -111,6 +116,8 @@ const allAgentKeys = [
     "opus-5.5-max",
     "gpt-6-astra",
     "gpt-6.1-sol",
+    "gemini-4-argon",
+    "muse-wonder-xhigh",
     "glm-5.3-flash",
     "glm-5.3",
     "locus",
@@ -172,6 +179,8 @@ const agentInfo = {
     "opus-4.5": { name: "Opus 4.5", description: "Claude Opus 4.5 agent", scaffold: "Claude Code" },
     "gemini-3-pro": { name: "Gemini 3 Pro", description: "Gemini 3 Pro agent", scaffold: "Gemini CLI" },
     "gemini-3.1-pro": { name: "Gemini 3.1 Pro", description: "Gemini 3.1 Pro agent", scaffold: "OpenCode" },
+    "gemini-4-argon": { name: "Gemini 4 Argon", description: "Gemini 4 Argon high reasoning agent", scaffold: "OpenCode", reasoningEffort: "High" },
+    "muse-wonder-xhigh": { name: "Muse Wonder", description: "Muse Wonder extra-high reasoning agent", scaffold: "OpenCode", reasoningEffort: "xHigh" },
     "sonnet-4.5": { name: "Sonnet 4.5", description: "Claude Sonnet 4.5 agent", scaffold: "Claude Code" },
     "sonnet-4.6": { name: "Sonnet 4.6", description: "Claude Sonnet 4.6 agent", scaffold: "Claude Code" },
     "glm-4.7": { name: "GLM 4.7", description: "GLM 4.7 agent", scaffold: "OpenCode" },

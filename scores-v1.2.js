@@ -870,6 +870,218 @@ window.SCORES_DATA_V12 = {
         }
       }
     },
+    "gemini-4-argon": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 6.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 48.77,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 28.39,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 79.38,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 36.24,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 69.82,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 16.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 70.96,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 36.01,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 91.66,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 45.64,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 86.28,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 13.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 71.99,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 27.86,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 86.54,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 40.27,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 63.11,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 0.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 70.45,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 30.92,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 75.63,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 41.63,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 50.91,
+          "fallbackType": false
+        }
+      }
+    },
+    "muse-wonder-xhigh": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 5.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 25.07,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 20.05,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 73.74,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 16.45,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 7.93,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 30.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 39.39,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 31.03,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 86.09,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 13.38,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 36.59,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 13.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 5.11,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 25.89,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 74.16,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 27.64,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 27.56,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 27.23,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 48.52,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 22.15,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 23.78,
+          "fallbackType": false
+        }
+      }
+    },
     "opus-5.5-max": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
@@ -2309,6 +2521,11 @@ window.SCORES_DATA_V12 = {
       "std": 1.68,
       "n": 3
     },
+    "gemini-4-argon": {
+      "avg": 40.44,
+      "std": 0.71,
+      "n": 2
+    },
     "grok-4.5-high": {
       "avg": 22.62,
       "std": 0.94,
@@ -2318,6 +2535,11 @@ window.SCORES_DATA_V12 = {
       "avg": 31.48,
       "std": 0.63,
       "n": 3
+    },
+    "muse-wonder-xhigh": {
+      "avg": 24.19,
+      "std": 1.14,
+      "n": 2
     },
     "opus-4.7": {
       "avg": 24.34,
@@ -2553,6 +2775,74 @@ window.SCORES_DATA_V12 = {
         "gsm8k": 2.13,
         "healthbench": 9.63,
         "humaneval": 40.1
+      }
+    },
+    "gemini-4-argon": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 2.83,
+        "arenahardwriting": 11.34,
+        "gpqamain": 1.42,
+        "gsm8k": 2.57,
+        "healthbench": 2.22,
+        "humaneval": 1.29
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 0.47,
+        "arenahardwriting": 6.48,
+        "gpqamain": 1.47,
+        "gsm8k": 0.64,
+        "healthbench": 3.71,
+        "humaneval": 3.02
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 5.66,
+        "arenahardwriting": 4.4,
+        "gpqamain": 2.58,
+        "gsm8k": 2.63,
+        "healthbench": 0.25,
+        "humaneval": 2.16
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 0.47,
+        "arenahardwriting": 7.56,
+        "gpqamain": 2.58,
+        "gsm8k": 3.91,
+        "healthbench": 4.97,
+        "humaneval": 2.16
+      }
+    },
+    "muse-wonder-xhigh": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 1.41,
+        "arenahardwriting": 34.16,
+        "gpqamain": 12.26,
+        "gsm8k": 11.72,
+        "healthbench": 12.61,
+        "humaneval": 0.0
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 13.2,
+        "arenahardwriting": 50.88,
+        "gpqamain": 1.26,
+        "gsm8k": 3.38,
+        "healthbench": 0.0,
+        "humaneval": 0.0
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 2.36,
+        "arenahardwriting": 1.22,
+        "gpqamain": 0.63,
+        "gsm8k": 13.96,
+        "healthbench": 0.0,
+        "humaneval": 30.47
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 0.0,
+        "arenahardwriting": 5.22,
+        "gpqamain": 1.47,
+        "gsm8k": 4.07,
+        "healthbench": 7.23,
+        "humaneval": 32.77
       }
     },
     "opus-5.5-max": {
@@ -3123,6 +3413,20 @@ window.SCORES_DATA_V12 = {
       "time": "9:52",
       "stdHours": 0.002,
       "stdTime": "0:00",
+      "n": 2
+    },
+    "gemini-4-argon": {
+      "hours": 8.893,
+      "time": "8:53",
+      "stdHours": 0.208,
+      "stdTime": "0:12",
+      "n": 2
+    },
+    "muse-wonder-xhigh": {
+      "hours": 7.909,
+      "time": "7:54",
+      "stdHours": 0.167,
+      "stdTime": "0:10",
       "n": 2
     },
     "locus": {
