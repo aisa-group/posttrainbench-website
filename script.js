@@ -1141,7 +1141,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
         }
         const words = d.agent.split(' ');
         const nameLines = [];
-        if (words.length >= 3) {
+        if (words.length >= 3 || (words.length === 2 && d.agent.length > 10)) {
             const midpoint = Math.ceil(words.length / 2);
             nameLines.push(
                 words.slice(0, midpoint).join(' '),

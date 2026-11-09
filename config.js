@@ -55,7 +55,8 @@ const chartAgentKeysByVersion = {
         "glm-5.3-flash",
         "glm-5.2",
         "opus-4.7",
-        "opus-4.8"
+        "opus-4.8",
+        "fable-5"
     ].includes(key))
 };
 
