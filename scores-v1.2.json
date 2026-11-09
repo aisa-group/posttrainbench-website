@@ -975,6 +975,112 @@
         }
       }
     },
+    "muse-wonder-xhigh": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 5.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 25.07,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 20.05,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 73.74,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 16.45,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 7.93,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 30.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 39.39,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 31.03,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 86.09,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 13.38,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 36.59,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 13.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 5.11,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 25.89,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 74.16,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 27.64,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 27.56,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 27.23,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 48.52,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 22.15,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 23.78,
+          "fallbackType": false
+        }
+      }
+    },
     "opus-5.5-max": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
@@ -2429,6 +2535,11 @@
       "std": 0.63,
       "n": 3
     },
+    "muse-wonder-xhigh": {
+      "avg": 24.19,
+      "std": 1.14,
+      "n": 2
+    },
     "opus-4.7": {
       "avg": 24.34,
       "std": 1.63,
@@ -2697,6 +2808,40 @@
         "gsm8k": 3.91,
         "healthbench": 4.97,
         "humaneval": 2.16
+      }
+    },
+    "muse-wonder-xhigh": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 1.41,
+        "arenahardwriting": 34.16,
+        "gpqamain": 12.26,
+        "gsm8k": 11.72,
+        "healthbench": 12.61,
+        "humaneval": 0.0
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 13.2,
+        "arenahardwriting": 50.88,
+        "gpqamain": 1.26,
+        "gsm8k": 3.38,
+        "healthbench": 0.0,
+        "humaneval": 0.0
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 2.36,
+        "arenahardwriting": 1.22,
+        "gpqamain": 0.63,
+        "gsm8k": 13.96,
+        "healthbench": 0.0,
+        "humaneval": 30.47
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 0.0,
+        "arenahardwriting": 5.22,
+        "gpqamain": 1.47,
+        "gsm8k": 4.07,
+        "healthbench": 7.23,
+        "humaneval": 32.77
       }
     },
     "opus-5.5-max": {
@@ -3274,6 +3419,13 @@
       "time": "8:53",
       "stdHours": 0.208,
       "stdTime": "0:12",
+      "n": 2
+    },
+    "muse-wonder-xhigh": {
+      "hours": 7.909,
+      "time": "7:54",
+      "stdHours": 0.167,
+      "stdTime": "0:10",
       "n": 2
     },
     "locus": {

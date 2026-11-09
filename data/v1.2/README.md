@@ -15,7 +15,7 @@ The directory also contains:
   single-run entries
 
 The v1.2 roster is the complete v1.1 roster plus Fable 5.1, Gemini 4 Argon,
-GLM 5.3, GLM 5.3 Flash, GPT-6 Astra, GPT-6.1 Sol, and Opus 5.5. Locus is recomputed
+GLM 5.3, GLM 5.3 Flash, GPT-6 Astra, GPT-6.1 Sol, Muse Wonder, and Opus 5.5. Locus is recomputed
 from Intology's three original seed files after removing BFCL; its mean
 runtime remains the submitted 9:38:12 across 84 runs. Its summary rows live
 in `external/intology-locus/` so that re-exported aggregate files cannot
