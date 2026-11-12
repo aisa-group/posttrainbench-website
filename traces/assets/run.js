@@ -1581,11 +1581,7 @@ function renderWorkspace() {
   };
 
   if (!window.matchMedia('(max-width: 900px)').matches && files.length) {
-    const preferredNames = ['metrics_final.json', 'metrics.json', 'README.md'];
-    const preferred = preferredNames
-      .map(name => files.find(file => file.inlined && file.path.split('/').pop() === name))
-      .find(Boolean);
-    const initial = preferred || files.find(file => file.inlined) || files[0];
+    const initial = initialWorkspaceFile(files);
     const row = [...els.wsTree.querySelectorAll('.ws-file')]
       .find(item => item.dataset.path === initial.path);
     row?.classList.add('active');
@@ -1612,6 +1608,41 @@ function renderWorkspaceOmitted(omitted) {
     <summary>${summary}</summary>
     ${stopped}${cut}
   </details>`;
+}
+
+// Files the harness puts in task/ (or leaves there), not the agent's work.
+const HARNESS_FILES = new Set([
+  'evaluate.py', 'timer.sh', 'system_monitor.log',
+  'contamination_judgement.txt', 'disallowed_model_judgement.txt',
+]);
+
+// The file shown when the tab opens: a README or metrics file if there is
+// one, else the agent's shallowest non-empty script, else any text file.
+function initialWorkspaceFile(files) {
+  const name = f => f.path.split('/').pop();
+  const readable = files.filter(f => f.inlined && f.size > 0 && !HARNESS_FILES.has(name(f)));
+  for (const preferred of ['README.md', 'metrics_final.json', 'metrics.json']) {
+    const hit = readable.find(f => name(f) === preferred);
+    if (hit) return hit;
+  }
+  const depth = f => f.path.split('/').length;
+  const isScript = f => /\.(py|sh|md)$/i.test(f.path);
+  const ranked = readable.slice().sort((a, b) =>
+    (isScript(b) - isScript(a)) || (depth(a) - depth(b)) || a.path.localeCompare(b.path));
+  return ranked[0] || files.find(f => f.inlined) || files[0];
+}
+
+// Plain-language reason a file is listed without its contents
+// (build.py walk_workspace's skipped_reason).
+function skipReasonText(file) {
+  switch (file.skipped_reason) {
+    case 'binary_ext':
+    case 'binary_content':  return 'Binary file, contents not shown.';
+    case 'too_large':       return 'Too large to show here (over 256 KB). It is in the run files on Hugging Face.';
+    case 'budget_exhausted': return 'Not shown: this run already shows 4 MB of files. It is in the run files on Hugging Face.';
+    case 'read_error':      return 'This file could not be read.';
+    default:                return 'Contents not shown.';
+  }
 }
 
 function buildWorkspaceTree(files) {
@@ -1655,7 +1686,7 @@ function renderWorkspaceBranch(node, depth = 0) {
 
   const fileHtml = files.map(({ file, name }) => {
     const skipped = !file.inlined;
-    const reason = file.skipped_reason || (skipped ? 'Not available for preview' : 'Open file');
+    const reason = skipped ? skipReasonText(file) : 'Open file';
     return `<button type="button" class="ws-file ${skipped ? 'skipped' : ''}"
       data-path="${escapeHtml(file.path)}" title="${escapeHtml(reason)}">
       <span class="ws-file-main">
@@ -1686,7 +1717,9 @@ function showWorkspaceFile(f, { scroll = true } = {}) {
     <span class="ws-file-meta">${fmtBytes(f.size)}</span>
   </div>`;
   if (!f.inlined) {
-    els.wsFileContent.innerHTML = `${header}<p class="muted">Not inlined: ${escapeHtml(f.skipped_reason || 'file is too large to preview')}</p>`;
+    els.wsFileContent.innerHTML = `${header}<p class="muted ws-file-note">${escapeHtml(skipReasonText(f))}</p>`;
+  } else if (!f.text) {
+    els.wsFileContent.innerHTML = `${header}<p class="muted ws-file-note">This file is empty.</p>`;
   } else {
     const lang = guessLang(f.path);
     // Render with highlight.js if it's loaded and we recognize the language.

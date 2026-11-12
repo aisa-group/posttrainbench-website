@@ -3016,7 +3016,7 @@ a.run-version:hover { color: var(--text-primary); text-decoration: underline; te
 /* ---------- Workspace ---------------------------------------------- */
 .workspace-layout {
   display: grid;
-  grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -3044,20 +3044,38 @@ a.run-version:hover { color: var(--text-primary); text-decoration: underline; te
   grid-template-columns: auto minmax(0, 1fr) auto;
   margin-bottom: 0.15rem;
 }
-/* Folders the extract cut to their first entries (task_omitted.json). */
+/* Long folder names end in an ellipsis instead of running into the count. */
+.ws-folder-name,
+.ws-root-label > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Folders the extract cut to their first entries (task_omitted.json): a
+   quiet note above the tree, opened for the list. */
 .ws-omitted {
-  margin: 0 0 0.5rem;
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--tag-border);
-  border-radius: var(--radius-md);
-  background: var(--tag-bg);
+  margin: 0 0 0.45rem;
+  padding: 0 0.35rem 0.45rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 .ws-omitted > summary {
   cursor: pointer;
-  color: var(--tag-color);
-  font-weight: 500;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.6rem;
 }
-.ws-omitted p { margin: 0.35rem 0; }
+.ws-omitted > summary::-webkit-details-marker { display: none; }
+.ws-omitted > summary::before {
+  content: '›';
+  transition: transform 150ms var(--ease-out);
+}
+.ws-omitted[open] > summary::before { transform: rotate(90deg); }
+.ws-omitted > summary:hover { color: var(--text-primary); }
+.ws-omitted p { margin: 0.2rem 0 0.35rem; }
 .ws-omitted ul {
   margin: 0;
   padding-left: 1rem;
@@ -3066,7 +3084,7 @@ a.run-version:hover { color: var(--text-primary); text-decoration: underline; te
   overflow-wrap: anywhere;
   margin: 0.15rem 0;
 }
-.ws-omitted code { font-family: var(--font-mono); }
+.ws-omitted code { font-family: var(--font-mono); color: var(--text-primary); }
 #ws-tree .ws-folder > summary {
   cursor: pointer;
   list-style: none;
@@ -3105,6 +3123,7 @@ a.run-version:hover { color: var(--text-primary); text-decoration: underline; te
   font-size: 0.64rem;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .ws-branch {
   margin-left: 0.72rem;
@@ -3137,7 +3156,14 @@ a.run-version:hover { color: var(--text-primary); text-decoration: underline; te
 }
 #ws-tree .ws-file.skipped { color: var(--text-secondary); opacity: 0.6; cursor: pointer; }
 #ws-tree .ws-file.skipped:hover { background-color: var(--bg-tertiary); color: var(--text-secondary); }
-#ws-tree .ws-file .size { color: var(--text-secondary); font-size: 0.68rem; opacity: 0.7; }
+#ws-tree .ws-file .size {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  opacity: 0.7;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 .ws-file-main {
   display: flex;
   align-items: center;
@@ -3203,6 +3229,7 @@ a.run-version:hover { color: var(--text-primary); text-decoration: underline; te
   font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
 }
+.ws-file-note { margin: 0; font-size: 0.8rem; }
 
 /* Code surface — uses the existing bg-tertiary palette token so it's a
    slightly darker warm surface than the workspace card (which sits on
