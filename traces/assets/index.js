@@ -687,7 +687,7 @@ function runIdentityCell(r, mode, href) {
 }
 
 const V12_TIP =
-  'Counts toward the v1.2 leaderboard: scored as the mean over seeds, ' +
+  'Counts toward the v1.2 leaderboard: scored as the mean of several evaluations, ' +
   'contamination decided by a majority of three judge runs.';
 
 function agentCell(r) {
@@ -754,9 +754,7 @@ function accCell(r, accMax) {
 // How the score was computed: v1.2 reruns average several seeds; older runs
 // have their single original evaluation.
 function seedsText(r) {
-  const exact = r.score_source === 'rerun_exact_match' ? ', exact numeric match' : '';
-  if (r.num_seeds > 1) return `mean of ${r.num_seeds} seeds${exact}`;
-  return `single evaluation${exact}`;
+  return r.num_seeds > 1 ? `mean of ${r.num_seeds} evaluations` : 'single evaluation';
 }
 
 function durationCell(r) {

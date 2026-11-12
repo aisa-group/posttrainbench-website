@@ -104,6 +104,8 @@
           <div class="score-bar" id="score-bar" aria-hidden="true">
             <div class="score-bar-fill" id="score-bar-fill"></div>
           </div>
+          <!-- One dot per evaluation seed, on the bar's 0–100% scale. -->
+          <div class="seed-strip" id="seed-strip" hidden></div>
           <div class="score-sub" id="score-sub"></div>
         </div>
 
@@ -226,7 +228,7 @@
 
       <section id="section-judge" class="section">
         <header class="section-header">
-          <p class="muted section-desc">The judges review the run and final workspace across four axes: data contamination, model integrity, disallowed third-party LLM/API usage, and PostTrainBench lookup. Since v1.2, contamination and model integrity are decided by a majority of three judge runs. Open a judge trace to inspect its reasoning.</p>
+          <p class="muted section-desc">AI judges review the run and its final workspace for data contamination, disallowed model use, disallowed third-party LLM/API usage, and lookups of PostTrainBench itself. <span id="judge-version-note"></span></p>
         </header>
         <div id="judge-verdicts"></div>
         <div id="judge"></div>

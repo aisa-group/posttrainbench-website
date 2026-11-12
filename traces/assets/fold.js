@@ -1,12 +1,12 @@
 // Expand/collapse cue for the viewer's main disclosures (run-list groups,
-// judge verdicts, the judge trace), matching the foldables on the main site.
+// judge verdicts), matching the foldables on the main site.
 // The body fades and settles 4px on open (180ms) and fades out faster on
 // close (140ms); the <details> stays open until the exit finishes. Clicks
 // reverse from the live state, keyboard and reduced motion toggle instantly.
 // Frequent, fine-grained toggles (tool calls, thoughts, workspace folders)
 // stay instant on purpose.
 (function () {
-  const SELECTOR = 'details.exp-group, details.verdict-item, details.judge-details';
+  const SELECTOR = 'details.exp-group, details.verdict-item';
   const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
