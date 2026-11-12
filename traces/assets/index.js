@@ -703,7 +703,7 @@ function agentCell(r) {
     ? `<span class="agent-harness">${escapeHtml(harness)}</span>`
     : '';
   const versionHtml = r.v12
-    ? `<span class="agent-tag version-tag" data-tip="${escapeHtml(V12_TIP)}">v1.2</span>`
+    ? `<span class="agent-version" data-tip="${escapeHtml(V12_TIP)}">v1.2</span>`
     : '';
   const metadata = [configHtml, harnessHtml, versionHtml].filter(Boolean)
     .join('<span class="agent-meta-separator">·</span>');

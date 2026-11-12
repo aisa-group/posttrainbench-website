@@ -244,7 +244,6 @@ function renderSummary() {
     experiment: m.experiment,
   }) || '-';
   els.summaryTitle.textContent = agentName;
-  els.summaryTitle.insertAdjacentHTML('beforeend', ' ' + versionTagHtml(ix));
   const subBits = [];
   if (m.benchmark) {
     const note = benchmarkNote(m.benchmark);
@@ -252,7 +251,10 @@ function renderSummary() {
   }
   if (m.trained_model) subBits.push(prettyTrainedModel(m.trained_model));
   if (m.seed) subBits.push('seed ' + m.seed);
-  els.summarySub.textContent = subBits.join(' · ');
+  // The version stays on one line with the last bit, so it never wraps alone.
+  const last = subBits.pop();
+  const tail = `<span class="nowrap">${last ? escapeHtml(last) + ' · ' : ''}${versionHtml(ix)}</span>`;
+  els.summarySub.innerHTML = [...subBits.map(escapeHtml), tail].join(' · ');
 
   // Run ID with copy button
   els.runIdText.textContent = m.run_id;
@@ -392,11 +394,11 @@ function renderSeedStrip() {
   els.seedStrip.hidden = false;
 }
 
-// Tag next to the agent name: whether the run counts toward v1.2.
-function versionTagHtml(ix) {
+// End of the subtitle line: whether the run counts toward v1.2.
+function versionHtml(ix) {
   return ix.v12
-    ? `<a class="run-version-tag" href="../blog/posttrainbench-1-2/" data-tip="${escapeHtml(V12_TIP)}">v1.2</a>`
-    : `<span class="run-version-tag legacy" data-tip="${escapeHtml(PRE_V12_TIP)}">pre-v1.2</span>`;
+    ? `<a class="run-version" href="../blog/posttrainbench-1-2/" data-tip="${escapeHtml(V12_TIP)}">v1.2</a>`
+    : `<span class="run-version" data-tip="${escapeHtml(PRE_V12_TIP)}">pre-v1.2</span>`;
 }
 
 const V12_TIP =
