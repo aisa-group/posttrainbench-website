@@ -7,6 +7,7 @@
     model: '',
     agent: '',
     experiment: '',
+    version: '',
     q: '',
     group: 'task',
     sort: 'accuracy-desc',
@@ -55,6 +56,7 @@
       model: params.get('model') || '',
       agent: params.get('agent') || '',
       experiment: params.get('experiment') || '',
+      version: params.get('version') === 'v1.2' ? 'v1.2' : '',
       q: params.get('q') || '',
       group,
       sort,
@@ -134,9 +136,12 @@
     value = value.replace(/^kismet-\d+$/i,                             'Kimi K3');
     value = value.replace(/^kimi-k([\d.]+)(-thinking)?$/i,
                           (_, ver, th) => `Kimi K${ver}${th ? ' Thinking' : ''}`);
-    value = value.replace(/^glm-([\d.]+)(?:-free|-preview)?$/i,        (_, ver) => `GLM ${ver}`);
+    value = value.replace(/^glm-([\d.]+)(-flash)?(?:-free|-preview)?$/i,
+                          (_, ver, flash) => `GLM ${ver}${flash ? ' Flash' : ''}`);
     value = value.replace(/^minimax-m([\d.]+)(?:-free)?$/i,            (_, ver) => `MiniMax M${ver}`);
     value = value.replace(/^qwen3-max(?:-\d{4}-\d{2}-\d{2})?$/i,       'Qwen3 Max');
+    value = value.replace(/^meta\/muse-wonder(?::(\w+))?$/i,
+                          (_, variant) => `Muse Wonder${variant ? ` (${variant})` : ''}`);
     // Match both kebab (from experiment names) and "Cursor Grok 4.5 High"
     // (spaced title-case, what Cursor CLI itself reports).
     value = value.replace(/^(?:cursor[\s-])?grok[\s-]4\.5(?:[\s-]high)?$/i, 'Grok 4.5');
@@ -159,6 +164,9 @@
       if (state.benchmark && run.benchmark !== state.benchmark) return false;
       if (state.model && run.trained_model !== state.model) return false;
       if (state.agent && run.agent_model !== state.agent) return false;
+      // v1.2: runs of the experiments behind the v1.2 leaderboard (build.py
+      // V12_EXPERIMENTS).
+      if (state.version === 'v1.2' && !run.v12) return false;
       if (!query) return true;
       const haystack = [
         run.run_id, run.experiment, run.benchmark, run.trained_model,

@@ -1984,6 +1984,12 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   color: var(--accent-text);
   white-space: nowrap;
 }
+/* Marks runs of the v1.2 leaderboard experiments. */
+.version-tag {
+  padding: 0 0.3rem;
+  border: 1px solid color-mix(in srgb, var(--accent-text) 40%, transparent);
+  border-radius: var(--radius-sm);
+}
 
 /* ---------- Accuracy cell (inline bar + number) ---------------------- */
 .acc-cell {
@@ -3010,6 +3016,29 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   grid-template-columns: auto minmax(0, 1fr) auto;
   margin-bottom: 0.15rem;
 }
+/* Folders the extract cut to their first entries (task_omitted.json). */
+.ws-omitted {
+  margin: 0 0 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--tag-border);
+  border-radius: var(--radius-md);
+  background: var(--tag-bg);
+}
+.ws-omitted > summary {
+  cursor: pointer;
+  color: var(--tag-color);
+  font-weight: 500;
+}
+.ws-omitted p { margin: 0.35rem 0; }
+.ws-omitted ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+.ws-omitted li {
+  overflow-wrap: anywhere;
+  margin: 0.15rem 0;
+}
+.ws-omitted code { font-family: var(--font-mono); }
 #ws-tree .ws-folder > summary {
   cursor: pointer;
   list-style: none;
@@ -3338,9 +3367,10 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   line-height: 1.6;
 }
 
-/* Version badge sits above the two verdict cards. v1.0 is the pre-2026-07
-   free-text judge; v1.1 is the current (rule-4 + failure-mode-language)
-   prompt. Legacy gets a warm accent so readers know they're looking at an
+/* Version badge sits above the verdict cards. v1.2 (current) is the
+   majority of three judge runs; v1.1 a single run of the rule-4 +
+   failure-mode-language prompt; v1.0 the pre-2026-07 free-text judge.
+   Older versions get a warm accent so readers know they're looking at an
    older verdict; current stays quiet. */
 .verdict-version {
   display: inline-block;
@@ -3368,7 +3398,79 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   border: 1px solid rgba(151, 85, 58, 0.35);
 }
 
+/* Per-seed scores in the run details (v1.2 multi-seed evaluation). */
+.seed-list { display: inline-flex; flex-direction: column; align-items: flex-end; }
+.seed-row { display: inline-flex; gap: 0.6rem; }
+.seed-id { color: var(--text-secondary); }
+
+/* Each judge's vote under a majority-decided verdict (v1.2). */
+.verdict-votes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+  max-width: 84ch;
+}
+.verdict-vote {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+.verdict-vote > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.4rem 0.65rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.76rem;
+}
+.verdict-vote > summary::-webkit-details-marker { display: none; }
+.verdict-vote > summary:hover { background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent); }
+.verdict-vote-label { font-weight: 600; color: var(--text-primary); }
+.verdict-vote-state {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.verdict-vote.good .verdict-vote-state { color: var(--session-2); }
+.verdict-vote.bad .verdict-vote-state { color: var(--session-4); }
+.verdict-vote-body {
+  border-top: 1px solid var(--border-color);
+  padding: 0.55rem 0.75rem 0.7rem;
+  font-size: 0.84rem;
+}
+
 /* ---------- Judge -------------------------------------------------- */
+/* Picker between the run's judge traces (three contamination judges, API
+   usage, PostTrainBench lookup). */
+.judge-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+.judge-pick {
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.judge-pick:hover { color: var(--text-primary); }
+.judge-pick[aria-pressed="true"] {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent-text) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-secondary));
+}
+.judge-pick:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-primary) 55%, transparent);
+  outline-offset: 2px;
+}
 /* Items render via the same trace renderer (renderCodexItem). We just
    space them out — no card chrome or left border, so the focus stays on
    the inner content (terminal commands, thoughts, todos). */

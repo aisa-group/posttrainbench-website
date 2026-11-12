@@ -17,6 +17,7 @@ const els = {
   benchFilter: document.getElementById('benchmark-filter'),
   modelFilter: document.getElementById('trained-model-filter'),
   agentFilter: document.getElementById('agent-filter'),
+  versionFilter: document.getElementById('version-filter'),
   groupBy: document.getElementById('group-by'),
   sort: document.getElementById('sort'),
   runs: document.getElementById('runs'),
@@ -405,6 +406,7 @@ function stateFromControls() {
     model: els.modelFilter.value,
     agent: els.agentFilter.value,
     experiment: '',
+    version: els.versionFilter.value,
     q: els.q.value.trim(),
     group: els.groupBy.value,
     sort: els.sort.value,
@@ -418,11 +420,12 @@ function applyUrlState() {
   els.benchFilter.value = state.benchmark;
   els.modelFilter.value = state.model;
   els.agentFilter.value = state.agent;
+  els.versionFilter.value = state.version;
   els.q.value = state.q;
   els.groupBy.value = state.group;
   els.sort.value = state.sort;
   OPEN_GROUP_KEY = state.open;
-  [els.benchFilter, els.modelFilter, els.agentFilter, els.groupBy, els.sort]
+  [els.benchFilter, els.modelFilter, els.agentFilter, els.versionFilter, els.groupBy, els.sort]
     .forEach(select => select.dispatchEvent(new Event('change', { bubbles: true })));
   APPLYING_URL_STATE = false;
 }
@@ -449,7 +452,8 @@ function render() {
   const total = DATA.runs.length;
   const filtered = rows.length;
   const anyFilter = els.q.value || els.benchFilter.value
-                    || els.modelFilter.value || els.agentFilter.value;
+                    || els.modelFilter.value || els.agentFilter.value
+                    || els.versionFilter.value;
   els.resultCount.textContent = anyFilter
     ? `${filtered.toLocaleString()} of ${total.toLocaleString()} runs`
     : '';
@@ -682,6 +686,10 @@ function runIdentityCell(r, mode, href) {
   </div>`;
 }
 
+const V12_TIP =
+  'Counts toward the v1.2 leaderboard: scored as the mean over seeds, ' +
+  'contamination decided by a majority of three judge runs.';
+
 function agentCell(r) {
   if (!r.agent_model) return '<span class="muted">-</span>';
   const pretty = prettyAgentForRun(r);
@@ -694,7 +702,10 @@ function agentCell(r) {
   const harnessHtml = harness
     ? `<span class="agent-harness">${escapeHtml(harness)}</span>`
     : '';
-  const metadata = [configHtml, harnessHtml].filter(Boolean)
+  const versionHtml = r.v12
+    ? `<span class="agent-tag version-tag" data-tip="${escapeHtml(V12_TIP)}">v1.2</span>`
+    : '';
+  const metadata = [configHtml, harnessHtml, versionHtml].filter(Boolean)
     .join('<span class="agent-meta-separator">·</span>');
   return `<span class="agent-cell">
     <span class="agent-name">${escapeHtml(name)}</span>
@@ -736,8 +747,16 @@ function accCell(r, accMax) {
   const stderr = r.stderr != null ? `<span class="acc-err">±${(r.stderr * 100).toFixed(1)}</span>` : '';
   return `<div class="acc-cell">
     <div class="acc-bar" aria-hidden="true"><div class="acc-fill" style="width:${w.toFixed(1)}%"></div></div>
-    <span class="acc-num">${pct}%</span>${stderr}
+    <span class="acc-num" data-tip="${escapeHtml(seedsText(r))}">${pct}%</span>${stderr}
   </div>`;
+}
+
+// How the score was computed: v1.2 reruns average several seeds; older runs
+// have their single original evaluation.
+function seedsText(r) {
+  const exact = r.score_source === 'rerun_exact_match' ? ', exact numeric match' : '';
+  if (r.num_seeds > 1) return `mean of ${r.num_seeds} seeds${exact}`;
+  return `single evaluation${exact}`;
 }
 
 function durationCell(r) {
@@ -830,7 +849,8 @@ function clearFilters() {
   els.benchFilter.value = '';
   els.modelFilter.value = '';
   els.agentFilter.value = '';
-  [els.benchFilter, els.modelFilter, els.agentFilter]
+  els.versionFilter.value = '';
+  [els.benchFilter, els.modelFilter, els.agentFilter, els.versionFilter]
     .forEach(s => s.dispatchEvent(new Event('change', { bubbles: true })));
   APPLYING_URL_STATE = false;
   OPEN_GROUP_KEY = '';
@@ -839,7 +859,7 @@ function clearFilters() {
 }
 
 [els.q, els.benchFilter, els.modelFilter,
- els.agentFilter, els.groupBy, els.sort]
+ els.agentFilter, els.versionFilter, els.groupBy, els.sort]
   .forEach(el => el.addEventListener('input', handleControlInput));
 els.resetFilters.addEventListener('click', clearFilters);
 els.emptyReset.addEventListener('click', clearFilters);
@@ -974,7 +994,7 @@ function makeCustomSelect(selectEl) {
   syncTrigger();
 }
 
-[els.benchFilter, els.modelFilter, els.agentFilter,
+[els.benchFilter, els.modelFilter, els.agentFilter, els.versionFilter,
  els.groupBy, els.sort].forEach(makeCustomSelect);
 
 els.q.addEventListener('change', () => {

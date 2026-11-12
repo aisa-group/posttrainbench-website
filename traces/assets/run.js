@@ -69,6 +69,7 @@ const els = {
 let RECORD = null;
 let WORKSPACE = null;
 let WORKSPACE_LOADED = false;
+let JUDGE_LOADED = false;
 let RAIL_CHARTS = [];           // Chart instances pinned to the right rail
 let MODAL_CHARTS = [];          // Chart instances inside the show-all modal
 let MODAL_CLOSE_TIMER = null;
@@ -261,6 +262,7 @@ function renderSummary() {
     // what it is. Just show statistical context.
     const sub = [];
     if (ix.stderr != null) sub.push('± ' + (ix.stderr * 100).toFixed(2));
+    sub.push(ix.num_seeds > 1 ? `mean of ${ix.num_seeds} seeds` : 'single evaluation');
     if (RECORD.metrics?.n_examples) sub.push(RECORD.metrics.n_examples + ' samples');
     els.scoreSub.textContent = sub.join(' · ');
     // Bar is sized to the absolute 0–100% scale; gives instant visual
@@ -307,6 +309,7 @@ function renderSummary() {
     ['sessions',    escapeHtml(String(ix.session_count ?? '-'))],
     ['cost',        costHtml],
   );
+  stats.push(...scoreStats(ix));
   els.summaryStats.innerHTML = stats.map(([k, v]) =>
     `<dt>${k}</dt><dd>${v}</dd>`).join('');
 
@@ -351,6 +354,40 @@ function renderSummary() {
     els.linkRaw.innerHTML = `${downloadIcon}<span>Download trace</span>`;
   }
 }
+
+// Run-details rows about how the score was computed (v1.2: mean over seeds
+// of a final-eval rerun) and whether the run counts toward v1.2.
+function scoreStats(ix) {
+  const rows = [];
+  const score = RECORD.score || {};
+  const perSeed = score.seeds?.per_seed || [];
+  if (perSeed.length > 1) {
+    const list = perSeed
+      .map(s => `<span class="seed-row"><span class="seed-id">${escapeHtml(s.seed)}</span>${s.accuracy != null ? (s.accuracy * 100).toFixed(1) + '%' : '-'}</span>`)
+      .join('');
+    rows.push(['seeds', `<span class="seed-list">${list}</span>`]);
+  }
+  if (score.source === 'rerun_exact_match') {
+    rows.push(['grading', `<span data-tip="${escapeHtml(EXACT_MATCH_TIP)}">exact numeric match</span>`]);
+  }
+  if (score.source && score.source !== 'original' && score.original_accuracy != null) {
+    rows.push(['original eval', `<span data-tip="${escapeHtml(ORIGINAL_EVAL_TIP)}">${(score.original_accuracy * 100).toFixed(1)}%</span>`]);
+  }
+  rows.push(['version', ix.v12
+    ? `<a href="../blog/posttrainbench-1-2/" data-tip="${escapeHtml(V12_TIP)}">v1.2</a>`
+    : `<span data-tip="${escapeHtml(PRE_V12_TIP)}">before v1.2</span>`]);
+  return rows;
+}
+
+const EXACT_MATCH_TIP =
+  'The final answer must equal the target as a number, not just end with it.';
+const ORIGINAL_EVAL_TIP =
+  "The run's own single evaluation, before the v1.2 multi-seed rerun that gives its score.";
+const V12_TIP =
+  'Counts toward the v1.2 leaderboard: scored as the mean over seeds, ' +
+  'contamination decided by a majority of three judge runs.';
+const PRE_V12_TIP =
+  'Not part of the v1.2 leaderboard runs. Its score and verdicts come from an earlier benchmark version.';
 
 function safeReturnUrl() {
   const value = params.get('return');
@@ -1240,31 +1277,122 @@ function renderMiniTokens() {
 
 function renderJudge() {
   renderJudgeVerdicts();
-  if (!RECORD.judge || !RECORD.judge.events || !RECORD.judge.events.length) {
+  // Records built before v1.2 embed the contamination judge trace; newer
+  // ones list their traces and keep them in <run_id>.judge.json, loaded
+  // when the Judge tab opens (loadJudgeTraces).
+  if (RECORD.judge) {
+    JUDGE_LOADED = true;
+    renderJudgeTraces([{ key: 'contamination_1', label: 'Contamination judge', events: RECORD.judge.events || [] }]);
+  } else if (!(RECORD.judge_traces || []).length) {
+    JUDGE_LOADED = true;
     els.judge.innerHTML = '<p class="muted">No detailed judge report is available for this run.</p>';
-    return;
   }
-  // Re-use the trace renderer's codex-item path so the judge gets exactly
-  // the same terminal-style command panels, italicized "Thought" blocks,
-  // todo lists, etc. as the main trace.
-  const items = [];
-  for (const e of RECORD.judge.events) {
-    if (e.type !== 'codex_item' || e.phase !== 'completed') continue;
-    const html = renderCodexItem(e.item || {}, /*expandResults*/ false);
-    if (html) items.push(`<div class="judge-item">${html}</div>`);
+}
+
+async function loadJudgeTraces() {
+  if (JUDGE_LOADED) return;
+  JUDGE_LOADED = true;
+  els.judge.innerHTML = '<p class="muted">Loading judge traces…</p>';
+  try {
+    const data = await fetchJsonWithTimeout(`${DATA_BASE}${encodeURIComponent(RUN_ID)}.judge.json`);
+    if (!data || !Array.isArray(data.traces)) {
+      throw new Error('The judge data has an invalid format.');
+    }
+    renderJudgeTraces(data.traces);
+  } catch (error) {
+    console.error(`Failed to load judge traces for ${RUN_ID}:`, error);
+    if (error.status === 404) {
+      els.judge.innerHTML = '<p class="muted">No detailed judge report is available for this run.</p>';
+      return;
+    }
+    // Transient failure: allow a retry in place, as for the workspace.
+    JUDGE_LOADED = false;
+    const message = error.code === 'ETIMEDOUT'
+      ? 'The judge trace request timed out.'
+      : 'Could not load the judge traces.';
+    els.judge.innerHTML = `<p class="muted">${message}</p><button type="button" class="btn btn-secondary btn-small">Retry</button>`;
+    els.judge.querySelector('button')?.addEventListener('click', loadJudgeTraces, { once: true });
   }
-  if (!items.length) {
+}
+
+// Render one judge trace at a time, with a picker when there are several
+// (three contamination judges, API usage, PostTrainBench lookup). Re-use
+// the trace renderer's codex-item path so the judge gets exactly the same
+// terminal-style command panels, italicized "Thought" blocks, todo lists,
+// etc. as the main trace.
+function renderJudgeTraces(traces) {
+  const usable = traces.filter(t => (t.events || []).some(isJudgeItem));
+  if (!usable.length) {
     els.judge.innerHTML = '<p class="muted">No renderable judge trace items.</p>';
     return;
   }
-  els.judge.innerHTML = `<details class="judge-details">
-    <summary>View judge trace <span>· ${items.length.toLocaleString()} item${items.length === 1 ? '' : 's'}</span></summary>
-    <div class="judge-stream">${items.join('')}</div>
+  const picker = usable.length > 1
+    ? `<div class="judge-picker" role="group" aria-label="Judge trace">${usable.map((t, i) =>
+        `<button type="button" class="judge-pick" data-index="${i}" aria-pressed="${i === 0}">${escapeHtml(t.label)}</button>`).join('')}</div>`
+    : '';
+  els.judge.innerHTML = `${picker}<details class="judge-details">
+    <summary>View judge trace <span></span></summary>
+    <div class="judge-stream"></div>
   </details>`;
+  const count = els.judge.querySelector('.judge-details > summary span');
+  const stream = els.judge.querySelector('.judge-stream');
+  const cache = new Map();
+  const show = index => {
+    if (!cache.has(index)) {
+      cache.set(index, usable[index].events.filter(isJudgeItem)
+        .map(e => renderCodexItem(e.item || {}, /*expandResults*/ false))
+        .filter(Boolean)
+        .map(html => `<div class="judge-item">${html}</div>`));
+    }
+    const items = cache.get(index);
+    const label = usable.length > 1 ? ` · ${usable[index].label}` : '';
+    count.textContent = `${label} · ${items.length.toLocaleString()} item${items.length === 1 ? '' : 's'}`;
+    stream.innerHTML = items.join('');
+    els.judge.querySelectorAll('.judge-pick').forEach(btn =>
+      btn.setAttribute('aria-pressed', String(Number(btn.dataset.index) === index)));
+  };
+  els.judge.querySelector('.judge-picker')?.addEventListener('click', e => {
+    const btn = e.target.closest('.judge-pick');
+    if (btn) show(Number(btn.dataset.index));
+  });
+  show(0);
+}
+
+function isJudgeItem(e) {
+  return e.type === 'codex_item' && e.phase === 'completed';
 }
 
 function renderJudgeMarkdown(text) {
   return renderMarkdown(text);
+}
+
+const JUDGE_VERSIONS = {
+  'v1.2': {
+    href: '../blog/posttrainbench-1-2/#judging',
+    tip: 'Judged under v1.2: contamination and disallowed model use are decided by a majority of three judge runs.',
+  },
+  'v1.1': {
+    href: '../blog/posttrainbench-1-1/',
+    tip: 'Judged under v1.1: a single run of the contamination judge.',
+  },
+  'v1.0': {
+    href: '../',
+    tip: 'Judged under v1.0, the judge setting before the v1.1 revamp.',
+  },
+};
+
+// Each judge's vote on a majority-decided axis (v1.2).
+function renderVerdictVotes(votes) {
+  if (!Array.isArray(votes) || !votes.length) return '';
+  const items = votes.map(vote => {
+    const state = vote.flagged ? 'Flagged' : 'Clean';
+    const text = vote.justification || (vote.flagged ? 'flagged (no justification given)' : 'clean');
+    return `<details class="verdict-vote ${vote.flagged ? 'bad' : 'good'}">
+      <summary><span class="verdict-vote-label">Judge ${escapeHtml(String(vote.slot))}</span><span class="verdict-vote-state">${state}</span></summary>
+      <div class="verdict-vote-body markdown-body">${renderJudgeMarkdown(text)}</div>
+    </details>`;
+  });
+  return `<div class="verdict-votes">${items.join('')}</div>`;
 }
 
 function renderJudgeVerdicts() {
@@ -1293,6 +1421,7 @@ function renderJudgeVerdicts() {
     else if (v.justification) text = v.justification;
     else text = flagged ? 'flagged (no justification given)' : 'clean';
     const state = pending ? 'Pending' : (flagged ? 'Flagged' : 'Clean');
+    const votes = renderVerdictVotes(v?.votes);
     verdicts.push(`<details class="verdict-item ${cls}"${flagged ? ' open' : ''}>
       <summary>
         <span class="verdict-icon" aria-hidden="true">${icon}</span>
@@ -1300,22 +1429,19 @@ function renderJudgeVerdicts() {
         <span class="verdict-state">${state}</span>
         <span class="verdict-caret" aria-hidden="true">›</span>
       </summary>
-      <div class="verdict-item-body"><div class="verdict-item-copy markdown-body">${renderJudgeMarkdown(text)}</div></div>
+      <div class="verdict-item-body"><div class="verdict-item-copy markdown-body">${renderJudgeMarkdown(text)}</div>${votes}</div>
     </details>`);
   }
-  // Cell-level judge_version — same for both axes, since they come from the
-  // same verdict file. v1.1 is the new post-2026-07 setting (rule-4,
-  // failure-mode language); v1.0 is the pre-revamp free-text verdict.
-  // Pill links to the home page since that's where the v1.1 release
-  // blogpost lives.
+  // Cell-level judge_version of the contamination verdict. v1.2 is the
+  // majority of three judge runs; v1.1 a single run of the post-2026-07
+  // prompt (rule 4, failure-mode language); v1.0 the pre-revamp free-text
+  // verdict. The pill links to the release post of its version.
   const ver = jud.version || RECORD.index_row?.judge_version;
   let head = '';
   if (ver) {
-    const verCls = ver === 'v1.0' ? 'verdict-ver-legacy' : 'verdict-ver-current';
-    const tip = ver === 'v1.0'
-      ? 'Judged under the v1.0 setting (pre-revamp). Check the home page for details on the new v1.1.'
-      : 'Judged under the new v1.1 setting. Check the home page for details.';
-    head = `<a class="verdict-version ${verCls}" href="../" data-tip="${escapeHtml(tip)}">judged: <span class="verdict-version-number">${escapeHtml(ver)}</span></a>`;
+    const info = JUDGE_VERSIONS[ver] || { href: '../', tip: `Judged under the ${ver} setting.` };
+    const verCls = ver === 'v1.2' ? 'verdict-ver-current' : 'verdict-ver-legacy';
+    head = `<a class="verdict-version ${verCls}" href="${info.href}" data-tip="${escapeHtml(info.tip)}">judged: <span class="verdict-version-number">${escapeHtml(ver)}</span></a>`;
   }
   els.judgeVerdicts.innerHTML = `${head}<div class="verdict-list">${verdicts.join('')}</div>`;
 }
@@ -1354,7 +1480,7 @@ async function loadWorkspace() {
 function renderWorkspace() {
   const files = WORKSPACE.files || [];
   const tree = buildWorkspaceTree(files);
-  els.wsTree.innerHTML = `<div class="ws-root-label">
+  els.wsTree.innerHTML = `${renderWorkspaceOmitted(WORKSPACE.omitted)}<div class="ws-root-label">
     <span class="ws-folder-mark" aria-hidden="true"></span>
     <span>task</span>
     <span class="ws-entry-count">${files.length.toLocaleString()}</span>
@@ -1390,6 +1516,27 @@ function renderWorkspace() {
     row?.classList.add('active');
     showWorkspaceFile(initial, { scroll: false });
   }
+}
+
+// Folders the extract cut to their first entries by name (task_omitted.json).
+function renderWorkspaceOmitted(omitted) {
+  const folders = omitted?.folders || [];
+  const stoppedIn = omitted?.run_limit_reached_in ?? null;
+  if (!folders.length && stoppedIn === null) return '';
+  const max = Number(omitted.max_entries_per_folder) || 0;
+  const maxFiles = Number(omitted.max_files_per_run) || 0;
+  const rows = folders.map(f => `<li><code>${escapeHtml(f.path)}/</code>
+    <span class="muted">${Number(f.kept).toLocaleString()} of ${Number(f.entries).toLocaleString()} entries</span></li>`).join('');
+  const label = folders.length === 1 ? '1 folder' : `${folders.length.toLocaleString()} folders`;
+  const summary = stoppedIn === null ? `${label} shortened` : 'Workspace shortened';
+  const stopped = stoppedIn === null ? '' : `<p class="muted">The copy stopped at ${maxFiles.toLocaleString()} files, in
+    <code>${escapeHtml(stoppedIn === '.' ? 'task' : stoppedIn)}/</code>; files after it by name are not included.</p>`;
+  const cut = folders.length ? `<p class="muted">Folders with more than ${max.toLocaleString()} entries keep only the first ${max.toLocaleString()} by name.</p>
+    <ul>${rows}</ul>` : '';
+  return `<details class="ws-omitted">
+    <summary>${summary}</summary>
+    ${stopped}${cut}
+  </details>`;
 }
 
 function buildWorkspaceTree(files) {
@@ -1551,6 +1698,7 @@ function setupTabs() {
       }
     }
     if (name === 'workspace') loadWorkspace();
+    if (name === 'judge') loadJudgeTraces();
     // If the trace rendered while its section was hidden (page opened on
     // ?tab=judge), every output measured 0×0 and got no "show all" badge —
     // re-measure now that it's visible.
