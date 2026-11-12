@@ -39,11 +39,13 @@ V11_AGENT_KEYS = {
 V12_AGENT_KEYS = {
     *V11_AGENT_KEYS,
     "fable-5.1",
+    "fable-5.2",
     "glm-5.3",
     "glm-5.3-flash",
     "gpt-6-astra",
     "gpt-6.1-sol",
     "gemini-4-argon",
+    "gemini-4-carbon",
     "muse-wonder-xhigh",
     "opus-5.5-max",
 }
@@ -51,11 +53,13 @@ V12_AGENT_KEYS = {
 AGGREGATED_NAME_TO_KEY = {
     "Locus": "locus",
     "Fable 5.1 (Max)": "fable-5.1",
+    "Fable 5.2 (Max)": "fable-5.2",
     "GLM 5.3": "glm-5.3",
     "GLM 5.3 Flash": "glm-5.3-flash",
     "GPT-6-Astra": "gpt-6-astra",
     "GPT-6.1-Sol": "gpt-6.1-sol",
     "Gemini-4-Argon": "gemini-4-argon",
+    "Gemini-4-Carbon": "gemini-4-carbon",
     "Muse Wonder (xhigh)": "muse-wonder-xhigh",
     "Opus-5.5 (Max)": "opus-5.5-max",
     "GPT-5.2": "gpt-5.2",
@@ -85,11 +89,13 @@ CSV_TO_AGENT = {
     "external/intology-locus/aggregated_avg_locus.csv": "locus",
     "aggregated_avg_Locus.csv": "locus",
     "aggregated_avg_Fable_5.1_(Max).csv": "fable-5.1",
+    "aggregated_avg_Fable_5.2_(Max).csv": "fable-5.2",
     "aggregated_avg_GLM_5.3.csv": "glm-5.3",
     "aggregated_avg_GLM_5.3_Flash.csv": "glm-5.3-flash",
     "aggregated_avg_GPT-6-Astra.csv": "gpt-6-astra",
     "aggregated_avg_GPT-6.1-Sol.csv": "gpt-6.1-sol",
     "aggregated_avg_Gemini-4-Argon.csv": "gemini-4-argon",
+    "aggregated_avg_Gemini-4-Carbon.csv": "gemini-4-carbon",
     "aggregated_avg_Muse_Wonder_(xhigh).csv": "muse-wonder-xhigh",
     "aggregated_avg_Opus-5.5_(Max).csv": "opus-5.5-max",
     "aggregated_avg_GPT-5.2.csv": "gpt-5.2",
@@ -119,11 +125,13 @@ STD_CSV_TO_AGENT = {
     "external/intology-locus/aggregated_std_locus.csv": "locus",
     "aggregated_std_Locus.csv": "locus",
     "aggregated_std_Fable_5.1_(Max).csv": "fable-5.1",
+    "aggregated_std_Fable_5.2_(Max).csv": "fable-5.2",
     "aggregated_std_GLM_5.3.csv": "glm-5.3",
     "aggregated_std_GLM_5.3_Flash.csv": "glm-5.3-flash",
     "aggregated_std_GPT-6-Astra.csv": "gpt-6-astra",
     "aggregated_std_GPT-6.1-Sol.csv": "gpt-6.1-sol",
     "aggregated_std_Gemini-4-Argon.csv": "gemini-4-argon",
+    "aggregated_std_Gemini-4-Carbon.csv": "gemini-4-carbon",
     "aggregated_std_Muse_Wonder_(xhigh).csv": "muse-wonder-xhigh",
     "aggregated_std_Opus-5.5_(Max).csv": "opus-5.5-max",
     "aggregated_std_GPT-5.2.csv": "gpt-5.2",
@@ -163,6 +171,26 @@ SUBSTITUTIONS = []
 # Provenance labels describe values already patched in the source CSVs. They do
 # not copy or otherwise change scores.
 CELL_PROVENANCE = [
+    # Fable 5.2 refused 9 of its 48 runs (reasoning_extraction stop); those
+    # runs carry Opus 5.5 (Max) scores for the same cell. "models" limits an
+    # entry to specific base models; without it, all four are labelled.
+    {
+        "agent": "fable-5.2",
+        "benchmarks": ["aime2025", "gpqamain"],
+        "models": ["gemma-3-4b-pt"],
+        "sourceLabel": "Opus 5.5",
+    },
+    {
+        "agent": "fable-5.2",
+        "benchmarks": ["healthbench"],
+        "sourceLabel": "Opus 5.5",
+    },
+    {
+        "agent": "fable-5.2",
+        "benchmarks": ["arenahardwriting"],
+        "models": ["Qwen3-1.7B-Base", "SmolLM3-3B-Base"],
+        "sourceLabel": "Opus 5.5",
+    },
     {
         "agent": "fable-5.1",
         "benchmarks": ["gpqamain"],
@@ -226,11 +254,13 @@ TIME_OVERVIEW_TO_KEY = {
 TIME_AGGREGATED_TO_KEY = {
     "Locus": "locus",
     "Fable 5.1 (Max)": "fable-5.1",
+    "Fable 5.2 (Max)": "fable-5.2",
     "GLM 5.3": "glm-5.3",
     "GLM 5.3 Flash": "glm-5.3-flash",
     "GPT-6-Astra": "gpt-6-astra",
     "GPT-6.1-Sol": "gpt-6.1-sol",
     "Gemini-4-Argon": "gemini-4-argon",
+    "Gemini-4-Carbon": "gemini-4-carbon",
     "Muse Wonder (xhigh)": "muse-wonder-xhigh",
     "Opus-5.5 (Max)": "opus-5.5-max",
     "Opus-4.5": "opus-4.5",
@@ -525,7 +555,7 @@ def generate_scores_json(version="v1.1", input_dir=None, output_file=None):
         agent_key = annotation["agent"]
         if agent_key not in model_benchmark_data:
             continue
-        for model in BASE_MODELS:
+        for model in annotation.get("models", BASE_MODELS):
             for bm in annotation["benchmarks"]:
                 model_benchmark_data[agent_key][model][bm]["sourceLabel"] = annotation["sourceLabel"]
 
