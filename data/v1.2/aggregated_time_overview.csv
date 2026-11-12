@@ -36,6 +36,8 @@ claude_non_api_max_claude-opus-5-5_1m__10h_run2,8:24:12,84.0%
 claude_non_api_no_scheduler_claude-sonnet-5_10h_sonnet5,N/A,N/A
 claude_non_api_no_scheduler_claude-sonnet-5_10h_sonnet5_v2,N/A,N/A
 claude_non_api_persistent_claude-sonnet-5_10h_sonnet5,9:34:09,95.7%
+claude_openrouter_max_claude-fable-5-2_1m__10h_run1,8:31:26,85.2%
+claude_openrouter_max_claude-fable-5-2_1m__10h_run2,8:55:35,89.3%
 claude_reprompt_claude-opus-4-6_1m__100h_8gpu,N/A,N/A
 claude_reprompt_claude-opus-4-6_1m__100h_8gpu_METR,100:05:00,1000.8%
 claude_reprompt_claude-opus-4-6_1m__10h_METR,10:05:00,100.8%
@@ -109,7 +111,9 @@ opencode_opencode_minimax-m2.1-free_10h,5:05:48,51.0%
 opencode_opencode_minimax-m2.5-free_10h_run2,3:38:30,36.4%
 opencode_openrouter_google_gemini-4-argon_10h,8:44:44,87.5%
 opencode_openrouter_google_gemini-4-argon_10h_run2,9:02:24,90.4%
-opencode_openrouter_meta_muse-wonder_xhigh_10h_run1,7:47:27,77.9%
+opencode_openrouter_google_gemini-4-carbon_10h_run1,9:50:21,98.4%
+opencode_openrouter_google_gemini-4-carbon_10h_run2,9:51:06,98.5%
+opencode_openrouter_meta_muse-wonder_xhigh_10h_run1,7:46:04,77.7%
 opencode_openrouter_meta_muse-wonder_xhigh_10h_run2,8:01:37,80.3%
 opencode_zai_glm-5_10h_run2,3:33:06,35.5%
 qwen3max_qwen3-max-2026-01-23_10h,1:44:20,17.4%

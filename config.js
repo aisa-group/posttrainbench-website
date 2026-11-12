@@ -15,11 +15,13 @@ const modelDisplayNames = {
 // Agents to show in main chart (others appear in table only)
 const chartAgentKeys = [
     "human",
+    "fable-5.2",
     "fable-5.1",
     "opus-5.5-max",
     "gpt-6-astra",
     "gpt-6.1-sol",
     "gemini-4-argon",
+    "gemini-4-carbon",
     "muse-wonder-xhigh",
     "glm-5.3-flash",
     "glm-5.3",
@@ -56,6 +58,8 @@ const chartAgentKeysByVersion = {
         "glm-5.2",
         "opus-4.7",
         "opus-4.8",
+        "fable-5.1",
+        "gpt-5.6-sol",
         "fable-5"
     ].includes(key))
 };
@@ -66,11 +70,13 @@ function getChartAgentKeys(version) {
 
 // Agents to show in time spent chart
 const timeChartAgentKeys = [
+    "fable-5.2",
     "fable-5.1",
     "opus-5.5-max",
     "gpt-6-astra",
     "gpt-6.1-sol",
     "gemini-4-argon",
+    "gemini-4-carbon",
     "muse-wonder-xhigh",
     "glm-5.3-flash",
     "glm-5.3",
@@ -112,11 +118,13 @@ const timeChartAgentKeys = [
 // All agents (for table) - order determines display order before sorting by score
 const allAgentKeys = [
     "human",
+    "fable-5.2",
     "fable-5.1",
     "opus-5.5-max",
     "gpt-6-astra",
     "gpt-6.1-sol",
     "gemini-4-argon",
+    "gemini-4-carbon",
     "muse-wonder-xhigh",
     "glm-5.3-flash",
     "glm-5.3",
@@ -180,6 +188,7 @@ const agentInfo = {
     "gemini-3-pro": { name: "Gemini 3 Pro", description: "Gemini 3 Pro agent", scaffold: "Gemini CLI" },
     "gemini-3.1-pro": { name: "Gemini 3.1 Pro", description: "Gemini 3.1 Pro agent", scaffold: "OpenCode" },
     "gemini-4-argon": { name: "Gemini 4 Argon", description: "Gemini 4 Argon high reasoning agent", scaffold: "OpenCode", reasoningEffort: "High" },
+    "gemini-4-carbon": { name: "Gemini 4 Carbon", description: "Gemini 4 Carbon high reasoning agent", scaffold: "OpenCode", reasoningEffort: "High" },
     "muse-wonder-xhigh": { name: "Muse Wonder", description: "Muse Wonder extra-high reasoning agent", scaffold: "OpenCode", reasoningEffort: "xHigh" },
     "sonnet-4.5": { name: "Sonnet 4.5", description: "Claude Sonnet 4.5 agent", scaffold: "Claude Code" },
     "sonnet-4.6": { name: "Sonnet 4.6", description: "Claude Sonnet 4.6 agent", scaffold: "Claude Code" },
@@ -229,6 +238,14 @@ const agentInfo = {
         reasoningEffort: "Max",
         provenanceLabel: "mixed GPQA",
         provenanceNote: "Five Fable 5.1 GPQA Main cells fell back to Opus 5."
+    },
+    "fable-5.2": {
+        name: "Fable 5.2",
+        description: "Claude Fable 5.2 with a 1M context window, max reasoning agent",
+        scaffold: "Claude Code",
+        reasoningEffort: "Max",
+        provenanceLabel: "mixed Opus 5.5",
+        provenanceNote: "Fable 5.2 refused 9 of its 48 runs; those runs use Opus 5.5 (Max) scores for the same cell."
     }
 };
 
