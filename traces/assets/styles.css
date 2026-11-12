@@ -3147,15 +3147,23 @@ a.run-version:hover { color: var(--text-primary); text-decoration: underline; te
   gap: 0.5rem;
   text-align: left;
 }
-#ws-tree .ws-file:hover { color: var(--accent-primary); background-color: var(--bg-tertiary); }
-#ws-tree .ws-file.active {
+/* --ws-row-bg is the row's background, reused by the file icon's folded
+   corner so it never shows as a square on a hovered or selected row. */
+#ws-tree .ws-file { --ws-row-bg: var(--bg-secondary); }
+#ws-tree .ws-file:hover {
+  --ws-row-bg: var(--bg-tertiary);
   color: var(--accent-primary);
-  background-color: var(--bg-tertiary);
-  box-shadow: inset 2px 0 0 var(--accent-primary);
-  font-weight: 600;
+  background-color: var(--ws-row-bg);
+}
+/* Selected file: a soft accent fill, no edge bar and no bold (bold would
+   change the name's width and shift the row). */
+#ws-tree .ws-file.active {
+  --ws-row-bg: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-secondary));
+  color: var(--accent-text);
+  background-color: var(--ws-row-bg);
 }
 #ws-tree .ws-file.skipped { color: var(--text-secondary); opacity: 0.6; cursor: pointer; }
-#ws-tree .ws-file.skipped:hover { background-color: var(--bg-tertiary); color: var(--text-secondary); }
+#ws-tree .ws-file.skipped:hover { color: var(--text-secondary); }
 #ws-tree .ws-file .size {
   flex: none;
   color: var(--text-secondary);
@@ -3187,7 +3195,7 @@ a.run-version:hover { color: var(--text-primary); text-decoration: underline; te
   height: 0.25rem;
   border-left: 1px solid color-mix(in srgb, var(--text-secondary) 68%, var(--border-color));
   border-bottom: 1px solid color-mix(in srgb, var(--text-secondary) 68%, var(--border-color));
-  background: var(--bg-secondary);
+  background: var(--ws-row-bg, var(--bg-secondary));
 }
 .ws-file-name {
   overflow: hidden;
