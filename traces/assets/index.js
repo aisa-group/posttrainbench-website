@@ -69,6 +69,8 @@ async function load() {
     // newest-first order; the option is dropped where none does.
     HAS_DATES = DATA.runs.some(r => r.started_at);
     if (!HAS_DATES) els.sort.querySelector('option[value="date-desc"]')?.remove();
+    // The benchmark-version filter only applies to runs that record their version.
+    if (!DATA.runs.some(r => 'v12' in r)) els.versionFilter.hidden = true;
     populateFilters();
     applyUrlState();
     if (SHOW_SUMMARY) {
@@ -673,6 +675,7 @@ function runHref(id, groupKey) {
   returnUrl.hash = '';
   const destination = new URL('run.html', window.location.href);
   destination.searchParams.set('id', id);
+  if (window.PTB_SUITE) destination.searchParams.set('suite', window.PTB_SUITE);
   destination.searchParams.set('return', `${returnUrl.pathname}${returnUrl.search}`);
   return destination.href;
 }
