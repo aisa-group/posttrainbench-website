@@ -3,7 +3,7 @@
 The viewer reads one directory of JSON records (`PTB_DATA_BASE` in `config.js`).
 Any pipeline that writes records in this format can be shown. Two do today:
 - PostTrainBench's build (`ptb-traces-pipeline`, `build.py`);
-- PostTrainBench-Max's `ptb viewer push`.
+- converters of verifiers traces (`trace_format: verifiers`).
 
 This file is the format's specification. A pipeline that changes what it writes
 changes this file in the same pull request as the viewer.
@@ -31,7 +31,7 @@ published record uses the old one.
 
 A pipeline that publishes the records must first take out credentials, and
 anything that points at its accounts or machines. PostTrainBench's
-`extract_traces.py` does this, and so does PostTrainBench-Max's `viewer/sanitize.py`.
+`extract_traces.py` does this; every other pipeline must too.
 
 ## Index row (`index.json` → `runs[]`, and `index_row` in the record)
 
