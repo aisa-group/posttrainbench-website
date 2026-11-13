@@ -2,6 +2,10 @@
 // Keeping this logic in one place prevents model aliases from drifting between
 // the landing table, filters, and individual run summaries.
 (function () {
+  // config.js may change the default grouping and order (window.PTB_DEFAULT_GROUP,
+  // window.PTB_DEFAULT_SORT), e.g. newest first for a viewer of runs in progress.
+  const GROUPS = ['task-model', 'task', 'experiment', 'none'];
+  const SORTS = ['date-desc', 'accuracy-desc', 'accuracy-asc', 'cost-desc', 'turns-desc', 'duration-desc'];
   const DEFAULT_STATE = Object.freeze({
     benchmark: '',
     model: '',
@@ -9,8 +13,8 @@
     experiment: '',
     version: '',
     q: '',
-    group: 'task',
-    sort: 'accuracy-desc',
+    group: GROUPS.includes(window.PTB_DEFAULT_GROUP) ? window.PTB_DEFAULT_GROUP : 'task',
+    sort: SORTS.includes(window.PTB_DEFAULT_SORT) ? window.PTB_DEFAULT_SORT : 'accuracy-desc',
     open: '',
   });
 
@@ -45,10 +49,10 @@
     const params = input instanceof URLSearchParams
       ? input
       : new URLSearchParams(typeof input === 'string' ? input : window.location.search);
-    const group = ['task-model', 'task', 'experiment', 'none'].includes(params.get('group'))
+    const group = GROUPS.includes(params.get('group'))
       ? params.get('group')
       : DEFAULT_STATE.group;
-    const sort = ['accuracy-desc', 'accuracy-asc', 'cost-desc', 'turns-desc', 'duration-desc'].includes(params.get('sort'))
+    const sort = SORTS.includes(params.get('sort'))
       ? params.get('sort')
       : DEFAULT_STATE.sort;
     return {
@@ -225,6 +229,7 @@
 
   function sorter(sort) {
     switch (sort) {
+      case 'date-desc': return (a, b) => (b.started_at || '').localeCompare(a.started_at || '');
       case 'accuracy-asc': return (a, b) => (a.accuracy ?? Infinity) - (b.accuracy ?? Infinity);
       case 'cost-desc': return (a, b) => (b.total_cost_usd ?? 0) - (a.total_cost_usd ?? 0);
       case 'turns-desc': return (a, b) => (b.num_turns ?? 0) - (a.num_turns ?? 0);

@@ -1264,6 +1264,11 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   margin: 0 auto;
   color: var(--text-primary);
 }
+/* Without the summary (PTB_INDEX_SUMMARY = false), the title sits left, over the table. */
+.page-head-plain h1 {
+  width: 100%;
+  margin: 0;
+}
 .hero-body {
   display: grid;
   grid-template-columns: minmax(0, 720px) auto;
