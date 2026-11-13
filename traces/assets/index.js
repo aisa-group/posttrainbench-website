@@ -7,6 +7,8 @@ const CATALOG = window.PTB_Catalog;
 const {
   prettyAgent,
   prettyAgentForRun,
+  agentNameForRun,
+  agentTags,
   prettyBenchmark,
   benchmarkNote,
   prettyTrainedModel,
@@ -272,7 +274,7 @@ function renderMatrix() {
         // heatmap read. Best agent name lives in the tooltip.
         cellEl.innerHTML = `<span class="matrix-acc">${accLabel}</span>`;
         const tip = c.bestAcc != null
-          ? `best ${accLabel}${c.bestRun ? ' (' + prettyAgentForRun(c.bestRun) + ')' : ''}`
+          ? `best ${accLabel}${c.bestRun ? ' by ' + prettyAgentForRun(c.bestRun) : ''}`
           : 'no accuracy data';
         cellEl.setAttribute('data-tip', tip);
         cellEl.setAttribute('aria-label',
@@ -586,7 +588,7 @@ function buildGroupHeader(g, mode) {
   }
   parts.push(`${g.rows.length} run${g.rows.length === 1 ? '' : 's'}`);
   if (bestRun) {
-    const agent = bestRun.agent_model ? ` (${prettyAgentForRun(bestRun)})` : '';
+    const agent = bestRun.agent_model ? ` by ${prettyAgentForRun(bestRun)}` : '';
     parts.push(`best ${(bestRun.accuracy * 100).toFixed(1)}%${agent}`);
   }
   if (mode === 'experiment' && agents.size > 1) {
@@ -692,24 +694,22 @@ const V12_TIP =
 
 function agentCell(r) {
   if (!r.agent_model) return '<span class="muted">-</span>';
-  const pretty = prettyAgentForRun(r);
-  const m = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(pretty);
-  const name = m ? m[1] : pretty;
-  const configHtml = m
-    ? `<span class="agent-tag">${escapeHtml(m[2])}</span>`
-    : '';
+  const name = agentNameForRun(r);
+  const sep = '<span class="agent-meta-separator">·</span>';
+  // Two groups: the agent's tags (effort, 1M, reprompted) and where it ran
+  // (harness, v1.2). One line on wide screens; on a phone each group gets
+  // its own line instead of running into the accuracy column.
+  const tags = agentTags(r).map(t => `<span class="agent-tag">${escapeHtml(t)}</span>`);
   const harness = prettyHarness(r.trace_format);
-  const harnessHtml = harness
-    ? `<span class="agent-harness">${escapeHtml(harness)}</span>`
-    : '';
-  const versionHtml = r.v12
-    ? `<span class="agent-version" data-tip="${escapeHtml(V12_TIP)}">v1.2</span>`
-    : '';
-  const metadata = [configHtml, harnessHtml, versionHtml].filter(Boolean)
-    .join('<span class="agent-meta-separator">·</span>');
+  const origin = [
+    harness ? `<span class="agent-harness">${escapeHtml(harness)}</span>` : '',
+    r.v12 ? `<span class="agent-version" data-tip="${escapeHtml(V12_TIP)}">v1.2</span>` : '',
+  ].filter(Boolean);
+  const groups = [tags, origin].filter(g => g.length)
+    .map(g => `<span class="agent-meta-group">${g.join(sep)}</span>`);
   return `<span class="agent-cell">
     <span class="agent-name">${escapeHtml(name)}</span>
-    ${metadata ? `<span class="agent-meta">${metadata}</span>` : ''}
+    ${groups.length ? `<span class="agent-meta">${groups.join(`<span class="agent-meta-separator agent-meta-between">·</span>`)}</span>` : ''}
   </span>`;
 }
 

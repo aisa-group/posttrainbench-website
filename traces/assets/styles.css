@@ -2052,6 +2052,12 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   min-width: 0;
   white-space: nowrap;
 }
+.agent-meta-group {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
 .agent-meta-separator {
   color: var(--text-secondary);
   font-size: 0.68rem;
@@ -2064,11 +2070,13 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   opacity: 0.7;
   white-space: nowrap;
 }
+/* Effort / 1M / reprompted. Most rows carry one now, so it reads as
+   metadata (secondary text), a step firmer than the harness beside it. */
 .agent-tag {
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.015em;
-  color: var(--accent-text);
+  letter-spacing: 0.01em;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 /* Marks runs of the v1.2 leaderboard experiments: plain metadata, like the
@@ -2119,7 +2127,10 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
 }
 
 @media (max-width: 480px) {
-  .agent-meta { white-space: normal; }
+  /* Tags on one line, harness and version on the next: on one line they ran
+     into the accuracy column. */
+  .agent-meta { flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+  .agent-meta-between { display: none; }
   .acc-cell { display: block; }
   .acc-bar { display: none; }
   .acc-err { display: none; }

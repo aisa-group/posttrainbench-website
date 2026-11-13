@@ -148,13 +148,52 @@
     return value + annotation;
   }
 
+  // Reasoning effort of an experiment, labelled as on the leaderboard (the
+  // website's config.js `reasoningEffort`). Read from the experiment, not the
+  // trace's model ID: the ID carries it for few agents (Muse Wonder's
+  // `:xhigh`), so rows of different agents were tagged unevenly.
+  const EFFORT_RULES = [
+    [/^codex_non_api_xhigh_/, 'xHigh'],
+    [/^codex_non_api_high_/, 'High'],
+    [/^codex_non_api_gpt-5\.3-codex_/, 'Med'],
+    [/^(?:claude_non_api|claude_openrouter|codex_non_api)_max_/, 'Max'],
+    [/^glmx_/, 'Max'],
+    [/^claude_non_api_claude-opus-4-7_/, 'xHigh'],
+    [/^claude_non_api_claude-opus-4-8_/, 'High'],
+    [/^opencode_openrouter_google_gemini-4-(?:argon|carbon)_/, 'High'],
+    [/^cursor_cli_cursor-grok-4\.5-high_/, 'High'],
+    [/_xhigh_\d+h/, 'xHigh'],
+  ];
+
+  function agentEffort(experiment) {
+    const exp = String(experiment || '').toLowerCase();
+    for (const [re, label] of EFFORT_RULES) if (re.test(exp)) return label;
+    return '';
+  }
+
+  // Tags of a run's agent: effort, 1M context, reprompted. All come from the
+  // experiment, so every run of one agent carries the same tags.
+  function agentTags(run) {
+    const exp = String(run?.experiment || '').toLowerCase();
+    const tags = [];
+    const effort = agentEffort(exp);
+    if (effort) tags.push(effort);
+    if (/_1m_/.test(exp) || /\[1m\]/i.test(run?.agent_model || '')) tags.push('1M');
+    if (/(?:^|[_/-])reprompt(?:ed)?(?:[_/-]|$)/.test(exp)) tags.push('reprompted');
+    return tags;
+  }
+
+  // The agent's name without tags: prettyAgent's own "(1M)" / "(xhigh)" are
+  // dropped, agentTags carries them for every run alike.
+  function agentNameForRun(run) {
+    return prettyAgent(run?.agent_model).replace(/\s+\([^)]*\)\s*$/, '');
+  }
+
   function prettyAgentForRun(run) {
     if (!run) return '';
-    const base = prettyAgent(run.agent_model);
-    const experiment = String(run.experiment || '').toLowerCase();
-    if (!/(?:^|[_/-])reprompt(?:ed)?(?:[_/-]|$)/.test(experiment)) return base;
-    const match = /^(.*?)\s+\(([^)]+)\)\s*$/.exec(base);
-    return match ? `${match[1]} (${match[2]}, reprompted)` : `${base} (reprompted)`;
+    const name = agentNameForRun(run);
+    const tags = agentTags(run);
+    return tags.length ? `${name} (${tags.join(', ')})` : name;
   }
 
   function filterRuns(runs, state) {
@@ -259,6 +298,8 @@
     prettyTrainedModel,
     prettyAgent,
     prettyAgentForRun,
+    agentNameForRun,
+    agentTags,
     filterRuns,
     sorter,
     groupKey,
