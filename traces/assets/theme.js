@@ -13,6 +13,9 @@
   const commitTheme = next => {
     root.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
+    // Browser bar colour follows the navbar's background.
+    const bar = getComputedStyle(root).getPropertyValue('--bg-secondary').trim();
+    if (bar) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bar);
     updateLabel(next);
     window.dispatchEvent(new CustomEvent('ptb:themechange', { detail: { theme: next } }));
   };

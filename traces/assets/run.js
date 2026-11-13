@@ -1484,7 +1484,8 @@ function renderJudgeVerdicts() {
       <summary>
         <span class="verdict-label">${escapeHtml(label)}</span>
         <span class="verdict-badge">${VERDICT_STATE[cls]}</span>
-        <span class="verdict-summary-end">${votes ? voteMeterHtml(votes) : ''}<span class="verdict-caret" aria-hidden="true">›</span></span>
+        <span class="verdict-summary-end">${votes ? voteMeterHtml(votes) : ''}</span>
+        <span class="verdict-caret" aria-hidden="true">›</span>
       </summary>
       <div class="verdict-item-body">${body}</div>
     </details>`;

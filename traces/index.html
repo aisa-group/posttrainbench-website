@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <!-- Browser bar colour = the navbar (--bg-secondary); the script below and
+       theme.js keep it in step with the theme toggle. -->
+  <meta name="theme-color" content="#f3f0e8" />
   <title>PostTrainBench · traces</title>
   <meta name="description" content="Full agent traces from PostTrainBench runs" />
   <meta property="og:site_name" content="PostTrainBench" />
@@ -25,6 +28,8 @@
     (function () {
       var t = localStorage.getItem('theme') || 'light';
       document.documentElement.setAttribute('data-theme', t);
+      document.querySelector('meta[name="theme-color"]')
+        .setAttribute('content', t === 'dark' ? '#252119' : '#f3f0e8');
     })();
   </script>
 </head>
