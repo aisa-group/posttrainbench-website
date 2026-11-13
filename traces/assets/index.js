@@ -3,6 +3,9 @@
 // groupable run table.
 
 const DATA_BASE = (typeof window !== 'undefined' && window.PTB_DATA_BASE) || './data/';
+// config.js can turn off the summary above the table (the matrix and corpus
+// stats), e.g. for a small set of runs in progress.
+const SHOW_SUMMARY = window.PTB_INDEX_SUMMARY !== false;
 const CATALOG = window.PTB_Catalog;
 const {
   prettyAgent,
@@ -33,6 +36,7 @@ const els = {
   matrixLegend: document.getElementById('matrix-legend'),
 };
 
+let HAS_DATES = false;
 let DATA = { runs: [], experiments: [], benchmarks: [], build_ts: null };
 const DATA_REQUEST_TIMEOUT_MS = 30000;
 const TABLE_PAGE_SIZE = 50;
@@ -61,10 +65,19 @@ async function load() {
       throw new Error('The corpus index has an invalid format.');
     }
 
+    // Runs that record their start (`started_at`) get a date column and the
+    // newest-first order; the option is dropped where none does.
+    HAS_DATES = DATA.runs.some(r => r.started_at);
+    if (!HAS_DATES) els.sort.querySelector('option[value="date-desc"]')?.remove();
     populateFilters();
     applyUrlState();
-    renderHeroStats();
-    renderMatrix();
+    if (SHOW_SUMMARY) {
+      renderHeroStats();
+      renderMatrix();
+    } else {
+      document.querySelector('.hero-body')?.remove();
+      document.querySelector('.page-head')?.classList.add('page-head-plain');
+    }
     els.loading.classList.add('hidden');
     render();
   } catch (error) {
@@ -607,10 +620,12 @@ function buildTable(rows, accMax, mode, groupKey) {
   t.className = 'runtable';
   const firstHeader = mode === 'task-model'
     ? 'seed'
-    : mode === 'task' ? 'base model' : 'task';
+    : mode === 'task' ? 'base model'
+    : rows.every(r => r.display_name) ? 'run' : 'task';
   t.innerHTML = `
     <thead><tr>
       <th class="col-task">${firstHeader}</th>
+      ${HAS_DATES ? '<th class="col-num">started</th>' : ''}
       <th class="col-agent">agent</th>
       <th class="col-acc">accuracy</th>
       <th class="col-num">duration</th>
@@ -633,6 +648,7 @@ function buildTable(rows, accMax, mode, groupKey) {
     });
     tr.innerHTML = `
       <td class="col-task">${runIdentityCell(r, mode, href)}</td>
+      ${HAS_DATES ? `<td class="col-num">${dateCell(r)}</td>` : ''}
       <td class="col-agent">${agentCell(r)}</td>
       <td class="col-acc">${accCell(r, accMax)}</td>
       <td class="col-num">${durationCell(r)}</td>
@@ -682,6 +698,11 @@ function runIdentityCell(r, mode, href) {
   } else if (seedText) {
     secondary += ` · seed ${seedText}`;
   }
+  // A run that names itself (`display_name`) shows that name, its model below.
+  if (r.display_name && mode !== 'task-model') {
+    primary = r.display_name;
+    secondary = model;
+  }
   return `<div class="task-cell">
     <div class="task-primary"><a class="run-primary-link" href="${escapeHtml(href)}">${escapeHtml(primary)}</a></div>
     ${secondary ? `<div class="task-secondary">${escapeHtml(secondary)}</div>` : ''}
@@ -700,7 +721,7 @@ function agentCell(r) {
   // (harness, v1.2). One line on wide screens; on a phone each group gets
   // its own line instead of running into the accuracy column.
   const tags = agentTags(r).map(t => `<span class="agent-tag">${escapeHtml(t)}</span>`);
-  const harness = prettyHarness(r.trace_format);
+  const harness = prettyHarness(r.harness || r.trace_format);
   const origin = [
     harness ? `<span class="agent-harness">${escapeHtml(harness)}</span>` : '',
     r.v12 ? `<span class="agent-version" data-tip="${escapeHtml(V12_TIP)}">v1.2</span>` : '',
@@ -728,6 +749,8 @@ function prettyHarness(fmt) {
     cursor: 'Cursor CLI',
     cursor_cli: 'Cursor CLI',
     'cursor-cli': 'Cursor CLI',
+    // verifiers harness ids (PTB-Max runs carry the harness in `harness`).
+    'ptb-claude-code': 'Claude Code',
   };
   return map[String(fmt).toLowerCase()] || fmt;
 }
@@ -755,6 +778,15 @@ function accCell(r, accMax) {
 // have their single original evaluation.
 function seedsText(r) {
   return r.num_seeds > 1 ? `mean of ${r.num_seeds} evaluations` : 'single evaluation';
+}
+
+// The run's start, in the viewer's local time.
+function dateCell(r) {
+  const t = r.started_at ? new Date(r.started_at) : null;
+  if (!t || isNaN(t)) return '<span class="muted">-</span>';
+  const date = t.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  const time = t.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return `<span title="${escapeHtml(t.toISOString())}">${escapeHtml(date)} ${escapeHtml(time)}</span>`;
 }
 
 function durationCell(r) {
