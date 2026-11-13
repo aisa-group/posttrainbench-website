@@ -1,7 +1,7 @@
 // Which runs the pages show. config.js sets PostTrainBench's; `?suite=<name>` picks
 // another from window.PTB_SUITES, whose settings replace config.js's (only settings
-// listed there: the URL picks a suite, never a value). posttrainbench.com/max/traces/
-// forwards to ?suite=max. Links between the pages keep the suite (window.PTB_SUITE).
+// listed there: the URL picks a suite, never a value). Links between the pages keep
+// the suite (window.PTB_SUITE).
 (function () {
   const name = new URLSearchParams(window.location.search).get('suite');
   const suites = window.PTB_SUITES || {};

@@ -752,7 +752,7 @@ function prettyHarness(fmt) {
     cursor: 'Cursor CLI',
     cursor_cli: 'Cursor CLI',
     'cursor-cli': 'Cursor CLI',
-    // verifiers harness ids (PTB-Max runs carry the harness in `harness`).
+    // verifiers harness ids (verifiers records carry the harness in `harness`).
     'ptb-claude-code': 'Claude Code',
   };
   return map[String(fmt).toLowerCase()] || fmt;

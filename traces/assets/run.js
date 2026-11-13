@@ -327,7 +327,7 @@ function renderSummary() {
 
   // Per-theme accuracy: collapsed by default. Only HealthBench-style
   // benchmarks emit `by_theme`, so we show the disclosure summary with a
-  // theme count; users expand if they want to drill in. PTB-Max runs reuse
+  // theme count; users expand if they want to drill in. Verifiers records reuse
   // it for their final benchmarks, naming the breakdown `breakdown_label`.
   const themes = RECORD.metrics?.by_theme;
   const breakdownLabel = RECORD.metrics?.breakdown_label;
@@ -457,7 +457,7 @@ function prettyHarness(fmt) {
     cursor: 'Cursor CLI',
     cursor_cli: 'Cursor CLI',
     'cursor-cli': 'Cursor CLI',
-    // verifiers harness ids (PTB-Max runs carry the harness in meta.harness).
+    // verifiers harness ids (verifiers records carry the harness in meta.harness).
     'ptb-claude-code': 'Claude Code',
     verifiers: 'verifiers',
   };
@@ -999,7 +999,7 @@ function getMetricDefs() {
     if (TRACE_START_MS == null) return s.ts;
     return fmtRelTime(Math.max(0, t - TRACE_START_MS));
   });
-  // PTB-Max samples every GPU (`gpus`), one line each; PostTrainBench one (`gpu`).
+  // Records with `gpus` sample every GPU, one line each; others one (`gpu`).
   const gpuCount = Math.max(0, ...snaps.map(s => (s.gpus || []).length));
   const perGpu = (value) => gpuCount
     ? Array.from({ length: gpuCount }, (_, i) => ({
@@ -1049,7 +1049,7 @@ function getMetricDefs() {
       fmt: v => fmt(v, 0) + ' GiB',
     },
   // A monitor that doesn't sample a metric (PostTrainBench's has no disk, older
-  // PTB-Max runs only GPU use) gets no empty chart for it.
+  // records only GPU use) gets no empty chart for it.
   ].filter(m => m.series.some(se => se.data.some(v => v != null)))
     .map(m => ({ ...m, labels }));
 }
@@ -1817,7 +1817,7 @@ function guessLang(path) {
 // ---------- Tabs -------------------------------------------------------
 
 function setupTabs() {
-  // Runs no judge reviewed (PTB-Max, `judgements: null`) have no Judge tab.
+  // Runs no judge reviewed (`judgements: null`) have no Judge tab.
   if (RECORD.judgements === null && !RECORD.judge) {
     els.tabNav.querySelector('[data-tab="judge"]')?.remove();
   }
