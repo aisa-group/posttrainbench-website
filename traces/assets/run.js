@@ -261,9 +261,11 @@ function renderSummary() {
 
   const scoreBarFill = document.getElementById('score-bar-fill');
   const scoreBar = document.getElementById('score-bar');
-  const NO_EVAL_TITLE =
-    "Agent didn't produce a final_model. The evaluation harness never " +
-    "ran, so this run has no metrics.json.";
+  const NO_EVAL_TITLE = m.trace_format === 'verifiers'
+    ? "This run has no final evaluation: it did not finish, or its final " +
+      "model was never scored."
+    : "Agent didn't produce a final_model. The evaluation harness never " +
+      "ran, so this run has no metrics.json.";
   if (ix.accuracy != null) {
     els.scoreBig.textContent = (ix.accuracy * 100).toFixed(1);
     els.scoreBig.classList.remove('score-big-empty');
@@ -302,7 +304,7 @@ function renderSummary() {
     ? '$' + Number(ix.total_cost_usd).toFixed(2)
     : `<span class="cost-missing" data-tip="${escapeHtml(COST_MISSING_TITLE)}">-</span>`;
 
-  const harness = prettyHarness(m.trace_format);
+  const harness = prettyHarness(m.harness || m.trace_format);
   const quickBits = [humanDuration(ix.time_taken, ix.duration_ms)];
   if (ix.num_turns != null && ix.num_turns > 0) quickBits.push(`${ix.num_turns} turns`);
   els.summaryQuick.textContent = quickBits.join(' · ');
@@ -324,13 +326,19 @@ function renderSummary() {
 
   // Per-theme accuracy: collapsed by default. Only HealthBench-style
   // benchmarks emit `by_theme`, so we show the disclosure summary with a
-  // theme count; users expand if they want to drill in.
+  // theme count; users expand if they want to drill in. PTB-Max runs reuse
+  // it for their final benchmarks, naming the breakdown `breakdown_label`.
   const themes = RECORD.metrics?.by_theme;
+  const breakdownLabel = RECORD.metrics?.breakdown_label;
   const themesCount = document.getElementById('summary-themes-count');
   const themesBody = document.getElementById('summary-themes-body');
+  if (breakdownLabel) {
+    els.summaryThemes.querySelector('.summary-label').textContent = breakdownLabel;
+  }
   if (themes && typeof themes === 'object' && Object.keys(themes).length) {
     const entries = Object.entries(themes).sort((a, b) => b[1] - a[1]);
-    themesCount.textContent = `${entries.length} themes`;
+    const unit = breakdownLabel ? 'benchmark' : 'theme';
+    themesCount.textContent = `${entries.length} ${unit}${entries.length === 1 ? '' : 's'}`;
     themesBody.innerHTML = entries.map(([k, v]) => {
       const pct = (v * 100).toFixed(1) + '%';
       const w = Math.min(100, v * 100).toFixed(1);
@@ -446,6 +454,9 @@ function prettyHarness(fmt) {
     cursor: 'Cursor CLI',
     cursor_cli: 'Cursor CLI',
     'cursor-cli': 'Cursor CLI',
+    // verifiers harness ids (PTB-Max runs carry the harness in meta.harness).
+    'ptb-claude-code': 'Claude Code',
+    verifiers: 'verifiers',
   };
   return map[String(fmt).toLowerCase()] || fmt;
 }
@@ -734,6 +745,8 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
     const short = ({
       task_started: 'task',
       task_notification: 'task',
+      system_prompt: 'system',
+      harness_note: 'note',
     })[ev.subtype] || (ev.subtype || 'sys').slice(0, 6);
     markerLabel = `<div class="turn-role" title="${escapeHtml(ev.subtype || 'system')}">${escapeHtml(short)}</div>`;
     roleClass = 'role-system';
@@ -796,6 +809,11 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
       const summary = ev.raw?.summary || '(no summary)';
       body = `<div class="block-label">${ICON.output} Sub-agent update ${status}</div>
               <div class="block-card agent-text markdown-body">${renderMarkdown(summary)}</div>`;
+    } else if (ev.subtype === 'system_prompt' || ev.subtype === 'harness_note') {
+      // verifiers traces: the system prompt, and harness messages the agent got
+      // between turns. Plain text, so show it as text rather than JSON.
+      const label = ev.subtype === 'system_prompt' ? 'System prompt' : 'Harness message';
+      body = `<details><summary class="muted" style="cursor:pointer;font-size:0.72rem">${label}</summary><pre class="muted" style="font-size:0.72rem;margin-top:4px;white-space:pre-wrap">${escapeHtml(ev.raw?.text || '')}</pre></details>`;
     } else {
       body = `<details><summary class="muted" style="cursor:pointer;font-size:0.72rem">${escapeHtml(ev.subtype || 'system')}</summary><pre class="muted" style="font-size:0.72rem;margin-top:4px">${escapeHtml(JSON.stringify(ev.raw, null, 2))}</pre></details>`;
     }
@@ -978,40 +996,59 @@ function getMetricDefs() {
     if (TRACE_START_MS == null) return s.ts;
     return fmtRelTime(Math.max(0, t - TRACE_START_MS));
   });
-  const gpu = (k) => snaps.map(s => s.gpu ? s.gpu[k] : null);
+  // PTB-Max samples every GPU (`gpus`), one line each; PostTrainBench one (`gpu`).
+  const gpuCount = Math.max(0, ...snaps.map(s => (s.gpus || []).length));
+  const perGpu = (value) => gpuCount
+    ? Array.from({ length: gpuCount }, (_, i) => ({
+        label: `GPU ${i}`,
+        data: snaps.map(s => s.gpus?.[i] ? value(s.gpus[i]) : null),
+      }))
+    : [{ label: null, data: snaps.map(s => s.gpu ? value(s.gpu) : null) }];
+  const gpu = (k) => perGpu(g => g[k] ?? null);
+  const firstGpu = snaps[0]?.gpus?.[0] || snaps[0]?.gpu;
+  const single = (data) => [{ label: null, data }];
   return [
     {
       key: 'gpu-util', title: 'GPU utilization', unit: '%',
-      data: gpu('util_pct'), yMax: 100, palette: 'session-2',
+      series: gpu('util_pct'), yMax: 100, palette: 'session-2',
       fmt: v => fmt(v, 0) + '%',
     },
     {
       key: 'gpu-mem', title: 'GPU memory used', unit: 'GiB',
-      data: snaps.map(s => s.gpu ? s.gpu.mem_used_mib / 1024 : null),
-      yMax: (snaps[0]?.gpu?.mem_total_mib || 81559) / 1024, palette: 'accent',
+      series: perGpu(g => g.mem_used_mib / 1024),
+      yMax: (firstGpu?.mem_total_mib || 81559) / 1024, palette: 'accent',
       fmt: v => fmt(v, 1) + ' GiB',
     },
     {
       key: 'gpu-temp', title: 'GPU temperature', unit: '°C',
-      data: gpu('temp_c'), palette: 'session-4',
+      series: gpu('temp_c'), palette: 'session-4',
       fmt: v => fmt(v, 0) + '°C',
     },
     {
       key: 'gpu-power', title: 'GPU power', unit: 'W',
-      data: gpu('power_w'), palette: 'session-1',
+      series: gpu('power_w'), palette: 'session-1',
       fmt: v => fmt(v, 0) + ' W',
     },
     {
       key: 'cpu-load', title: 'CPU load (1m)', unit: 'load',
-      data: snaps.map(s => s.cpu_load_1m), palette: 'session-2',
+      series: single(snaps.map(s => s.cpu_load_1m)), palette: 'session-2',
       fmt: v => fmt(v, 2),
     },
     {
       key: 'mem-used', title: 'System memory used', unit: 'GiB',
-      data: snaps.map(s => s.mem_used_gib), palette: 'session-3',
+      series: single(snaps.map(s => s.mem_used_gib)), palette: 'session-3',
       fmt: v => fmt(v, 0) + ' GiB',
     },
-  ].map(m => ({ ...m, labels }));
+    {
+      key: 'disk-used', title: 'Disk used (/workspace)', unit: 'GiB',
+      series: single(snaps.map(s => s.disk_used_gib)), palette: 'session-1',
+      yMax: snaps.find(s => s.disk_total_gib)?.disk_total_gib,
+      fmt: v => fmt(v, 0) + ' GiB',
+    },
+  // A monitor that doesn't sample a metric (PostTrainBench's has no disk, older
+  // PTB-Max runs only GPU use) gets no empty chart for it.
+  ].filter(m => m.series.some(se => se.data.some(v => v != null)))
+    .map(m => ({ ...m, labels }));
 }
 
 function renderMiniCharts() {
@@ -1069,6 +1106,8 @@ function setChartDefaults() {
   Chart.defaults.borderColor = css.getPropertyValue('--border-color').trim() || '#d9d4c8';
 }
 
+const GPU_PALETTES = ['accent', 'session-2', 'session-3', 'session-4', 'session-1'];
+
 function paletteColor(palette) {
   const css = getComputedStyle(document.documentElement);
   const map = {
@@ -1095,6 +1134,19 @@ function buildChart(canvasId, def, { motion = 'initial', showXAxis = true } = {}
   if (!ctx) return null;
   const css = getComputedStyle(document.documentElement);
   const color = paletteColor(def.palette);
+  const several = def.series.length > 1;
+  const datasets = def.series.map((se, i) => {
+    const c = several ? paletteColor(GPU_PALETTES[i % GPU_PALETTES.length]) : color;
+    return {
+      label: se.label || def.title,
+      data: se.data,
+      borderColor: c,
+      backgroundColor: c + '22',
+      // Past the palette, lines repeat its colors dashed.
+      borderDash: i >= GPU_PALETTES.length ? [4, 3] : [],
+      fill: several ? false : 'origin',
+    };
+  });
   const muted = css.getPropertyValue('--text-secondary').trim() || '#6b655a';
   const text = css.getPropertyValue('--text-primary').trim() || '#2d2a23';
   const border = css.getPropertyValue('--border-color').trim() || '#d9d4c8';
@@ -1110,13 +1162,7 @@ function buildChart(canvasId, def, { motion = 'initial', showXAxis = true } = {}
     type: 'line',
     data: {
       labels: def.labels,
-      datasets: [{
-        label: def.title,
-        data: def.data,
-        borderColor: color,
-        backgroundColor: color + '22',
-        fill: 'origin',
-      }],
+      datasets,
     },
     options: {
       responsive: true,
@@ -1169,7 +1215,12 @@ function buildChart(canvasId, def, { motion = 'initial', showXAxis = true } = {}
         },
       },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: several,
+          position: 'top',
+          align: 'end',
+          labels: { boxWidth: 8, boxHeight: 2, padding: 6, font: { size: 10 } },
+        },
         tooltip: {
           backgroundColor: surface,
           titleColor: text,
@@ -1177,7 +1228,7 @@ function buildChart(canvasId, def, { motion = 'initial', showXAxis = true } = {}
           borderColor: border,
           borderWidth: 1,
           cornerRadius: 6,
-          displayColors: false,
+          displayColors: several,
           caretPadding: 10,
           caretSize: 6,
           intersect: true,
@@ -1191,7 +1242,7 @@ function buildChart(canvasId, def, { motion = 'initial', showXAxis = true } = {}
               const ts = def.labels[items[0]?.dataIndex];
               return ts || '';
             },
-            label: (ctx) => `${def.title}: ${def.fmt(ctx.parsed.y)}`,
+            label: (ctx) => `${ctx.dataset.label}: ${def.fmt(ctx.parsed.y)}`,
           },
         },
       },
@@ -1763,6 +1814,10 @@ function guessLang(path) {
 // ---------- Tabs -------------------------------------------------------
 
 function setupTabs() {
+  // Runs no judge reviewed (PTB-Max, `judgements: null`) have no Judge tab.
+  if (RECORD.judgements === null && !RECORD.judge) {
+    els.tabNav.querySelector('[data-tab="judge"]')?.remove();
+  }
   const btns = [...els.tabNav.querySelectorAll('.tab-btn')];
   const sections = new Map();
   for (const b of btns) sections.set(b.dataset.tab, document.getElementById('section-' + b.dataset.tab));
