@@ -253,7 +253,8 @@ function renderSummary() {
   if (m.seed) subBits.push('seed ' + m.seed);
   // The version stays on one line with the last bit, so it never wraps alone.
   const last = subBits.pop();
-  const tail = `<span class="nowrap">${last ? escapeHtml(last) + ' · ' : ''}${versionHtml(ix)}</span>`;
+  const version = versionHtml(ix);
+  const tail = `<span class="nowrap">${escapeHtml(last || '')}${last && version ? ' · ' : ''}${version}</span>`;
   els.summarySub.innerHTML = [...subBits.map(escapeHtml), tail].join(' · ');
 
   // Run ID with copy button
@@ -402,8 +403,10 @@ function renderSeedStrip() {
   els.seedStrip.hidden = false;
 }
 
-// End of the subtitle line: whether the run counts toward v1.2.
+// End of the subtitle line: whether the run counts toward v1.2. Runs of other
+// suites have no `v12` and get no label.
 function versionHtml(ix) {
+  if (!('v12' in ix)) return '';
   return ix.v12
     ? `<a class="run-version" href="../blog/posttrainbench-1-2/" data-tip="${escapeHtml(V12_TIP)}">v1.2</a>`
     : `<span class="run-version" data-tip="${escapeHtml(PRE_V12_TIP)}">pre-v1.2</span>`;
