@@ -62,7 +62,8 @@ const chartAgentKeysByVersion = {
         "opus-4.8",
         "fable-5.1",
         "gpt-5.6-sol",
-        "fable-5"
+        "fable-5",
+        "locus"
     ].includes(key))
 };
 
