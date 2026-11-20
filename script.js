@@ -1067,9 +1067,8 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
     const isCompactDesktop = !isMobile && window.innerWidth < 1250;
-    // Desktop keeps the complete vertical ranking overview, best agent on the
-    // left. Phones switch to a shorter horizontal comparison so labels remain
-    // readable without rotation.
+    // Desktop keeps the complete vertical ranking overview. Phones switch to a
+    // shorter horizontal comparison so labels remain readable without rotation.
     const xLabelRotation = window.innerWidth < 1250 ? 45 : 0;
 
     // Set wrapper dimensions based on screen size
@@ -1099,7 +1098,7 @@ function createSimpleChart(modelName = "average", { motion = 'initial' } = {}) {
             ...data.filter(d => !d.isBaseline).slice(0, 10),
             baseReference
         ].filter(Boolean)
-        : [...data];
+        : [...data].reverse();
 
     const chartKey = document.querySelector('.main-chart-key');
     const externalKey = chartKey?.querySelector('.main-chart-key-external');
