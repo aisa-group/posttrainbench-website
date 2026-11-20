@@ -119,3 +119,5 @@ opencode_zai_glm-5_10h_run2,3:33:06,35.5%
 qwen3max_qwen3-max-2026-01-23_10h,1:44:20,17.4%
 qwen_code_qwen_qwen4-max_xhigh_10h_run1,9:30:10,95.0%
 qwen_code_qwen_qwen4-max_xhigh_10h_run2,9:02:43,90.5%
+codex_max_gpt-6.2-astra_10h_run1,9:56:05,99.3%
+codex_max_gpt-6.2-astra_10h_run2,9:56:11,99.4%

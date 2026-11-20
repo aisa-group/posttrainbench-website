@@ -160,7 +160,7 @@
     [/^codex_non_api_xhigh_/, 'xHigh'],
     [/^codex_non_api_high_/, 'High'],
     [/^codex_non_api_gpt-5\.3-codex_/, 'Med'],
-    [/^(?:claude_non_api|claude_openrouter|codex_non_api)_max_/, 'Max'],
+    [/^(?:claude_non_api|claude_openrouter|codex_non_api|codex_openrouter)_max_/, 'Max'],
     [/^glmx_/, 'Max'],
     [/^claude_non_api_claude-opus-4-7_/, 'xHigh'],
     [/^claude_non_api_claude-opus-4-8_/, 'High'],
