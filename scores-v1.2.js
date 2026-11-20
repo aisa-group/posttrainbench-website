@@ -878,6 +878,112 @@ window.SCORES_DATA_V12 = {
         }
       }
     },
+    "gpt-6.2-astra": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 11.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 63.84,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 32.29,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 87.72,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 43.56,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 39.74,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 23.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 86.66,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 36.05,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 91.67,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 53.57,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 86.89,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 14.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 77.17,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 28.68,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 89.36,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 47.43,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 64.43,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 0.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 63.53,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 30.8,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 81.27,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 47.38,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 59.55,
+          "fallbackType": false
+        }
+      }
+    },
     "gpt-6.1-sol": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
@@ -2907,6 +3013,11 @@ window.SCORES_DATA_V12 = {
       "std": 0.88,
       "n": 2
     },
+    "gpt-6.2-astra": {
+      "avg": 43.49,
+      "std": 1.26,
+      "n": 2
+    },
     "locus": {
       "avg": 41.66,
       "std": 0.82,
@@ -3116,6 +3227,40 @@ window.SCORES_DATA_V12 = {
         "gsm8k": 5.75,
         "healthbench": 7.84,
         "humaneval": 0.43
+      }
+    },
+    "gpt-6.2-astra": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 4.24,
+        "arenahardwriting": 1.29,
+        "gpqamain": 0.42,
+        "gsm8k": 2.36,
+        "healthbench": 0.84,
+        "humaneval": 44.98
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 4.24,
+        "arenahardwriting": 5.67,
+        "gpqamain": 4.68,
+        "gsm8k": 0.13,
+        "healthbench": 0.78,
+        "humaneval": 3.88
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 1.41,
+        "arenahardwriting": 4.2,
+        "gpqamain": 2.37,
+        "gsm8k": 1.29,
+        "healthbench": 5.97,
+        "humaneval": 2.01
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 0.0,
+        "arenahardwriting": 17.67,
+        "gpqamain": 0.0,
+        "gsm8k": 0.39,
+        "healthbench": 3.83,
+        "humaneval": 5.17
       }
     },
     "gpt-6.1-sol": {
@@ -3891,6 +4036,13 @@ window.SCORES_DATA_V12 = {
       "time": "9:16",
       "stdHours": 0.323,
       "stdTime": "0:19",
+      "n": 2
+    },
+    "gpt-6.2-astra": {
+      "hours": 9.936,
+      "time": "9:56",
+      "stdHours": 0.001,
+      "stdTime": "0:00",
       "n": 2
     },
     "locus": {

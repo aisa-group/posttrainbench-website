@@ -144,6 +144,9 @@
                           (_, ver, flash) => `GLM ${ver}${flash ? ' Flash' : ''}`);
     value = value.replace(/^minimax-m([\d.]+)(?:-free)?$/i,            (_, ver) => `MiniMax M${ver}`);
     value = value.replace(/^qwen3-max(?:-\d{4}-\d{2}-\d{2})?$/i,       'Qwen3 Max');
+    // Qwen Code runs report the OpenRouter id (`qwen/qwen4-max`, optionally `:xhigh`).
+    value = value.replace(/^qwen\/qwen(\d+(?:\.\d+)?)-max(?::(\w+))?$/i,
+                          (_, ver, variant) => `Qwen${ver} Max${variant ? ` (${variant})` : ''}`);
     value = value.replace(/^meta\/muse-wonder(?::(\w+))?$/i,
                           (_, variant) => `Muse Wonder${variant ? ` (${variant})` : ''}`);
     // Match both kebab (from experiment names) and "Cursor Grok 4.5 High"
@@ -160,7 +163,7 @@
     [/^codex_non_api_xhigh_/, 'xHigh'],
     [/^codex_non_api_high_/, 'High'],
     [/^codex_non_api_gpt-5\.3-codex_/, 'Med'],
-    [/^(?:claude_non_api|claude_openrouter|codex_non_api)_max_/, 'Max'],
+    [/^(?:claude_non_api|claude_openrouter|codex_non_api|codex_openrouter)_max_/, 'Max'],
     [/^glmx_/, 'Max'],
     [/^claude_non_api_claude-opus-4-7_/, 'xHigh'],
     [/^claude_non_api_claude-opus-4-8_/, 'High'],

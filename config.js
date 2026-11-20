@@ -19,6 +19,7 @@ const chartAgentKeys = [
     "fable-5.1",
     "opus-5.5-max",
     "gpt-6-astra",
+    "gpt-6.2-astra",
     "gpt-6.1-sol",
     "gemini-4-argon",
     "gemini-4-carbon",
@@ -61,7 +62,8 @@ const chartAgentKeysByVersion = {
         "opus-4.8",
         "fable-5.1",
         "gpt-5.6-sol",
-        "fable-5"
+        "fable-5",
+        "locus"
     ].includes(key))
 };
 
@@ -75,6 +77,7 @@ const timeChartAgentKeys = [
     "fable-5.1",
     "opus-5.5-max",
     "gpt-6-astra",
+    "gpt-6.2-astra",
     "gpt-6.1-sol",
     "gemini-4-argon",
     "gemini-4-carbon",
@@ -124,6 +127,7 @@ const allAgentKeys = [
     "fable-5.1",
     "opus-5.5-max",
     "gpt-6-astra",
+    "gpt-6.2-astra",
     "gpt-6.1-sol",
     "gemini-4-argon",
     "gemini-4-carbon",
@@ -222,6 +226,7 @@ const agentInfo = {
     "gpt-5.5-xhigh-reprompted": { name: "GPT 5.5", description: "GPT 5.5 extra-high reasoning agent (reprompted)", scaffold: "Codex CLI", reasoningEffort: "xHigh, Reprompted" },
     "gpt-5.6-sol": { name: "GPT 5.6 (Sol)", description: "GPT 5.6 Sol max reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Max" },
     "gpt-6-astra": { name: "GPT 6 (Astra)", description: "GPT 6 Astra max reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Max" },
+    "gpt-6.2-astra": { name: "GPT 6.2 (Astra)", description: "GPT 6.2 Astra max reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Max" },
     "gpt-6.1-sol": { name: "GPT 6.1 (Sol)", description: "GPT 6.1 Sol max reasoning agent", scaffold: "Codex CLI", reasoningEffort: "Max" },
     "opus-5": { name: "Opus 5", description: "Claude Opus 5 agent", scaffold: "Claude Code" },
     "opus-5.5-max": { name: "Opus 5.5", description: "Claude Opus 5.5 with a 1M context window, max reasoning agent", scaffold: "Claude Code", reasoningEffort: "Max" },
