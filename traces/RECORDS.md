@@ -92,6 +92,7 @@ Top-level fields:
 - `score`
 - `judgements`: `{contamination, disallowed_model, version}`, each `null` or `{flagged, justification}`. `null` altogether when no judge ran, and then there's no Judge tab.
 - `judge_traces`
+- `monitor`: below. `null` or absent when no monitor checked the agent's tool calls, and then there's no Monitor tab.
 - `prompt`
 - `time_taken`
 - `error_log`
@@ -122,6 +123,29 @@ Each event has:
 - anything else is shown as its `raw` JSON.
 
 `result` events end a session: `stop_reason`, `result_text`, `duration_ms`, `total_cost_usd`.
+
+### Monitor
+
+`monitor` is the record of a monitor that checked each tool call of the agent before it ran. The Monitor tab shows it, and a tool call in the trace gets a chip when its decision is not a plain allow.
+
+- `mode`: `enforce` (a call that was not allowed did not run) or `log` (nothing was blocked; a block is what would have happened);
+- `judge_model`: the model that judged the calls no rule decided, or `null`;
+- `rules_sha256`: the hash of the rules file;
+- `counts`: `calls`, `allowed`, `flagged`, `blocked`, `results_withheld`, `judged`, and, when there were any, `errors` and `judge_errors`;
+- `violations`: `{reason: blocked calls}`, a reason being a rule's id or `judge:<category>`, and `max_violations`, the count for one reason at which the run ends;
+- `stopped`: `null`, or `{time, kind, count, call}` when the monitor ended the run;
+- `errors[]`: what went wrong inside the monitor (the calls concerned ran);
+- `all_decisions`: whether `decisions[]` has every decision; otherwise it has only those that are not a plain allow;
+- `decisions[]`: below.
+
+Each decision has:
+- `time`: seconds since the epoch;
+- `call`: the `id` of the `tool_use` block it is about, and `tool`, its name;
+- `phase`: `call`, or `result` for a result that was kept from the agent;
+- `verdict`: `allow`, `flag` or `block`;
+- `source`: `rule`, `judge` or `none`, and `rule`, the id of the rule that matched;
+- `enforced`: whether the block was applied;
+- and, optionally, `category`, `reason`, `matched` (the text a rule matched), `excerpt` (the start of the call's arguments), `context` (the text around a match in a result), `suggestion`, and `judge`: `{seconds, model, usage: {prompt_tokens, completion_tokens, cached_input_tokens}, truncated, error, verdict}`.
 
 ### System monitor
 

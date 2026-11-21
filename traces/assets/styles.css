@@ -3977,3 +3977,222 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
     transform: none;
   }
 }
+
+/* ===================================================================
+   Monitor tab: the check of the agent's tool calls during the run
+   =================================================================== */
+
+.monitor-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.25rem, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+.monitor-stat {
+  --verdict-color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.8rem 0.7rem;
+}
+.monitor-stat.bad  { --verdict-color: var(--session-4); }
+.monitor-stat.warn { --verdict-color: var(--session-1); }
+.monitor-stat-num {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.012em;
+  line-height: 1;
+  color: var(--verdict-color);
+}
+.monitor-stat-label {
+  display: block;
+  margin-top: 0.42rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+.monitor-meta {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.monitor-meta b { font-weight: 600; color: var(--text-primary); }
+.monitor-meta code,
+.monitor-banner code,
+.monitor-facts code,
+.monitor-gist code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.monitor-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  margin: 0 0 0.7rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--session-4) 40%, var(--border-color));
+  border-left-width: 3px;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--session-4) 8%, var(--bg-secondary));
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.monitor-errors {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.monitor-errors summary { cursor: pointer; }
+.monitor-errors ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+.monitor-errors li { overflow-wrap: anywhere; }
+
+.monitor-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0.75rem;
+}
+.monitor-filters:empty { display: none; }
+.monitor-filter {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .monitor-filter:not(:disabled):hover { border-color: var(--accent-primary); color: var(--text-primary); }
+}
+.monitor-filter.active {
+  background: var(--bg-tertiary);
+  border-color: color-mix(in srgb, var(--accent-primary) 50%, var(--border-color));
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.monitor-filter:disabled { opacity: 0.45; cursor: default; }
+.monitor-filter:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-primary) 55%, transparent);
+  outline-offset: 1px;
+}
+.monitor-filter-n { font-variant-numeric: tabular-nums; font-weight: 400; opacity: 0.8; }
+
+/* One decision: a verdict card whose summary is a single line. */
+.verdict-item.warn { --verdict-color: var(--session-1); }
+.verdict-item.warn { border-color: color-mix(in srgb, var(--session-1) 35%, var(--border-color)); }
+.monitor-row > summary {
+  flex-wrap: nowrap;
+  gap: 0.55rem;
+  padding: 0.5rem 0.75rem;
+}
+.monitor-time {
+  flex: none;
+  min-width: 4.3em;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.monitor-row .verdict-badge { flex: none; }
+.monitor-tool {
+  flex: none;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+.monitor-source {
+  flex: none;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.monitor-gist {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+/* The open row shows its reason in full below. */
+.monitor-row[open] .monitor-gist { visibility: hidden; }
+.monitor-row .verdict-caret { flex: none; }
+.monitor-flash {
+  outline: 2px solid color-mix(in srgb, var(--accent-primary) 60%, transparent);
+  outline-offset: 2px;
+}
+.monitor-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.3rem 1rem;
+  margin: 0.7rem 0 0;
+  font-size: 0.82rem;
+}
+.monitor-facts:first-child { margin-top: 0; }
+.monitor-facts dt { color: var(--text-secondary); }
+.monitor-facts dd { margin: 0; overflow-wrap: anywhere; }
+.monitor-block-label {
+  margin-top: 0.8rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.monitor-pre {
+  max-height: 22rem;
+  margin: 0.3rem 0 0;
+  padding: 0.6rem 0.7rem;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  background: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.monitor-more { margin-top: 0.1rem; }
+/* The monitor's chip on a tool call in the trace. */
+.monitor-chip { font-family: inherit; line-height: inherit; cursor: pointer; }
+@media (max-width: 640px) {
+  /* The time, verdict, tool and caret on one line; what decided and the
+     reason under it. (Judge cards are a grid at this width.) */
+  .verdict-item.monitor-row > summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.5rem;
+  }
+  .monitor-time { min-width: 0; }
+  .monitor-row .verdict-caret { order: 1; margin-left: auto; }
+  .monitor-source { order: 2; flex: 1 1 100%; white-space: normal; }
+  .monitor-gist { order: 3; flex: 1 1 100%; white-space: normal; }
+  .monitor-row[open] .monitor-gist { display: none; }
+  .monitor-facts { grid-template-columns: minmax(0, 1fr); gap: 0.1rem; }
+  .monitor-facts dd { margin-bottom: 0.4rem; }
+}
+@media (max-width: 480px) {
+  /* A fourth tab does not fit a phone's width with the icons. */
+  .tab-nav:has([data-tab="monitor"]) .tab-btn {
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .tab-nav:has([data-tab="monitor"]) .tab-btn svg { display: none; }
+}

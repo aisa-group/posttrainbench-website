@@ -185,6 +185,13 @@
           </svg>
           <span>Judge</span>
         </button>
+        <button class="tab-btn" data-tab="monitor" role="tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"></path>
+            <polyline points="9 12 11.3 14.3 15.2 9.8"></polyline>
+          </svg>
+          <span>Monitor</span>
+        </button>
         <button class="tab-btn" data-tab="workspace" role="tab">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
@@ -237,6 +244,15 @@
         </header>
         <div id="judge-verdicts"></div>
         <div id="judge"></div>
+      </section>
+
+      <section id="section-monitor" class="section">
+        <header class="section-header">
+          <p class="muted section-desc" id="monitor-desc"></p>
+        </header>
+        <div id="monitor-summary"></div>
+        <div id="monitor-filters" class="monitor-filters" role="group" aria-label="Decisions shown"></div>
+        <div id="monitor-list"></div>
       </section>
 
       <section id="section-workspace" class="section">

@@ -41,6 +41,12 @@ const els = {
   judgeVerdicts: document.getElementById('judge-verdicts'),
   judgeVersionNote: document.getElementById('judge-version-note'),
 
+  // Monitor section
+  monitorDesc: document.getElementById('monitor-desc'),
+  monitorSummary: document.getElementById('monitor-summary'),
+  monitorFilters: document.getElementById('monitor-filters'),
+  monitorList: document.getElementById('monitor-list'),
+
   // Center sections
   trace: document.getElementById('trace'),
   judge: document.getElementById('judge'),
@@ -75,6 +81,11 @@ let JUDGE_LOADED = false;
 let JUDGE_PROMISE = null;
 let JUDGE_TRACES = null;      // key → trace, once loaded
 let JUDGE_TRACE_OPEN = null;  // key of the trace shown below the verdicts
+let MONITOR_DECISIONS = [];     // RECORD.monitor.decisions
+let MONITOR_BY_CALL = new Map(); // tool call id → indexes of its decisions that are not a plain allow
+let TOOL_USE_BY_ID = new Map();  // tool call id → its tool_use block in the trace
+let MONITOR_FILTER = 'all';
+let MONITOR_SHOWN = 0;          // rows of the filtered list rendered so far
 let RAIL_CHARTS = [];           // Chart instances pinned to the right rail
 let MODAL_CHARTS = [];          // Chart instances inside the show-all modal
 let MODAL_CLOSE_TIMER = null;
@@ -102,9 +113,12 @@ async function load() {
     computeTraceStart();
     renderSummary();
     setupReturnContext();
+    indexMonitor();
     renderTrace();
     renderJudge();
     setupJudgeActions();
+    renderMonitor();
+    setupMonitorActions();
     if ((RECORD.system_monitor || []).length) whenChartReady(renderMiniCharts);
     else renderMiniCharts();
     renderMiniTokens();
@@ -900,11 +914,12 @@ function renderToolCall(block, pair, expandResults) {
   }
 
   const idLabel = block.id ? `<span class="tool-id">${escapeHtml(block.id.slice(-8))}</span>` : '';
-  const summary = `<summary>${ICON.tool} <span class="block-label-inline">Tool</span> <span class="tool-name">${escapeHtml(name)}</span>${idLabel}</summary>`;
+  const summary = `<summary>${ICON.tool} <span class="block-label-inline">Tool</span> <span class="tool-name">${escapeHtml(name)}</span>${monitorChipsHtml(block.id)}${idLabel}</summary>`;
   const result = pair ? renderToolResult(pair.block, expandResults) : '';
   const expanded = expandResults ? 'expanded' : '';
   const variant = name === 'Bash' ? 'tool-bash' : '';
-  return `<details class="tool-call ${variant} ${expanded}" open>${summary}<div class="tool-args">${argsHtml}</div>${result}</details>`;
+  const useId = block.id ? ` data-tool-use="${escapeHtml(block.id)}"` : '';
+  return `<details class="tool-call ${variant} ${expanded}"${useId} open>${summary}<div class="tool-args">${argsHtml}</div>${result}</details>`;
 }
 
 function renderToolResult(block, expandResults) {
@@ -1576,6 +1591,391 @@ function setupJudgeActions() {
   });
 }
 
+// ---------- Monitor (the check of the agent's tool calls) ---------------
+//
+// RECORD.monitor is the summary of a monitor that checked each tool call of
+// the agent before it ran: its mode, its counts, and `decisions`, one per
+// checked call (`phase: "call"`) or per result it kept from the agent
+// (`phase: "result"`). With `all_decisions` the list has every decision;
+// without, only those that were not a plain allow. See RECORDS.md.
+
+const MONITOR_PAGE = 400;        // rows added per "show more"
+const MONITOR_CALL_CHARS = 4000; // of a call's arguments, in a decision's body
+const MONITOR_KIND = {
+  blocked:  { cls: 'bad',  filter: 'Blocked' },
+  withheld: { cls: 'bad',  filter: 'Results withheld' },
+  flagged:  { cls: 'warn', filter: 'Flagged' },
+  allowed:  { cls: 'good', filter: 'Allowed' },
+};
+
+function monitorKind(d) {
+  if (d.phase === 'result') return 'withheld';
+  if (d.verdict === 'block') return 'blocked';
+  if (d.verdict === 'flag') return 'flagged';
+  return 'allowed';
+}
+
+// With mode "log" nothing is enforced: a block is what would have happened.
+function monitorBadge(d) {
+  switch (monitorKind(d)) {
+    case 'withheld': return d.enforced ? 'Result withheld' : 'Result matched';
+    case 'blocked':  return d.enforced ? 'Blocked' : 'Would block';
+    case 'flagged':  return 'Flagged';
+    default:         return 'Allowed';
+  }
+}
+
+function monitorSource(d) {
+  if (d.source === 'judge') return d.rule ? `judge, after rule ${d.rule}` : 'judge';
+  if (d.rule) return `rule ${d.rule}`;
+  return 'not judged';
+}
+
+function indexMonitor() {
+  const m = RECORD.monitor;
+  MONITOR_DECISIONS = (m && Array.isArray(m.decisions)) ? m.decisions : [];
+  MONITOR_BY_CALL = new Map();
+  MONITOR_DECISIONS.forEach((d, i) => {
+    if (!d.call || monitorKind(d) === 'allowed') return;
+    if (!MONITOR_BY_CALL.has(d.call)) MONITOR_BY_CALL.set(d.call, []);
+    MONITOR_BY_CALL.get(d.call).push(i);
+  });
+  TOOL_USE_BY_ID = new Map();
+  if (!m) return;
+  for (const ev of RECORD.events) {
+    for (const b of (Array.isArray(ev.blocks) ? ev.blocks : [])) {
+      if (b && b.type === 'tool_use' && b.id) TOOL_USE_BY_ID.set(b.id, b);
+    }
+  }
+}
+
+// On a tool call in the trace: what the monitor did to it, as a chip that
+// opens the decision in the Monitor tab.
+function monitorChipsHtml(callId) {
+  const rows = callId ? MONITOR_BY_CALL.get(callId) : null;
+  if (!rows) return '';
+  return rows.map(i => {
+    const d = MONITOR_DECISIONS[i];
+    const kind = monitorKind(d);
+    const text = {
+      blocked: d.enforced ? 'blocked by monitor' : 'monitor would block',
+      withheld: d.enforced ? 'result withheld by monitor' : 'monitor matched the result',
+      flagged: 'flagged by monitor',
+    }[kind];
+    return `<button type="button" class="chip ${MONITOR_KIND[kind].cls} monitor-chip" data-monitor-row="${i}" title="${escapeHtml(d.reason || 'Open in the Monitor tab')}">${text}</button>`;
+  }).join('');
+}
+
+function monitorCallText(d) {
+  const block = TOOL_USE_BY_ID.get(d.call);
+  let text = null;
+  if (block) {
+    const input = block.input;
+    text = (input && typeof input.command === 'string') ? input.command : JSON.stringify(input ?? {}, null, 2);
+  } else if (d.excerpt) {
+    text = d.excerpt;
+  }
+  return text;
+}
+
+function monitorFilters() {
+  // Without every decision, the list is the notable ones: no "allowed" to show.
+  return RECORD.monitor.all_decisions
+    ? ['notable', 'blocked', 'flagged', 'withheld', 'allowed', 'all']
+    : ['blocked', 'flagged', 'withheld', 'all'];
+}
+
+function monitorMatches(d, filter) {
+  const kind = monitorKind(d);
+  if (filter === 'all') return true;
+  if (filter === 'notable') return kind !== 'allowed';
+  return kind === filter;
+}
+
+function monitorFiltered() {
+  const rows = [];
+  MONITOR_DECISIONS.forEach((d, i) => { if (monitorMatches(d, MONITOR_FILTER)) rows.push(i); });
+  return rows;
+}
+
+// How long the judge took and what it used, over the listed decisions.
+function monitorJudgeStats() {
+  const seconds = [];
+  const tokens = { input: 0, output: 0, cached: 0 };
+  for (const d of MONITOR_DECISIONS) {
+    const j = d.judge;
+    if (!j) continue;
+    if (typeof j.seconds === 'number') seconds.push(j.seconds);
+    const u = j.usage || {};
+    tokens.input += u.prompt_tokens || 0;
+    tokens.output += u.completion_tokens || 0;
+    tokens.cached += u.cached_input_tokens || 0;
+  }
+  seconds.sort((a, b) => a - b);
+  const at = q => seconds[Math.min(seconds.length - 1, Math.floor(q * seconds.length))];
+  return seconds.length ? { median: at(0.5), p90: at(0.9), tokens } : null;
+}
+
+function renderMonitor() {
+  const m = RECORD.monitor;
+  if (!m) return;
+  const counts = m.counts || {};
+  const enforce = m.mode === 'enforce';
+  const checks = m.judge_model
+    ? 'against block lists (hosts, URL prefixes and patterns), and then by a judge model'
+    : 'against block lists (hosts, URL prefixes and patterns)';
+  const effect = enforce
+    ? 'A call that was not allowed did not run: the agent read why in place of its result.'
+    : 'It only recorded: every call ran, and the list shows what would have been blocked.';
+  els.monitorDesc.textContent = `A monitor checked each tool call of the agent before it ran, ${checks}. ${effect}`;
+
+  const tiles = [
+    { n: counts.calls, label: 'calls checked' },
+    { n: counts.allowed, label: 'allowed' },
+    { n: counts.flagged, label: 'flagged', cls: 'warn' },
+    { n: counts.blocked, label: enforce ? 'blocked' : 'would be blocked', cls: 'bad' },
+    { n: counts.results_withheld, label: enforce ? 'results withheld' : 'results matched', cls: 'bad' },
+    { n: counts.judged, label: 'judged by the model' },
+  ].map(t => {
+    const n = t.n || 0;
+    return `<div class="monitor-stat ${n && t.cls ? t.cls : ''}">
+      <span class="monitor-stat-num">${n.toLocaleString()}</span>
+      <span class="monitor-stat-label">${t.label}</span>
+    </div>`;
+  });
+
+  const meta = [`Mode <b>${escapeHtml(m.mode || 'unknown')}</b>`];
+  if (m.judge_model) {
+    const stats = m.all_decisions ? monitorJudgeStats() : null;
+    let judge = `judge <b>${escapeHtml(m.judge_model)}</b>`;
+    if (stats) {
+      judge += `, ${stats.median.toFixed(1)} s per judgement at the median and ${stats.p90.toFixed(1)} s at the 90th percentile`
+        + `, ${stats.tokens.input.toLocaleString()} input`
+        + (stats.tokens.cached ? ` (and ${stats.tokens.cached.toLocaleString()} read from cache)` : '')
+        + ` and ${stats.tokens.output.toLocaleString()} output tokens in all`;
+    }
+    meta.push(judge);
+  } else {
+    meta.push('no judge model');
+  }
+  if (m.rules_sha256) meta.push(`rules <code title="sha256 ${escapeHtml(m.rules_sha256)}">${escapeHtml(m.rules_sha256.slice(0, 8))}</code>`);
+
+  const notes = [];
+  if (m.stopped) {
+    const last = MONITOR_DECISIONS.findIndex(d => d.call === m.stopped.call && monitorKind(d) === 'blocked');
+    notes.push(`<div class="monitor-banner bad">The monitor ended the agent's run: ${escapeHtml(String(m.stopped.count))} of its calls were blocked for the same reason (<code>${escapeHtml(m.stopped.kind || '')}</code>).`
+      + (last >= 0 ? ` <button type="button" class="btn btn-small" data-monitor-row="${last}">Show the last one</button>` : '') + '</div>');
+  }
+  const violations = Object.entries(m.violations || {});
+  if (violations.length) {
+    const limit = m.max_violations ? ` of ${m.max_violations}` : '';
+    notes.push(`<p class="monitor-meta">Blocked calls by reason: ${violations.map(([kind, n]) =>
+      `<span class="chip bad">${escapeHtml(kind)}: ${escapeHtml(String(n))}${limit}</span>`).join(' ')}`
+      + (m.max_violations && enforce ? ` <span class="muted">(the run ends at ${m.max_violations} for one reason)</span>` : '') + '</p>');
+  }
+  const errors = Array.isArray(m.errors) ? m.errors : [];
+  const errorCount = (counts.errors || 0) + (counts.judge_errors || 0);
+  if (errorCount || errors.length) {
+    notes.push(`<details class="monitor-errors"><summary>${(errorCount || errors.length).toLocaleString()} error${(errorCount || errors.length) === 1 ? '' : 's'} inside the monitor; the calls they concern ran</summary>`
+      + `<ul>${errors.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></details>`);
+  }
+  if (!m.all_decisions) {
+    notes.push('<p class="monitor-meta">This record lists the decisions that were not a plain allow; the allowed calls are counted above.</p>');
+  }
+
+  els.monitorSummary.innerHTML = `<div class="monitor-stats">${tiles.join('')}</div>`
+    + `<p class="monitor-meta">${meta.join(' · ')}</p>${notes.join('')}`;
+
+  const notable = MONITOR_DECISIONS.some(d => monitorKind(d) !== 'allowed');
+  MONITOR_FILTER = (m.all_decisions && notable) ? 'notable' : 'all';
+  MONITOR_SHOWN = MONITOR_PAGE;
+  renderMonitorFilters();
+  renderMonitorList();
+}
+
+function renderMonitorFilters() {
+  const labels = { notable: 'Not allowed outright', all: RECORD.monitor.all_decisions ? 'All' : 'All listed' };
+  els.monitorFilters.innerHTML = monitorFilters().map(f => {
+    const n = MONITOR_DECISIONS.filter(d => monitorMatches(d, f)).length;
+    const active = f === MONITOR_FILTER;
+    return `<button type="button" class="monitor-filter${active ? ' active' : ''}" data-monitor-filter="${f}" aria-pressed="${active}"${n ? '' : ' disabled'}>`
+      + `${labels[f] || MONITOR_KIND[f].filter}<span class="monitor-filter-n">${n.toLocaleString()}</span></button>`;
+  }).join('');
+}
+
+function renderMonitorList() {
+  const rows = monitorFiltered();
+  if (!rows.length) {
+    const calls = (RECORD.monitor.counts || {}).calls || 0;
+    els.monitorList.innerHTML = `<p class="muted">${MONITOR_DECISIONS.length
+      ? 'No decisions of this kind.'
+      : (calls ? `All ${calls.toLocaleString()} checked calls were allowed; this record does not list them.` : 'The monitor recorded no decisions.')}</p>`;
+    return;
+  }
+  const shown = rows.slice(0, MONITOR_SHOWN);
+  const rest = rows.length - shown.length;
+  els.monitorList.innerHTML = `<div class="verdict-list">${shown.map(i => monitorRowHtml(MONITOR_DECISIONS[i], i)).join('')}</div>`
+    + (rest > 0 ? `<button type="button" class="btn btn-small monitor-more" data-monitor-more>Show ${Math.min(rest, MONITOR_PAGE).toLocaleString()} more of ${rest.toLocaleString()}</button>` : '');
+}
+
+function monitorRowHtml(d, i) {
+  const kind = monitorKind(d);
+  const hasTime = typeof d.time === 'number';
+  const elapsed = (hasTime && TRACE_START_MS != null) ? fmtRelTime(d.time * 1000 - TRACE_START_MS) : '';
+  const absolute = hasTime ? `${new Date(d.time * 1000).toISOString().replace('T', ' ').slice(0, 19)} UTC` : '';
+  let gist;
+  if (d.reason) {
+    gist = escapeHtml(d.reason);
+  } else {
+    const call = (monitorCallText(d) || '').split('\n')[0].slice(0, 200);
+    gist = call ? `<code>${escapeHtml(call)}</code>` : '';
+  }
+  return `<details class="verdict-item monitor-row ${MONITOR_KIND[kind].cls}" data-monitor-row="${i}">
+    <summary>
+      <span class="monitor-time" title="${absolute}">${elapsed}</span>
+      <span class="verdict-badge">${monitorBadge(d)}</span>
+      <span class="monitor-tool">${escapeHtml(d.tool || 'tool')}</span>
+      <span class="monitor-source">${escapeHtml(monitorSource(d))}</span>
+      <span class="monitor-gist">${gist}</span>
+      <span class="verdict-caret" aria-hidden="true">›</span>
+    </summary>
+    <div class="verdict-item-body"></div>
+  </details>`;
+}
+
+// A decision's body, built when its row first opens.
+function monitorBodyHtml(d) {
+  const kind = monitorKind(d);
+  const facts = [['Decided by', escapeHtml(monitorSource(d))]];
+  if (d.category && d.category !== 'none') facts.push(['Category', escapeHtml(d.category)]);
+  if (d.matched) {
+    facts.push([kind === 'withheld' ? 'Matched in the result' : 'Matched in the call', `<code>${escapeHtml(d.matched)}</code>`]);
+  }
+  const suggestion = d.suggestion || d.judge?.verdict?.suggestion;
+  if (suggestion) facts.push(["Judge's suggestion", escapeHtml(suggestion)]);
+  if (d.judge) {
+    const j = d.judge;
+    const u = j.usage || {};
+    const parts = [escapeHtml(j.model || 'judge')];
+    if (typeof j.seconds === 'number') parts.push(`${j.seconds.toFixed(1)} s`);
+    if (u.prompt_tokens != null) {
+      parts.push(`${Number(u.prompt_tokens).toLocaleString()} input`
+        + (u.cached_input_tokens ? ` (and ${Number(u.cached_input_tokens).toLocaleString()} read from cache)` : '')
+        + ` and ${Number(u.completion_tokens || 0).toLocaleString()} output tokens`);
+    }
+    if (j.truncated) parts.push('the call was shortened for the judge');
+    if (j.error) parts.push(`no verdict, so the call ran: ${escapeHtml(j.error)}`);
+    facts.push(['Judge', parts.join(' · ')]);
+  }
+  if (kind === 'blocked') {
+    facts.push(['Effect', d.enforced
+      ? "The call did not run. The agent read the monitor's refusal in place of a result."
+      : 'Recorded only: the call ran.']);
+  } else if (kind === 'withheld') {
+    facts.push(['Effect', d.enforced
+      ? "The call ran. The agent read the monitor's sentence in place of its result."
+      : 'Recorded only: the agent read the result.']);
+  }
+
+  const out = [];
+  if (d.reason) out.push(`<p class="verdict-item-copy">${escapeHtml(d.reason)}</p>`);
+  out.push(`<dl class="monitor-facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`);
+  let call = monitorCallText(d);
+  if (call) {
+    if (call.length > MONITOR_CALL_CHARS) {
+      call = `${call.slice(0, MONITOR_CALL_CHARS)}\n… (${call.length.toLocaleString()} characters in all)`;
+    }
+    out.push(`<div class="monitor-block-label">The call</div><pre class="monitor-pre">${escapeHtml(call)}</pre>`);
+  }
+  if (d.context) {
+    out.push(`<div class="monitor-block-label">Around the match in the result</div><pre class="monitor-pre">${escapeHtml(d.context)}</pre>`);
+  }
+  if (TOOL_USE_BY_ID.has(d.call)) {
+    out.push(`<div class="verdict-actions"><button type="button" class="btn btn-small" data-show-call="${escapeHtml(d.call)}">Show in trace</button></div>`);
+  }
+  return out.join('');
+}
+
+function fillMonitorRow(row) {
+  if (row.dataset.filled) return;
+  const d = MONITOR_DECISIONS[Number(row.dataset.monitorRow)];
+  if (!d) return;
+  row.querySelector('.verdict-item-body').innerHTML = monitorBodyHtml(d);
+  row.dataset.filled = '1';
+}
+
+function setupMonitorActions() {
+  if (!RECORD.monitor) return;
+  els.monitorFilters.addEventListener('click', e => {
+    const btn = e.target.closest('[data-monitor-filter]');
+    if (!btn || btn.disabled) return;
+    MONITOR_FILTER = btn.dataset.monitorFilter;
+    MONITOR_SHOWN = MONITOR_PAGE;
+    renderMonitorFilters();
+    renderMonitorList();
+  });
+  // `toggle` does not bubble: listen while it is captured.
+  els.monitorList.addEventListener('toggle', e => {
+    const row = e.target.closest?.('.monitor-row');
+    if (row && row.open) fillMonitorRow(row);
+  }, true);
+  els.monitorList.addEventListener('click', e => {
+    if (e.target.closest('[data-monitor-more]')) {
+      MONITOR_SHOWN += MONITOR_PAGE;
+      renderMonitorList();
+      return;
+    }
+    const show = e.target.closest('[data-show-call]');
+    if (show) showCallInTrace(show.dataset.showCall);
+  });
+  els.monitorSummary.addEventListener('click', e => {
+    const btn = e.target.closest('[data-monitor-row]');
+    if (btn) openMonitorRow(Number(btn.dataset.monitorRow));
+  });
+  // A chip on a tool call in the trace. It sits in the call's <summary>:
+  // keep the click from folding the call.
+  els.trace.addEventListener('click', e => {
+    const chip = e.target.closest('.monitor-chip');
+    if (!chip) return;
+    e.preventDefault();
+    openMonitorRow(Number(chip.dataset.monitorRow));
+  });
+}
+
+// Open the Monitor tab at one decision.
+function openMonitorRow(index) {
+  const d = MONITOR_DECISIONS[index];
+  if (!d) return;
+  if (!monitorMatches(d, MONITOR_FILTER)) MONITOR_FILTER = 'all';
+  const position = monitorFiltered().indexOf(index);
+  MONITOR_SHOWN = Math.max(MONITOR_SHOWN, (Math.floor(position / MONITOR_PAGE) + 1) * MONITOR_PAGE);
+  renderMonitorFilters();
+  renderMonitorList();
+  els.tabNav.querySelector('[data-tab="monitor"]')?.click();
+  // After the tab switch has scrolled the page to its top.
+  setTimeout(() => {
+    const row = els.monitorList.querySelector(`[data-monitor-row="${index}"]`);
+    if (!row) return;
+    fillMonitorRow(row);
+    row.open = true;
+    row.scrollIntoView({ block: 'center' });
+    row.classList.add('monitor-flash');
+    setTimeout(() => row.classList.remove('monitor-flash'), 1600);
+  }, 60);
+}
+
+// Open the trace at one tool call.
+function showCallInTrace(callId) {
+  els.tabNav.querySelector('[data-tab="trace"]')?.click();
+  setTimeout(() => {
+    const call = [...els.trace.querySelectorAll('[data-tool-use]')].find(el => el.dataset.toolUse === callId);
+    if (!call) return;
+    call.scrollIntoView({ block: 'center' });
+    const article = call.closest('article');
+    if (article) flashEvent(article);
+  }, 60);
+}
+
 // ---------- Workspace (lazy on tab activation) -------------------------
 
 async function loadWorkspace() {
@@ -1820,6 +2220,10 @@ function setupTabs() {
   // Runs no judge reviewed (`judgements: null`) have no Judge tab.
   if (RECORD.judgements === null && !RECORD.judge) {
     els.tabNav.querySelector('[data-tab="judge"]')?.remove();
+  }
+  // Runs without a monitor of the agent's tool calls have no Monitor tab.
+  if (!RECORD.monitor) {
+    els.tabNav.querySelector('[data-tab="monitor"]')?.remove();
   }
   const btns = [...els.tabNav.querySelectorAll('.tab-btn')];
   const sections = new Map();
