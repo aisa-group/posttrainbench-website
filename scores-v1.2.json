@@ -1301,6 +1301,112 @@
         }
       }
     },
+    "gemini-4-neon-xhigh": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": {
+          "value": 7.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 59.75,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 29.54,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 83.62,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 42.82,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 39.33,
+          "fallbackType": false
+        }
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": {
+          "value": 10.67,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 77.11,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 37.61,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 92.65,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 55.03,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 61.59,
+          "fallbackType": false
+        }
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": {
+          "value": 15.0,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 70.0,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 30.62,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 86.67,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 52.44,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 35.67,
+          "fallbackType": false
+        }
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": {
+          "value": 1.33,
+          "fallbackType": false
+        },
+        "arenahardwriting": {
+          "value": 84.25,
+          "fallbackType": false
+        },
+        "gpqamain": {
+          "value": 27.75,
+          "fallbackType": false
+        },
+        "gsm8k": {
+          "value": 76.5,
+          "fallbackType": false
+        },
+        "healthbench": {
+          "value": 43.43,
+          "fallbackType": false
+        },
+        "humaneval": {
+          "value": 57.62,
+          "fallbackType": false
+        }
+      }
+    },
     "muse-wonder-xhigh": {
       "Qwen3-1.7B-Base": {
         "aime2025": {
@@ -3017,6 +3123,11 @@
       "std": 1.26,
       "n": 2
     },
+    "gemini-4-neon-xhigh": {
+      "avg": 40.61,
+      "std": 2.23,
+      "n": 2
+    },
     "locus": {
       "avg": 41.66,
       "std": 0.82,
@@ -3362,6 +3473,40 @@
         "gsm8k": 2.52,
         "healthbench": 3.5,
         "humaneval": 36.79
+      }
+    },
+    "gemini-4-neon-xhigh": {
+      "Qwen3-1.7B-Base": {
+        "aime2025": 2.83,
+        "arenahardwriting": 23.78,
+        "gpqamain": 0.42,
+        "gsm8k": 1.07,
+        "healthbench": 5.3,
+        "humaneval": 44.41
+      },
+      "Qwen3-4B-Base": {
+        "aime2025": 10.37,
+        "arenahardwriting": 12.05,
+        "gpqamain": 0.16,
+        "gsm8k": 0.21,
+        "healthbench": 2.32,
+        "humaneval": 35.36
+      },
+      "SmolLM3-3B-Base": {
+        "aime2025": 1.41,
+        "arenahardwriting": 2.75,
+        "gpqamain": 1.32,
+        "gsm8k": 1.27,
+        "healthbench": 0.1,
+        "humaneval": 41.82
+      },
+      "gemma-3-4b-pt": {
+        "aime2025": 0.94,
+        "arenahardwriting": 3.58,
+        "gpqamain": 1.58,
+        "gsm8k": 9.76,
+        "healthbench": 3.25,
+        "humaneval": 3.88
       }
     },
     "muse-wonder-xhigh": {
@@ -4041,6 +4186,13 @@
       "hours": 9.936,
       "time": "9:56",
       "stdHours": 0.001,
+      "stdTime": "0:00",
+      "n": 2
+    },
+    "gemini-4-neon-xhigh": {
+      "hours": 9.983,
+      "time": "9:58",
+      "stdHours": 0.013,
       "stdTime": "0:00",
       "n": 2
     },
