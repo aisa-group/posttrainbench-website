@@ -1704,10 +1704,12 @@ function renderJudgeVerdicts() {
   // description: v1.2 is the majority of three judge runs, v1.1 a single
   // run of the post-2026-07 prompt, v1.0 the pre-revamp free-text verdict.
   const ver = jud.version || RECORD.index_row?.judge_version;
-  const info = ver ? (JUDGE_VERSIONS[ver] || { href: '../', text: `the ${ver} setting.` }) : null;
+  // One of the original's versions links to its description. Any other label says
+  // who judged this run (a model in its harness, or a reviewer), and reads on.
+  const info = ver ? JUDGE_VERSIONS[ver] : null;
   els.judgeVersionNote.innerHTML = info
     ? `Judged under <a href="${info.href}">${escapeHtml(ver)}</a>: ${escapeHtml(info.text)}`
-    : '';
+    : (ver ? `Judged by ${escapeHtml(ver)}.` : '');
   els.judgeVerdicts.innerHTML = `<div class="verdict-list">${cards.join('')}</div>`;
 }
 
