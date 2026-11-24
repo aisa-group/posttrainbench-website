@@ -121,3 +121,5 @@ qwen_code_qwen_qwen4-max_xhigh_10h_run1,9:30:10,95.0%
 qwen_code_qwen_qwen4-max_xhigh_10h_run2,9:02:43,90.5%
 codex_max_gpt-6.2-astra_10h_run1,9:56:05,99.3%
 codex_max_gpt-6.2-astra_10h_run2,9:56:11,99.4%
+opencode_neon_openrouter_google_gemini-4-neon_xhigh_10h_run1,9:58:25,99.7%
+opencode_neon_openrouter_google_gemini-4-neon_xhigh_10h_run2,9:59:31,99.9%
