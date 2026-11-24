@@ -88,6 +88,7 @@ Top-level fields:
 - `sessions[]`: one per session segment: `session_idx`, `session_id`, `ts_start`, `model`, `cwd`, `tools`, …
 - `events[]`: below.
 - `costs` (optional): what was billed, never an estimate. `api_usd` is the model provider's own figure for the agent's calls, `prime` what the compute provider billed for the run's machines (`usd`, `items[]` with `what`, `usd`, `hours`, `billed_until`; `missing[]`; `read_at`), `total_usd` their sum; a part nobody reported is `null`. With it, the run page shows compute and API cost apart, and `total_cost_usd` is `total_usd`.
+- `subagents[]` (optional): the conversations beside the run's own, which `events[]` does not hold: each sub-agent the agent started, in the order they began. `key` (the id of the tool call that started it, else `conversation-<n>`), `id` (that call's id, or `null`), `tool` (`Agent`, or another tool whose own model call this is), `description`, `subagent_type`, `prompt`, `ts_start`, `ts_end`, `duration_ms`, `num_turns`, `num_tool_calls`, and `events[]` in the same form as the run's, each with `parent_tool_use_id` set to `key`. The run page shows a sub-agent as a panel under the tool call whose id is `key`, in whichever conversation that call is; one with no such call is listed after the trace. Turn anchors inside the n-th sub-agent are `#sub<n>-turn-<k>`.
 - `metrics`: the scores. `by_theme` (`{name: 0–1}`) is the breakdown; `breakdown_label` optionally names it (for example "Final benchmarks").
 - `metrics_averaged`
 - `score`

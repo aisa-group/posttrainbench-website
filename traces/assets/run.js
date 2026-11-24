@@ -114,6 +114,7 @@ async function load() {
     renderSummary();
     setupReturnContext();
     indexMonitor();
+    indexSubagents();
     renderTrace();
     renderJudge();
     setupJudgeActions();
@@ -482,6 +483,7 @@ function prettyHarness(fmt) {
 // the jump-to-turn input + click-on-marker permalink behavior.
 function setupTraceControls() {
   els.expandOutputs.addEventListener('change', () => renderTrace({ preservePosition: true }));
+  setupSubagents();
 
   const setTraceView = view => {
     if (TRACE_VIEW === view) return;
@@ -547,6 +549,10 @@ function setupTraceControls() {
   const initialAnchor = eventAnchorFromHash();
   if (initialAnchor) {
     setTimeout(() => {
+      // A link into a sub-agent's steps: its panel opens first.
+      const inSub = /^sub(\d+)-/.exec(initialAnchor);
+      const sub = inSub && [...SUBAGENTS.values()].find(other => other.number === Number(inSub[1]));
+      if (sub) openSubagent(sub);
       const target = document.getElementById(initialAnchor);
       if (target) { target.scrollIntoView({ block: 'center' }); flashEvent(target); }
     }, 50);
@@ -564,7 +570,7 @@ function eventAnchorFromHash(hash = window.location.hash) {
   } catch {
     return null;
   }
-  return /^(?:turn-\d+|ev-[A-Za-z0-9_-]+)$/.test(id) ? id : null;
+  return /^(?:sub\d+-)?(?:turn-\d+|ev-[A-Za-z0-9_-]+)$/.test(id) ? id : null;
 }
 
 const eventFlashTimers = new WeakMap();
@@ -619,63 +625,20 @@ function renderTrace({ preservePosition = false } = {}) {
   const wantSys = TRACE_VIEW === 'all';
   const expandResults = els.expandOutputs.checked;
 
-  // Pair tool_use → tool_result so they render together.
-  const resultByUseId = new Map();
-  for (const ev of events) {
-    if (ev.type === 'user' && Array.isArray(ev.blocks)) {
-      for (const b of ev.blocks) {
-        if (b && b.type === 'tool_result' && b.tool_use_id) {
-          resultByUseId.set(b.tool_use_id, { ev, block: b });
-        }
-      }
-    }
-  }
-  const skipUserEv = new Set();
-  for (const { ev } of resultByUseId.values()) {
-    if (ev.blocks.every(b => b && b.type === 'tool_result' && resultByUseId.has(b.tool_use_id))) {
-      skipUserEv.add(ev);
-    }
-  }
-
-  // Pre-compute turn numbers for assistant-style events (the user's mental
-  // model is "the agent's Nth move").
-  let turnCounter = 0;
-  const turnNumByUuid = new Map();
-  for (const ev of events) {
-    const isAgentTurn = ev.type === 'assistant' || (ev.type === 'codex_item' &&
-      (ev.subtype === 'agent_message' || ev.subtype === 'assistant_message' ||
-       ev.subtype === 'command_execution' || ev.subtype === 'file_change' ||
-       ev.subtype === 'web_search'));
-    if (isAgentTurn) {
-      turnCounter++;
-      turnNumByUuid.set(ev, turnCounter);
-    }
-  }
+  const turnCounter = events.filter(isAgentTurn).length;
 
   const sessionCount = RECORD.summary.session_count || 1;
   const displayTurns = RECORD.index_row.num_turns ?? turnCounter;
-  els.eventCount.innerHTML = `<span>${Number(displayTurns).toLocaleString()} turn${Number(displayTurns) === 1 ? '' : 's'} · ${sessionCount} session${sessionCount === 1 ? '' : 's'}</span><span class="trace-raw-count">${events.length.toLocaleString()} source events</span>`;
+  const subTurns = [...SUBAGENTS.values()].reduce((n, sub) => n + (sub.num_turns || 0), 0);
+  const subNote = subTurns ? ` · ${subTurns.toLocaleString()} of them in sub-agents` : '';
+  els.eventCount.innerHTML = `<span>${Number(displayTurns).toLocaleString()} turn${Number(displayTurns) === 1 ? '' : 's'}${subNote} · ${sessionCount} session${sessionCount === 1 ? '' : 's'}</span><span class="trace-raw-count">${events.length.toLocaleString()} source events</span>`;
   els.eventCount.title = `${events.length.toLocaleString()} source events`;
   els.traceViewFocus.classList.toggle('active', TRACE_VIEW === 'focus');
   els.traceViewAll.classList.toggle('active', TRACE_VIEW === 'all');
   els.traceViewFocus.setAttribute('aria-pressed', String(TRACE_VIEW === 'focus'));
   els.traceViewAll.setAttribute('aria-pressed', String(TRACE_VIEW === 'all'));
 
-  const out = [];
-  let lastSession = -1;
-  for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
-    const ev = events[eventIndex];
-    if (ev.type === 'system' && !wantSys && ev.subtype !== 'init') continue;
-    if (skipUserEv.has(ev)) continue;
-
-    if (ev.session_idx !== lastSession && lastSession >= 0) {
-      out.push(renderSessionBanner(ev));
-    }
-    lastSession = ev.session_idx;
-
-    out.push(renderEvent(ev, resultByUseId, expandResults, turnNumByUuid.get(ev), eventIndex));
-  }
-  els.trace.innerHTML = out.join('');
+  els.trace.innerHTML = eventsHtml(events, { wantSys, expandResults }) + looseSubagentsHtml(expandResults);
   if (anchor) restoreTraceAnchor(anchor);
   markClippedOutputs();
 }
@@ -748,7 +711,61 @@ function renderSessionBanner(ev) {
   </div>`;
 }
 
-function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
+// Whether an event is one of the agent's moves: these are the numbered turns.
+function isAgentTurn(ev) {
+  return ev.type === 'assistant' || (ev.type === 'codex_item' &&
+    (ev.subtype === 'agent_message' || ev.subtype === 'assistant_message' ||
+     ev.subtype === 'command_execution' || ev.subtype === 'file_change' ||
+     ev.subtype === 'web_search'));
+}
+
+// One conversation's events as HTML: the run's own, or a sub-agent's, whose
+// `anchorPrefix` keeps its turn numbers and permalinks apart from the run's.
+function eventsHtml(events, { wantSys, expandResults, anchorPrefix = '' }) {
+  // Pair tool_use → tool_result so they render together.
+  const resultByUseId = new Map();
+  for (const ev of events) {
+    if (ev.type === 'user' && Array.isArray(ev.blocks)) {
+      for (const b of ev.blocks) {
+        if (b && b.type === 'tool_result' && b.tool_use_id) {
+          resultByUseId.set(b.tool_use_id, { ev, block: b });
+        }
+      }
+    }
+  }
+  const skipUserEv = new Set();
+  for (const { ev } of resultByUseId.values()) {
+    if (ev.blocks.every(b => b && b.type === 'tool_result' && resultByUseId.has(b.tool_use_id))) {
+      skipUserEv.add(ev);
+    }
+  }
+
+  // Pre-compute turn numbers for assistant-style events (the user's mental
+  // model is "the agent's Nth move").
+  let turnCounter = 0;
+  const turnNumByUuid = new Map();
+  for (const ev of events) {
+    if (isAgentTurn(ev)) turnNumByUuid.set(ev, ++turnCounter);
+  }
+
+  const out = [];
+  let lastSession = -1;
+  for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
+    const ev = events[eventIndex];
+    if (ev.type === 'system' && !wantSys && ev.subtype !== 'init') continue;
+    if (skipUserEv.has(ev)) continue;
+
+    if (ev.session_idx !== lastSession && lastSession >= 0) {
+      out.push(renderSessionBanner(ev));
+    }
+    lastSession = ev.session_idx;
+
+    out.push(renderEvent(ev, resultByUseId, expandResults, turnNumByUuid.get(ev), eventIndex, anchorPrefix));
+  }
+  return out.join('');
+}
+
+function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex, anchorPrefix = '') {
   let roleClass = '';
   let markerLabel = '';
   let markerNum = '';
@@ -780,9 +797,9 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
   const tsParts = ev.ts ? formatEventTime(ev.ts) : null;
   // Each event gets an anchor ID so users can share permalinks.
   // Agent turns use #turn-N; other events use a stable role-based ID.
-  const anchorId = turnNum != null
+  const anchorId = anchorPrefix + (turnNum != null
     ? `turn-${turnNum}`
-    : `ev-${ev.session_idx ?? 0}-${ev.type}-${(ev.uuid || ev.ts || eventIndex).toString().replace(/[^A-Za-z0-9_-]/g, '').slice(-8) || eventIndex}`;
+    : `ev-${ev.session_idx ?? 0}-${ev.type}-${(ev.uuid || ev.ts || eventIndex).toString().replace(/[^A-Za-z0-9_-]/g, '').slice(-8) || eventIndex}`);
   // Marker: turn # (or role label) → relative time. The displayed time is
   // already trace-relative (first event = 00:00:00) so the redundant
   // "+elapsed" badge is gone. Wall-clock + date move to the hover tooltip.
@@ -861,6 +878,7 @@ function renderEvent(ev, resultByUseId, expandResults, turnNum, eventIndex) {
 }
 
 const ICON = {
+  subagent: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M6 7.5V12a7 7 0 0 0 7 7h2.5"/></svg>',
   thought: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>',
   tool: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
   output: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
@@ -909,6 +927,12 @@ function renderToolCall(block, pair, expandResults) {
     argsHtml = `<div>${escapeHtml(block.input.file_path)}</div>`
       + `<pre class="diff-remove">- ${escapeHtml(block.input.old_string || '')}</pre>`
       + `<pre class="diff-add">+ ${escapeHtml(block.input.new_string || '')}</pre>`;
+  } else if ((name === 'Agent' || name === 'Task') && block.input && typeof block.input.prompt === 'string') {
+    // A sub-agent's start: what it is for, and its task folded away. The task is
+    // long prose; as JSON it buried the sub-agent's own steps below it.
+    const facts = [block.input.subagent_type, block.input.run_in_background ? 'in the background' : null].filter(Boolean);
+    argsHtml = `<div class="agent-call-title">${escapeHtml(block.input.description || 'Sub-agent')}${facts.length ? ` <span class="muted">${escapeHtml(facts.join(' · '))}</span>` : ''}</div>`
+      + `<details class="agent-call-task"><summary class="muted">Its task (${fmtNum(block.input.prompt.length)} characters)</summary><div class="agent-text markdown-body">${renderMarkdown(block.input.prompt)}</div></details>`;
   } else {
     argsHtml = `<pre>${escapeHtml(JSON.stringify(block.input ?? {}, null, 2))}</pre>`;
   }
@@ -919,7 +943,95 @@ function renderToolCall(block, pair, expandResults) {
   const expanded = expandResults ? 'expanded' : '';
   const variant = name === 'Bash' ? 'tool-bash' : '';
   const useId = block.id ? ` data-tool-use="${escapeHtml(block.id)}"` : '';
-  return `<details class="tool-call ${variant} ${expanded}"${useId} open>${summary}<div class="tool-args">${argsHtml}</div>${result}</details>`;
+  const sub = block.id ? SUBAGENTS.get(block.id) : null;
+  return `<details class="tool-call ${variant} ${expanded}"${useId} open>${summary}<div class="tool-args">${argsHtml}</div>${result}</details>`
+    + (sub ? subagentPanelHtml(sub, expandResults) : '');
+}
+
+// ---------- Sub-agents ---------------------------------------------------
+// A record's `subagents` are the conversations beside the run's own: each
+// sub-agent the agent started, with its own events. A sub-agent shows as a
+// panel under the tool call that started it, closed until asked for, and its
+// steps render only then: a long run holds more turns in sub-agents than in
+// the agent's own conversation.
+let SUBAGENTS = new Map();
+const OPEN_SUBAGENTS = new Set();
+
+function toolUseIds(events) {
+  const ids = new Set();
+  for (const ev of events || []) {
+    for (const b of ev.blocks || []) if (b && b.type === 'tool_use' && b.id) ids.add(b.id);
+  }
+  return ids;
+}
+
+function indexSubagents() {
+  const subs = (RECORD.subagents || []).map((sub, i) => ({ ...sub, number: i + 1, calls: toolUseIds(sub.events) }));
+  SUBAGENTS = new Map(subs.map(sub => [sub.key, sub]));
+  // A sub-agent whose starting call is in no conversation has no call to sit
+  // under: these are listed after the trace.
+  const shown = toolUseIds(RECORD.events);
+  for (const sub of subs) for (const id of sub.calls) shown.add(id);
+  for (const sub of subs) sub.loose = !shown.has(sub.key);
+}
+
+function subagentKind(sub) {
+  return !sub.tool || sub.tool === 'Agent' || sub.tool === 'Task' ? 'Sub-agent' : `Model call of ${sub.tool}`;
+}
+
+function subagentPanelHtml(sub, expandResults) {
+  const open = OPEN_SUBAGENTS.has(sub.key);
+  const meta = [
+    `${fmtNum(sub.num_turns)} turn${sub.num_turns === 1 ? '' : 's'}`,
+    sub.num_tool_calls ? `${fmtNum(sub.num_tool_calls)} tool call${sub.num_tool_calls === 1 ? '' : 's'}` : null,
+    sub.duration_ms >= 1000 ? msToHms(sub.duration_ms) : null,
+  ].filter(Boolean).join(' · ');
+  return `<details class="subagent" data-subagent="${escapeHtml(sub.key)}"${open ? ' open' : ''}>
+    <summary>${ICON.subagent}<span class="subagent-kind">${escapeHtml(subagentKind(sub))}</span>${sub.description ? `<span class="subagent-title">${escapeHtml(sub.description)}</span>` : ''}<span class="subagent-meta">${escapeHtml(meta)}</span><span class="subagent-toggle"></span></summary>
+    <div class="subagent-body">${open ? subagentBodyHtml(sub, expandResults) : ''}</div>
+  </details>`;
+}
+
+function subagentBodyHtml(sub, expandResults) {
+  return eventsHtml(sub.events || [], {
+    wantSys: TRACE_VIEW === 'all',
+    expandResults,
+    anchorPrefix: `sub${sub.number}-`,
+  });
+}
+
+function looseSubagentsHtml(expandResults) {
+  const loose = [...SUBAGENTS.values()].filter(sub => sub.loose);
+  if (!loose.length) return '';
+  return `<section class="subagents-loose"><div class="block-label">Other conversations in this trace</div>${loose.map(sub => subagentPanelHtml(sub, expandResults)).join('')}</section>`;
+}
+
+// Open a sub-agent's panel, and first the panel of the sub-agent that started it.
+function openSubagent(sub) {
+  const parent = [...SUBAGENTS.values()].find(other => other !== sub && other.calls.has(sub.key));
+  if (parent) openSubagent(parent);
+  OPEN_SUBAGENTS.add(sub.key);
+  const panel = [...els.trace.querySelectorAll('details.subagent')].find(el => el.dataset.subagent === sub.key);
+  if (!panel) return;
+  const body = panel.querySelector(':scope > .subagent-body');
+  if (!body.firstElementChild) body.innerHTML = subagentBodyHtml(sub, els.expandOutputs.checked);
+  panel.open = true;
+}
+
+function setupSubagents() {
+  // `toggle` does not bubble: listen on the way down.
+  els.trace.addEventListener('toggle', e => {
+    const panel = e.target;
+    if (!panel.matches || !panel.matches('details.subagent')) return;
+    const sub = SUBAGENTS.get(panel.dataset.subagent);
+    if (!sub) return;
+    if (panel.open) {
+      openSubagent(sub);
+      markClippedOutputs();
+    } else {
+      OPEN_SUBAGENTS.delete(sub.key);
+    }
+  }, true);
 }
 
 function renderToolResult(block, expandResults) {
@@ -1996,6 +2108,8 @@ function openMonitorRow(index) {
 function showCallInTrace(callId) {
   els.tabNav.querySelector('[data-tab="trace"]')?.click();
   setTimeout(() => {
+    const within = [...SUBAGENTS.values()].find(sub => sub.calls.has(callId));
+    if (within) openSubagent(within);
     const call = [...els.trace.querySelectorAll('[data-tool-use]')].find(el => el.dataset.toolUse === callId);
     if (!call) return;
     call.scrollIntoView({ block: 'center' });
@@ -2350,11 +2464,30 @@ function escapeHtml(s) {
 // result to a deliberately small HTML vocabulary. This keeps headings,
 // lists, tables, quotes, and code readable without allowing trace text to
 // inject scripts, event handlers, remote images, or unsafe links.
+// Strikethrough takes two tildes, as in GitHub's markdown. marked also takes one,
+// and then strikes through everything between two approximations in a sentence
+// ("~67GB ... (~150MB/s"). A tokenizer that returns nothing leaves the tilde as text.
+let MARKED_READY = false;
+function setupMarked() {
+  if (MARKED_READY) return;
+  MARKED_READY = true;
+  window.marked.use({
+    tokenizer: {
+      del(src) {
+        const match = /^(~~)(?=[^\s~])((?:\\[\s\S]|[^\\])*?(?:\\[\s\S]|[^\s~\\]))\1(?=[^~]|$)/.exec(src);
+        if (!match) return undefined;
+        return { type: 'del', raw: match[0], text: match[2], tokens: this.lexer.inlineTokens(match[2]) };
+      },
+    },
+  });
+}
+
 function renderMarkdown(value) {
   if (!value) return '';
   const source = String(value).replace(/^[\u200B\u200C\u200D\u200E\u200F\uFEFF]/, '');
   if (typeof window.marked?.parse !== 'function') return fallbackMarkdown(source);
   try {
+    setupMarked();
     return sanitizeMarkdownHtml(window.marked.parse(source, {
       gfm: true,
       breaks: true,

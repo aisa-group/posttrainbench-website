@@ -2365,6 +2365,51 @@ code { font: inherit; background: var(--bg-tertiary); padding: 1px 5px; border-r
   font-weight: 700;
 }
 
+/* A sub-agent's own steps: a panel under the tool call that started it, closed
+   until asked for. Its events are full trace events, one level in. */
+.subagent {
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 40%, var(--border-color));
+  border-left: 3px solid var(--accent-primary);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--accent-primary) 4%, var(--bg-primary));
+}
+.subagent > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.74rem;
+  color: var(--text-primary);
+}
+.subagent > summary::-webkit-details-marker { display: none; }
+.subagent > summary svg { color: var(--accent-primary); flex: none; }
+.subagent-kind {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+.subagent-title { font-weight: 600; }
+.subagent-meta { color: var(--text-secondary); font-size: 0.7rem; }
+.subagent-toggle { margin-left: auto; font-size: 0.68rem; color: var(--accent-text); }
+.subagent-toggle::after { content: 'Show its steps'; }
+.subagent[open] > summary .subagent-toggle::after { content: 'Hide its steps'; }
+.subagent[open] > summary { border-bottom: 1px solid var(--border-color); }
+.subagent > summary:hover .subagent-toggle { text-decoration: underline; }
+.subagent-body { padding: 0.2rem 0.6rem 0.4rem 0.2rem; }
+.agent-call-title { font-weight: 600; }
+.agent-call-title .muted { font-weight: 400; font-size: 0.7rem; margin-left: 0.4rem; }
+.agent-call-task { margin-top: 0.4rem; }
+.agent-call-task > summary { cursor: pointer; font-size: 0.7rem; }
+.agent-call-task > .agent-text { margin-top: 0.4rem; }
+/* Every event in the panel is the sub-agent's: the per-event tag says nothing. */
+.subagent .ev-sub-tag { display: none; }
+.subagents-loose { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 1rem; }
+
 /* Event body */
 .event-body {
   position: relative;
