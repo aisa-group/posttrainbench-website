@@ -87,6 +87,7 @@ Top-level fields:
 - `summary`: `agent_models`, `num_turns`, `duration_ms`, `duration_api_ms`, `total_cost_usd`, `session_count`, `session_ids`, `stop_reasons`, `usage_total` (`input_tokens`, `output_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`), `tools_offered`, `permission_mode`, `cwd`, `final_result_text`, plus, optionally, `harness`, `harness_version` and `claude_code_version`.
 - `sessions[]`: one per session segment: `session_idx`, `session_id`, `ts_start`, `model`, `cwd`, `tools`, …
 - `events[]`: below.
+- `costs` (optional): what was billed, never an estimate. `api_usd` is the model provider's own figure for the agent's calls, `prime` what the compute provider billed for the run's machines (`usd`, `items[]` with `what`, `usd`, `hours`, `billed_until`; `missing[]`; `read_at`), `total_usd` their sum; a part nobody reported is `null`. With it, the run page shows compute and API cost apart, and `total_cost_usd` is `total_usd`.
 - `metrics`: the scores. `by_theme` (`{name: 0–1}`) is the breakdown; `breakdown_label` optionally names it (for example "Final benchmarks").
 - `metrics_averaged`
 - `score`

@@ -334,7 +334,7 @@ function renderSummary() {
     ['duration',    escapeHtml(humanDuration(ix.time_taken, ix.duration_ms))],
     ['turns',       escapeHtml((ix.num_turns != null && ix.num_turns > 0) ? String(ix.num_turns) : '-')],
     ['sessions',    escapeHtml(String(ix.session_count ?? '-'))],
-    ['cost',        costHtml],
+    ...(costStats(RECORD.costs) || [['cost', costHtml]]),
   );
   els.summaryStats.innerHTML = stats.map(([k, v]) =>
     `<dt>${k}</dt><dd>${v}</dd>`).join('');
@@ -1341,6 +1341,34 @@ function setupMetricsModal() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !els.metricsModal.classList.contains('modal-hidden')) closeMetricsModal();
   });
+}
+
+// A record that says where its cost was billed (`costs`) shows the two parts
+// apart: what the compute provider billed for the run's machines, and what the
+// model provider charged for the agent's calls. Both are billed figures, never
+// estimates; a part nobody reported shows as unknown, with the reason.
+function costStats(costs) {
+  if (!costs) return null;
+  const usd = v => '$' + Number(v).toFixed(2);
+  const unknown = tip =>
+    `<span class="cost-missing" data-tip="${escapeHtml(tip)}">-</span>`;
+  const prime = costs.prime;
+  let compute = unknown("No billing rows were read for this run's machines.");
+  if (prime && prime.items && prime.items.length) {
+    const parts = prime.items.map(i =>
+      `${i.what} ${usd(i.usd)}` + (i.hours != null ? ` (${i.hours} h)` : ''));
+    const tip = `Billed by Prime for the run's machines: ${parts.join('; ')}.`
+      + (prime.missing && prime.missing.length
+        ? ` No billing row found for: ${prime.missing.join(', ')}.` : '')
+      + ' Not included: the task sandboxes of the evaluations.'
+      + (prime.read_at ? ` Read ${prime.read_at.slice(0, 10)}.` : '');
+    compute = `<span data-tip="${escapeHtml(tip)}">${usd(prime.usd)}</span>`;
+  }
+  const api = costs.api_usd != null
+    ? `<span data-tip="As the model provider reported it with each call.">${usd(costs.api_usd)}</span>`
+    : unknown('The model provider reports no cost with these calls. '
+        + 'The token counts are below.');
+  return [['compute cost', compute], ['API cost', api]];
 }
 
 function renderMiniTokens() {
